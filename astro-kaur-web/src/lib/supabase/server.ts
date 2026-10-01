@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Supabase SERVER client — use in Server Components, Route Handlers,
  * and Server Actions. Reads and writes cookies for session management.
  * Must be called inside a request context (never at module level).
@@ -11,8 +11,8 @@ export async function createClient() {
   const cookieStore = await cookies()
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL)!,
+    (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY)!,
     {
       cookies: {
         getAll() {

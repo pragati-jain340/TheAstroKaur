@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Supabase session refresh helper for Next.js Middleware.
  * Must be called on every request so the server session stays fresh.
  * @supabase/ssr requires this pattern — without it, the access-token
@@ -12,8 +12,8 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL)!,
+    (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY)!,
     {
       cookies: {
         getAll() {
