@@ -5,17 +5,17 @@ export default function AboutPreview() {
   return (
     <section
       id="about"
-      className="py-12 sm:py-14 lg:py-16 px-6 sm:px-10 lg:px-16 bg-transparent relative overflow-hidden text-[#FAF8F5]"
+      className="scroll-mt-28 sm:scroll-mt-32 py-12 sm:py-14 lg:py-16 px-6 sm:px-10 lg:px-16 bg-transparent relative overflow-hidden text-[#0F172A] dark:text-[#FAF8F5]"
     >
       {/* ── Outer Section Container: Expanded horizontal width ── */}
       <div className="max-w-6xl mx-auto w-full relative z-10">
         
-        {/* ── Signature Curved Feature Block: Generous Horizontal Proportions with Sleek Height ── */}
-        <div className="relative rounded-3xl sm:rounded-[36px] bg-[#0B1322]/90 dark:bg-[#0D1829]/95 backdrop-blur-md border border-[#E5B842]/25 py-7 sm:py-9 lg:py-10 px-8 sm:px-12 lg:px-16 xl:px-20 shadow-[0_20px_50px_rgba(0,0,0,0.35)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.7)] overflow-hidden">
+        {/* ── Signature Curved Feature Block: Balanced Light & Dark Mode Aesthetic ── */}
+        <div className="relative rounded-3xl sm:rounded-[36px] bg-white/85 dark:bg-[#0D1829]/95 backdrop-blur-md border border-[#E5B842]/30 dark:border-[#E5B842]/25 py-7 sm:py-9 lg:py-10 px-8 sm:px-12 lg:px-16 xl:px-20 shadow-[0_20px_50px_rgba(229,184,66,0.12),0_4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.7)] overflow-hidden transition-colors duration-300">
           
           {/* Subtle Ambient Celestial Accents inside the curved block */}
-          <div className="absolute -top-24 -left-24 w-80 h-80 bg-[#E5B842]/10 rounded-full blur-[100px] pointer-events-none" />
-          <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-[#1E3A8A]/25 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute -top-24 -left-24 w-80 h-80 bg-[#E5B842]/15 dark:bg-[#E5B842]/10 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-[#E5B842]/10 dark:bg-[#1E3A8A]/25 rounded-full blur-[120px] pointer-events-none" />
 
           <div className="flex flex-col lg:flex-row items-center justify-between gap-10 sm:gap-12 lg:gap-16 xl:gap-20 relative z-10">
             
@@ -36,7 +36,7 @@ export default function AboutPreview() {
               <div className="relative w-full aspect-[3/4]">
                 
                 {/* 1. Photo Arch Frame */}
-                <div className="relative w-full h-full rounded-tr-[135px] sm:rounded-tr-[155px] lg:rounded-tr-[170px] rounded-tl-none rounded-bl-none rounded-br-none overflow-hidden border border-[#E5B842] shadow-[0_16px_40px_rgba(0,0,0,0.65)] group z-10">
+                <div className="relative w-full h-full rounded-tr-[135px] sm:rounded-tr-[155px] lg:rounded-tr-[170px] rounded-tl-none rounded-bl-none rounded-br-none overflow-hidden border border-[#E5B842] shadow-[0_16px_40px_rgba(229,184,66,0.22)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.65)] group z-10">
                   <Image
                     src="/Owner_image.png"
                     alt="TheAstroKaur — Vedic Astrologer"
@@ -46,7 +46,7 @@ export default function AboutPreview() {
                     sizes="(max-width: 640px) 260px, (max-width: 1024px) 290px, 315px"
                   />
                   {/* Subtle base vignette */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0B1322]/40 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/25 dark:from-[#0B1322]/40 via-transparent to-transparent pointer-events-none" />
                 </div>
 
                 {/* 2. Precision SVG Overlay for Bottom-Left Corner Elements */}
@@ -116,18 +116,18 @@ export default function AboutPreview() {
               className="w-full flex-1 max-w-[560px] flex flex-col items-start text-left"
             >
               {/* Pill Tag */}
-              <div className="inline-flex items-center px-3.5 py-1 rounded-full text-[10.5px] sm:text-[11.5px] font-medium tracking-[0.2em] uppercase text-[#E5B842] border border-[#E5B842]/70 bg-transparent mb-4">
+              <div className="inline-flex items-center px-3.5 py-1 rounded-full text-[10.5px] sm:text-[11.5px] font-semibold tracking-[0.2em] uppercase text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/60 dark:border-[#E5B842]/70 bg-[#E5B842]/10 dark:bg-transparent mb-4">
                 ANALYTICAL MIND · VEDIC HEART
               </div>
 
               {/* Heading: "Meet TheAstroKaur" */}
               <h2 className="font-serif text-3xl sm:text-4xl lg:text-[44px] font-normal leading-[1.12] tracking-tight mb-4">
-                <span className="block text-white">Meet</span>
-                <span className="block text-[#E5B842]">TheAstroKaur</span>
+                <span className="block text-[#0F172A] dark:text-white">Meet</span>
+                <span className="block text-[#B8871E] dark:text-[#E5B842]">TheAstroKaur</span>
               </h2>
 
               {/* Body Paragraphs */}
-              <div className="space-y-3.5 text-xs sm:text-[14px] text-slate-300 font-light leading-[1.75] mb-6">
+              <div className="space-y-3.5 text-xs sm:text-[14px] text-[#0F172A]/75 dark:text-slate-300 font-light leading-[1.75] mb-6">
                 <p>
                   Graduating from top universities in India and abroad and building a career in technology, I was trained to think analytically and rely on logic, evidence, and structured reasoning. Like many people, I believed that success and life&apos;s outcomes were entirely within my control, leaving little room for ancient wisdom such as Vedic astrology.
                 </p>
@@ -138,7 +138,7 @@ export default function AboutPreview() {
 
               {/* Solid Warm Gold Pill Button */}
               <a
-                href="#about"
+                href="#readings"
                 className="inline-flex items-center gap-2.5 px-7 py-3 sm:px-8 sm:py-3.5 rounded-full bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] font-bold text-xs sm:text-[12.5px] tracking-[0.16em] uppercase transition-all duration-300 shadow-[0_4px_18px_rgba(229,184,66,0.3)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.5)] hover:-translate-y-0.5 group"
               >
                 <span>Read My Full Story</span>

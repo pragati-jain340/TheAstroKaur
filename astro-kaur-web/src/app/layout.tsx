@@ -17,9 +17,14 @@ export const metadata: Metadata = {
   description:
     "Discover Vedic astrology as a path to self-awareness, conscious choices, and clarity on your life journey.",
   icons: {
-    icon: "/astro-emblem-light.png",
+    icon: "/astro-emblem-light.png?v=5",
   },
 };
+
+import { AuthProvider } from "@/context/AuthContext";
+import AuthModal from "@/components/auth/AuthModal";
+import EditProfileModal from "@/components/auth/EditProfileModal";
+import ServiceBookingModal from "@/components/services/ServiceBookingModal";
 
 export default function RootLayout({
   children,
@@ -51,7 +56,14 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <AuthProvider>
+          {children}
+          <AuthModal />
+          <EditProfileModal />
+          <ServiceBookingModal />
+        </AuthProvider>
+      </body>
     </html>
   );
 }

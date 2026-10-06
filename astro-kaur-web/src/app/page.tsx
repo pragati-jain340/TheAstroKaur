@@ -2,6 +2,7 @@ import Image from "next/image";
 import Navbar from "@/components/layout/Navbar";
 import HeroSection from "@/components/home/HeroSection";
 import ServicesPreview from "@/components/home/ServicesPreview";
+import RisingSignSection from "@/components/home/RisingSignSection";
 import AboutPreview from "@/components/home/AboutPreview";
 import VisionSection from "@/components/home/VisionSection";
 import FinalCTASection from "@/components/home/FinalCTASection";
@@ -13,15 +14,15 @@ export default function Home() {
       {/* ── Whole-Page Ambient Celestial Backdrop (Fixed across all sections) ── */}
       <div className="fixed inset-0 pointer-events-none select-none overflow-hidden z-0">
         <Image
-          src="/Bg_light_mode.png?v=1"
+          src="/Bg_light_mode.png"
           alt="Celestial Background Light"
           fill
           priority
           unoptimized
-          className="object-cover object-center opacity-15 dark:hidden"
+          className="object-cover object-center opacity-20 dark:hidden"
         />
         <Image
-          src="/Bg_dark_mode.png?v=1"
+          src="/Bg_dark_mode.png"
           alt="Celestial Background Dark"
           fill
           priority
@@ -34,6 +35,7 @@ export default function Home() {
       <main className="flex-1 flex flex-col relative z-10">
         <HeroSection />
         <ServicesPreview />
+        <RisingSignSection />
         <AboutPreview />
         <VisionSection />
         <FinalCTASection />

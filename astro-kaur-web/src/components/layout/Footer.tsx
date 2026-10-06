@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-[#E5B842]/20 pt-16 pb-12 px-6 lg:px-16 bg-[#FAF8F5]/80 dark:bg-[#0F172A]/80 backdrop-blur-sm text-[#0F172A] dark:text-[#FAF8F5]">
+    <footer id="contact" className="scroll-mt-28 sm:scroll-mt-32 border-t border-[#E5B842]/20 pt-16 pb-12 px-6 lg:px-16 bg-[#FAF8F5]/80 dark:bg-[#0F172A]/80 backdrop-blur-sm text-[#0F172A] dark:text-[#FAF8F5]">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 pb-12 border-b border-[#0F172A]/10 dark:border-[#FAF8F5]/10">
           {/* Brand & Tagline */}
@@ -10,14 +10,14 @@ export default function Footer() {
             <a href="/" className="flex items-center gap-4 group">
               <div className="relative h-14 w-14 flex-shrink-0 transition-transform group-hover:scale-105">
                 <Image
-                  src="/astro-emblem-light.png?v=4"
+                  src="/astro-emblem-light.png?v=6"
                   alt="TheAstroKaur"
                   fill
                   unoptimized
                   className="object-contain dark:hidden"
                 />
                 <Image
-                  src="/astro-emblem-dark.png?v=4"
+                  src="/astro-emblem-dark.png?v=6"
                   alt="TheAstroKaur"
                   fill
                   unoptimized

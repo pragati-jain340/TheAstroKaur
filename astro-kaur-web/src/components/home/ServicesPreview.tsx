@@ -29,7 +29,7 @@ const services: ServiceItem[] = [
   },
   {
     id: "career-finance-text",
-    title: "Career & Finance Reading",
+    title: "Career & Money Reading",
     format: "Text-based reading",
     isCall: false,
     price: "€20",
@@ -57,7 +57,7 @@ const services: ServiceItem[] = [
   },
   {
     id: "career-guidance-call",
-    title: "Career & Finance Guidance",
+    title: "Career & Money Guidance",
     format: "Voice call · 30 mins",
     isCall: true,
     price: "€40",
@@ -99,12 +99,16 @@ const services: ServiceItem[] = [
   },
 ];
 
+import { useAuth } from "@/context/AuthContext";
+
 function ServiceCard({
   service,
   isDuplicate = false,
+  onSelect,
 }: {
   service: ServiceItem;
   isDuplicate?: boolean;
+  onSelect?: (service: ServiceItem) => void;
 }) {
   return (
     <div
@@ -139,12 +143,13 @@ function ServiceCard({
         <span className="font-serif text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
           {service.price}
         </span>
-        <a
-          href="#readings"
+        <button
+          type="button"
           tabIndex={isDuplicate ? -1 : 0}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-[#0F172A] dark:text-[#FAF8F5] group-hover/card:text-[#E5B842] transition-colors focus:outline-none focus:ring-2 focus:ring-[#E5B842]/50 rounded-sm"
+          onClick={() => onSelect?.(service)}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-[#0F172A] dark:text-[#FAF8F5] group-hover/card:text-[#E5B842] transition-colors focus:outline-none focus:ring-2 focus:ring-[#E5B842]/50 rounded-sm cursor-pointer"
         >
-          <span>View Reading</span>
+          <span>Book Reading</span>
           <svg
             className="w-4 h-4 transition-transform group-hover/card:translate-x-1"
             fill="none"
@@ -154,13 +159,14 @@ function ServiceCard({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
           </svg>
-        </a>
+        </button>
       </div>
     </div>
   );
 }
 
 export default function ServicesPreview() {
+  const { openBookingModal } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -175,7 +181,7 @@ export default function ServicesPreview() {
   };
 
   return (
-    <section id="readings" className="py-20 lg:py-28 px-6 lg:px-16 bg-transparent relative overflow-hidden">
+    <section id="readings" className="scroll-mt-28 sm:scroll-mt-32 py-20 lg:py-28 px-6 lg:px-16 bg-transparent relative overflow-hidden">
       {/* ── Seamless Marquee Keyframes & Accessibility Styles ── */}
       <style>{`
         @keyframes servicesInfiniteMarquee {
@@ -262,14 +268,24 @@ export default function ServicesPreview() {
               {/* Primary Track (Interactive for Screen Readers & Keyboard) */}
               <div className="flex shrink-0 gap-6 pr-6">
                 {services.map((service) => (
-                  <ServiceCard key={service.id} service={service} isDuplicate={false} />
+                  <ServiceCard
+                    key={service.id}
+                    service={service}
+                    isDuplicate={false}
+                    onSelect={openBookingModal}
+                  />
                 ))}
               </div>
 
               {/* Duplicate Track (Hidden from Screen Readers & Tab Order for Accessibility) */}
               <div className="flex shrink-0 gap-6 pr-6" aria-hidden="true">
                 {services.map((service) => (
-                  <ServiceCard key={`dup-${service.id}`} service={service} isDuplicate={true} />
+                  <ServiceCard
+                    key={`dup-${service.id}`}
+                    service={service}
+                    isDuplicate={true}
+                    onSelect={openBookingModal}
+                  />
                 ))}
               </div>
             </div>

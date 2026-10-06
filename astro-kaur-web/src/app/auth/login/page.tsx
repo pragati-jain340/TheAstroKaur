@@ -1,4 +1,4 @@
-﻿/**
+/**
  * /auth/login — Magic-link login page.
  * Sends a one-time magic link to the user'"'"'s email.
  * Used by both customers and the admin (astrologer).
@@ -7,6 +7,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import SubpageBackground from '@/components/layout/SubpageBackground'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -41,8 +42,9 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#F7F2E9] px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg">
+    <main className="relative flex min-h-screen items-center justify-center bg-[#FAF8F5] dark:bg-[#0F172A] px-4 selection:bg-[#E5B842]/30 selection:text-[#0F172A]">
+      <SubpageBackground />
+      <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white/95 dark:bg-[#131F33]/95 backdrop-blur-md p-8 shadow-xl border border-[#E5B842]/20">
         <h1 className="mb-2 text-2xl font-semibold text-[#263D35]">
           Sign in to TheAstroKaur
         </h1>

@@ -40,7 +40,7 @@ export default function VisionSection() {
   ];
 
   return (
-    <section id="vision" className="py-20 lg:py-28 px-6 lg:px-16 bg-transparent relative">
+    <section id="vision" className="scroll-mt-28 sm:scroll-mt-32 py-20 lg:py-28 px-6 lg:px-16 bg-transparent relative">
       <div className="max-w-7xl mx-auto">
         {/* Intro Vision Block */}
         <div className="max-w-3xl mx-auto text-center mb-16">
