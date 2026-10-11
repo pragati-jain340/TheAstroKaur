@@ -1,7 +1,34 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { InView } from "@/components/ui/in-view";
 
+const DEFAULT_ABOUT = {
+  tag: "THE PERSON BEHIND THE READINGS",
+  heading_prefix: "Meet",
+  heading_name: "TheAstroKaur",
+  paragraph_1:
+    "Graduating from top universities in India and Germany and building a career in IT & technology, I was trained to think analytically and rely on logic and structured reasoning. Like many people, I believed that success and life's outcomes were entirely within my control, leaving little room for magic.",
+  paragraph_2:
+    "Everything changed when I began noticing recurring patterns in my own life—similar challenges, relationships, and turning points that seemed to repeat themselves. Searching for answers led me to Vedic astrology, that completely changed my perspective on life. Not just as a prediction tool, but astrology has helped me for self-awareness and personal growth.",
+  image_url: "/Owner_image.png",
+};
+
 export default function AboutPreview() {
+  const [content, setContent] = useState(DEFAULT_ABOUT);
+
+  useEffect(() => {
+    fetch("/api/content")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.about) {
+          setContent((prev) => ({ ...prev, ...data.about }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <section
       id="about"
@@ -9,16 +36,16 @@ export default function AboutPreview() {
     >
       {/* ── Outer Section Container: Expanded horizontal width ── */}
       <div className="max-w-6xl mx-auto w-full relative z-10">
-        
+
         {/* ── Signature Curved Feature Block: Balanced Light & Dark Mode Aesthetic ── */}
         <div className="relative rounded-3xl sm:rounded-[36px] bg-white/85 dark:bg-[#0D1829]/95 backdrop-blur-md border border-[#E5B842]/30 dark:border-[#E5B842]/25 py-7 sm:py-9 lg:py-10 px-8 sm:px-12 lg:px-16 xl:px-20 shadow-[0_20px_50px_rgba(229,184,66,0.12),0_4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.7)] overflow-hidden transition-colors duration-300">
-          
+
           {/* Subtle Ambient Celestial Accents inside the curved block */}
           <div className="absolute -top-24 -left-24 w-80 h-80 bg-[#E5B842]/15 dark:bg-[#E5B842]/10 rounded-full blur-[100px] pointer-events-none" />
           <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-[#E5B842]/10 dark:bg-[#1E3A8A]/25 rounded-full blur-[120px] pointer-events-none" />
 
           <div className="flex flex-col lg:flex-row items-center justify-between gap-10 sm:gap-12 lg:gap-16 xl:gap-20 relative z-10">
-            
+
             {/* ── Left Column: Celestial Arch Frame (Tuned Proportion) ── */}
             <InView
               variants={{
@@ -34,11 +61,11 @@ export default function AboutPreview() {
               className="w-full max-w-[260px] sm:max-w-[290px] lg:max-w-[315px] shrink-0"
             >
               <div className="relative w-full aspect-[3/4]">
-                
+
                 {/* 1. Photo Arch Frame */}
                 <div className="relative w-full h-full rounded-tr-[135px] sm:rounded-tr-[155px] lg:rounded-tr-[170px] rounded-tl-none rounded-bl-none rounded-br-none overflow-hidden border border-[#E5B842] shadow-[0_16px_40px_rgba(229,184,66,0.22)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.65)] group z-10">
                   <Image
-                    src="/Owner_image.png"
+                    src={content.image_url || "/Owner_image.png"}
                     alt="TheAstroKaur — Vedic Astrologer"
                     fill
                     priority
@@ -117,35 +144,28 @@ export default function AboutPreview() {
             >
               {/* Pill Tag */}
               <div className="inline-flex items-center px-3.5 py-1 rounded-full text-[10.5px] sm:text-[11.5px] font-semibold tracking-[0.2em] uppercase text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/60 dark:border-[#E5B842]/70 bg-[#E5B842]/10 dark:bg-transparent mb-4">
-                ANALYTICAL MIND · VEDIC HEART
+                {content.tag || "THE PERSON BEHIND THE READINGS"}
               </div>
 
               {/* Heading: "Meet TheAstroKaur" */}
               <h2 className="font-serif text-3xl sm:text-4xl lg:text-[44px] font-normal leading-[1.12] tracking-tight mb-4">
-                <span className="block text-[#0F172A] dark:text-white">Meet</span>
-                <span className="block text-[#B8871E] dark:text-[#E5B842]">TheAstroKaur</span>
+                <span className="block text-[#0F172A] dark:text-white">
+                  {content.heading_prefix || "Meet"}
+                </span>
+                <span className="block text-[#B8871E] dark:text-[#E5B842]">
+                  {content.heading_name || "TheAstroKaur"}
+                </span>
               </h2>
 
               {/* Body Paragraphs */}
-              <div className="space-y-3.5 text-xs sm:text-[14px] text-[#0F172A]/75 dark:text-slate-300 font-light leading-[1.75] mb-6">
+              <div className="space-y-4 text-xs sm:text-[14px] text-[#0F172A]/75 dark:text-slate-300 font-light leading-[1.75]">
                 <p>
-                  Graduating from top universities in India and abroad and building a career in technology, I was trained to think analytically and rely on logic, evidence, and structured reasoning. Like many people, I believed that success and life&apos;s outcomes were entirely within my control, leaving little room for ancient wisdom such as Vedic astrology.
+                  {content.paragraph_1}
                 </p>
                 <p>
-                  Everything changed when I began noticing recurring patterns in my own life—similar challenges, relationships, and turning points that seemed to repeat themselves. Searching for answers led me to Vedic astrology, not as a prediction tool, but as a profound framework for self-awareness and personal growth.
+                  {content.paragraph_2}
                 </p>
               </div>
-
-              {/* Solid Warm Gold Pill Button */}
-              <a
-                href="#readings"
-                className="inline-flex items-center gap-2.5 px-7 py-3 sm:px-8 sm:py-3.5 rounded-full bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] font-bold text-xs sm:text-[12.5px] tracking-[0.16em] uppercase transition-all duration-300 shadow-[0_4px_18px_rgba(229,184,66,0.3)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.5)] hover:-translate-y-0.5 group"
-              >
-                <span>Read My Full Story</span>
-                <span className="text-base font-bold transition-transform duration-300 group-hover:translate-x-1.5">
-                  →
-                </span>
-              </a>
             </InView>
 
           </div>

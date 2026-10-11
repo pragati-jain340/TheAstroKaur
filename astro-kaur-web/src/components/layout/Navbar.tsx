@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { label: "About", href: "/#about" },
   { label: "Readings", href: "/#readings" },
   { label: "Vision", href: "/#vision" },
+  { label: "Reviews", href: "/#reviews" },
   { label: "Contact", href: "/#contact" },
 ];
 
@@ -49,8 +50,59 @@ export default function Navbar() {
     user?.user_metadata?.display_name ||
     (user?.email ? user.email.split("@")[0] : "");
 
+  // ─── Scroll-Direction Awareness ──────────────────────────────────────────
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
+
+  useEffect(() => {
+    const SCROLL_THRESHOLD = 15;
+    const TOP_THRESHOLD = 80;
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+
+      window.requestAnimationFrame(() => {
+        const currentScrollY = Math.max(0, window.scrollY);
+        const previousScrollY = lastScrollYRef.current;
+        const diff = currentScrollY - previousScrollY;
+
+        // 1. Always visible at the top of the page
+        if (currentScrollY <= TOP_THRESHOLD) {
+          setIsVisible(true);
+          lastScrollYRef.current = currentScrollY;
+        }
+        // 2. Beyond top threshold: evaluate direction if movement exceeds threshold
+        else if (Math.abs(diff) >= SCROLL_THRESHOLD) {
+          if (diff > 0) {
+            // Scrolling down -> hide navbar
+            setIsVisible(false);
+          } else {
+            // Scrolling up -> reveal navbar
+            setIsVisible(true);
+          }
+          lastScrollYRef.current = currentScrollY;
+        }
+
+        ticking = false;
+      });
+    };
+
+    lastScrollYRef.current = Math.max(0, window.scrollY);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Do not hide navbar while account dropdown or mobile navigation menu is active
+  const isNavbarVisible = isVisible || userDropdownOpen || mobileMenuOpen;
+
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-md bg-[#FAF8F5]/90 dark:bg-[#0F172A]/90 border-b border-[#E5B842]/20 transition-colors">
+    <header
+      className={`sticky top-0 z-50 backdrop-blur-md bg-[#FAF8F5]/90 dark:bg-[#0F172A]/90 border-b border-[#E5B842]/20 transition-transform duration-300 ease-in-out motion-reduce:transition-none will-change-transform ${
+        isNavbarVisible ? "translate-y-0" : "-translate-y-full"
+      }`}
+    >
       <div className="max-w-7xl mx-auto px-6 h-18 sm:h-20 flex items-center justify-between gap-4">
         {/* Official Brand Logo: Celestial Emblem + Typography */}
         <a
@@ -80,8 +132,8 @@ export default function Navbar() {
             <span className="font-serif text-xl sm:text-2xl md:text-[1.65rem] tracking-wide font-medium text-[#0F172A] dark:text-[#FAF8F5] leading-tight">
               TheAstroKaur
             </span>
-            <span className="text-[10px] sm:text-xs tracking-[0.26em] uppercase text-[#6B3448] dark:text-[#E5B842] mt-0.5 font-semibold">
-              Vedic Astrology
+            <span className="text-[9px] sm:text-[10.5px] md:text-xs tracking-[0.22em] uppercase text-[#6B3448] dark:text-[#E5B842] mt-0.5 font-semibold whitespace-nowrap">
+              Written In The Stars
             </span>
           </div>
         </a>
@@ -132,11 +184,6 @@ export default function Navbar() {
                   size="md"
                   showBorder={true}
                 />
-                {isAdmin && (
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#E5B842] text-[9px] font-black text-[#0F172A] flex items-center justify-center border border-white dark:border-[#0F172A] shadow-xs">
-                    ★
-                  </span>
-                )}
               </button>
             ) : (
               // Logged-out state: Person Silhouette Button

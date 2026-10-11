@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Supabase database types — TheAstroKaur
  * Hand-authored to match the confirmed live schema (see DATABASE.md).
  * To regenerate automatically: npx supabase gen types typescript --project-id <id> > src/lib/supabase/types.ts
@@ -211,6 +211,7 @@ export interface Database {
           stripe_payment_link_url: string | null
           requires_partner_details: boolean
           is_active: boolean
+          image_url: string | null
           created_at: string
           updated_at: string
         }
@@ -227,6 +228,7 @@ export interface Database {
           stripe_payment_link_url?: string | null
           requires_partner_details?: boolean
           is_active?: boolean
+          image_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -242,6 +244,7 @@ export interface Database {
           stripe_payment_link_url?: string | null
           requires_partner_details?: boolean
           is_active?: boolean
+          image_url?: string | null
           updated_at?: string
         }
       }

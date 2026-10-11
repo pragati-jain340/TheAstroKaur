@@ -24,6 +24,7 @@
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 5.5rem;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -45,3 +46,49 @@ body {
   animation: astroWheelSpin 30s linear infinite !important;
   will-change: transform;
 }
+
+/* Cross-browser scrollbar hiding */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes giftShakeAlways {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  15% {
+    transform: rotate(-12deg) scale(1.06);
+  }
+  30% {
+    transform: rotate(11deg) scale(1.06);
+  }
+  45% {
+    transform: rotate(-9deg) scale(1.04);
+  }
+  60% {
+    transform: rotate(7deg) scale(1.04);
+  }
+  75% {
+    transform: rotate(-4deg) scale(1.02);
+  }
+  88% {
+    transform: rotate(2deg) scale(1.01);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+.animate-gift-shake {
+  animation: giftShakeAlways 1.2s ease-in-out infinite !important;
+  transform-origin: center center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+

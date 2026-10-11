@@ -227,10 +227,10 @@ export default function AvatarPickerModal({
           </div>
           <p className="text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60 font-medium">
             {selectedUrl
-              ? "Custom Photo (WebP)"
+              ? "Profile Photo"
               : selectedSeed
-              ? `Celestial Preset (${selectedSeed.toUpperCase()})`
-              : "Initials Fallback"}
+              ? "Celestial Avatar"
+              : "Initials"}
           </p>
         </div>
 
@@ -255,10 +255,10 @@ export default function AvatarPickerModal({
             className="w-full py-2.5 px-4 rounded-xl border border-dashed border-[#E5B842]/60 hover:border-[#E5B842] hover:bg-[#E5B842]/5 transition-all text-xs font-semibold text-[#0F172A] dark:text-[#FAF8F5] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             <span>📷</span>
-            <span>{processingImage ? "Converting to WebP..." : "Upload Photo (PNG, JPG, JPEG)"}</span>
+            <span>{processingImage ? "Optimizing photo..." : "Upload Photo (PNG, JPG, JPEG)"}</span>
           </button>
           <p className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40 text-center">
-            Automatically center-cropped & converted to lightweight WebP in browser.
+            Automatically center-cropped and optimized for fast display.
           </p>
         </div>
 

@@ -183,7 +183,7 @@ export default function AuthModal() {
             TheAstroKaur
           </h3>
           <p className="text-xs text-[#6B3448] dark:text-[#E5B842] tracking-[0.2em] uppercase font-semibold mt-0.5">
-            Vedic Astrology Sanctuary
+            Written In The Stars
           </p>
         </div>
 

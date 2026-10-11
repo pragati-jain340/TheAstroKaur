@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TheAstroKaur — Vedic Astrology & Modern Guidance",
+  title: "TheAstroKaur — Written In The Stars",
   description:
-    "Discover Vedic astrology as a path to self-awareness, conscious choices, and clarity on your life journey.",
+    "Your birth chart offers a unique perspective on who you are, the connections you make, and the path you're navigating.",
   icons: {
     icon: "/astro-emblem-light.png?v=5",
   },

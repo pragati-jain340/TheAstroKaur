@@ -371,10 +371,93 @@ function ProfileTab() {
     } else {
       setSuccessMsg("Your profile and birth details have been saved successfully.");
       setIsEditing(false);
-      // Auto clear success message after 4 seconds
-      setTimeout(() => setSuccessMsg(null), 4000);
     }
   };
+
+  // Auto-dismiss profile update notifications after 5 seconds
+  useEffect(() => {
+    if (!successMsg) return;
+    const timer = setTimeout(() => {
+      setSuccessMsg(null);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [successMsg]);
+
+  useEffect(() => {
+    if (!errorMsg) return;
+    const timer = setTimeout(() => {
+      setErrorMsg(null);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [errorMsg]);
+
+  // ─── Change Password State & Handler ────────────────────────────────────────
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPasswordText, setShowPasswordText] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters long.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match (Not same). Please verify both fields.");
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        setPasswordError(error.message);
+      } else {
+        setPasswordSuccess("Your password has been updated successfully.");
+        setNewPassword("");
+        setConfirmPassword("");
+        setTimeout(() => {
+          setShowPasswordChange(false);
+        }, 2000);
+      }
+    } catch (err: unknown) {
+      setPasswordError(err instanceof Error ? err.message : "Failed to update password.");
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  // Auto-dismiss password update notifications after 5 seconds
+  useEffect(() => {
+    if (!passwordSuccess) return;
+    const timer = setTimeout(() => {
+      setPasswordSuccess(null);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [passwordSuccess]);
+
+  useEffect(() => {
+    if (!passwordError) return;
+    const timer = setTimeout(() => {
+      setPasswordError(null);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [passwordError]);
+
+  const isPasswordMismatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
+  const isPasswordMatch = confirmPassword.length > 0 && newPassword.length >= 6 && newPassword === confirmPassword;
 
   const hasSavedPartner = !!(
     profile?.partner_name ||
@@ -453,13 +536,6 @@ function ProfileTab() {
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60 mt-0.5">
-              {profile?.avatar_url
-                ? "Custom Photo (WebP)"
-                : profile?.avatar_seed
-                ? `Celestial Avatar (${profile.avatar_seed.toUpperCase()})`
-                : "Initial Monogram Fallback"}
-            </p>
           </div>
         </div>
 
@@ -472,19 +548,39 @@ function ProfileTab() {
         </button>
       </div>
 
-      {/* Success Banner */}
+      {/* Success Banner (Auto disappears after 5s) */}
       {successMsg && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-3 animate-in fade-in duration-200">
-          <span className="text-base text-emerald-600">✓</span>
-          <span className="font-medium">{successMsg}</span>
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between gap-3 animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <span className="text-base text-emerald-600 font-bold">✓</span>
+            <span className="font-medium">{successMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccessMsg(null)}
+            className="text-emerald-700/60 hover:text-emerald-900 dark:text-emerald-300/60 dark:hover:text-emerald-100 p-1 text-xs cursor-pointer"
+            aria-label="Dismiss notification"
+          >
+            ✕
+          </button>
         </div>
       )}
 
-      {/* Error Banner */}
+      {/* Error Banner (Auto disappears after 5s) */}
       {errorMsg && (
-        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 text-xs flex items-center gap-3 animate-in fade-in duration-200">
-          <span className="text-base">✕</span>
-          <span>{errorMsg}</span>
+        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 text-xs flex items-center justify-between gap-3 animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <span className="text-base font-bold">✕</span>
+            <span>{errorMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMsg(null)}
+            className="text-red-700/60 hover:text-red-900 dark:text-red-300/60 dark:hover:text-red-100 p-1 text-xs cursor-pointer"
+            aria-label="Dismiss notification"
+          >
+            ✕
+          </button>
         </div>
       )}
 
@@ -849,6 +945,162 @@ function ProfileTab() {
           )}
         </div>
       )}
+
+      {/* ─── Login & Security Section (Admin & User) ─── */}
+      <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/20 rounded-2xl md:rounded-3xl p-6 md:p-7 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#E5B842]/10 border border-[#E5B842]/30 flex items-center justify-center text-[#E5B842] shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-[10px] font-bold tracking-widest text-[#E5B842] uppercase">
+                LOGIN & SECURITY
+              </h3>
+              <p className="text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60 mt-0.5">
+                Manage your login password and account security credentials.
+              </p>
+            </div>
+          </div>
+
+          {!showPasswordChange && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowPasswordChange(true);
+                setPasswordError(null);
+                setPasswordSuccess(null);
+              }}
+              className="px-4 py-2 rounded-full text-xs font-semibold border border-[#E5B842] text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/15 transition-colors cursor-pointer shrink-0 shadow-2xs self-start sm:self-center"
+            >
+              Change Password
+            </button>
+          )}
+        </div>
+
+        {!showPasswordChange ? (
+          <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#0F172A]/70 dark:text-[#FAF8F5]/70">
+            <div className="flex items-center gap-2.5">
+              <span className="text-[#0F172A]/50 dark:text-[#FAF8F5]/50 font-mono tracking-widest text-sm">••••••••••••</span>
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                <span>✓</span> Password Protected
+              </span>
+            </div>
+            <p className="text-[11.5px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
+              Linked Email: <span className="font-medium text-[#0F172A]/80 dark:text-[#FAF8F5]/80">{profile?.email || user?.email}</span>
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleChangePassword} className="pt-5 space-y-4 animate-in fade-in duration-200">
+            {passwordSuccess && (
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2.5">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span className="font-medium">{passwordSuccess}</span>
+              </div>
+            )}
+
+            {passwordError && (
+              <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 text-xs flex items-center gap-2.5">
+                <span className="text-red-500 font-bold">✕</span>
+                <span>{passwordError}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPasswordText ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1E293B] border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 text-[#0F172A] dark:text-[#FAF8F5] text-sm focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40 pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordText(!showPasswordText)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0F172A]/40 dark:text-[#FAF8F5]/40 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] text-xs font-medium cursor-pointer"
+                  >
+                    {showPasswordText ? "Hide" : "Show"}
+                  </button>
+                </div>
+                {newPassword.length > 0 && newPassword.length < 6 && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5 flex items-center gap-1 animate-in fade-in duration-150">
+                    <span>!</span>
+                    <span>Must be at least 6 characters ({newPassword.length}/6)</span>
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPasswordText ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password"
+                    className={`w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1E293B] border text-[#0F172A] dark:text-[#FAF8F5] text-sm focus:outline-none focus:ring-2 pr-12 transition-colors ${
+                      isPasswordMismatch
+                        ? "border-red-500/80 focus:ring-red-400/40 bg-red-500/5"
+                        : isPasswordMatch
+                        ? "border-emerald-500/80 focus:ring-emerald-400/40 bg-emerald-500/5"
+                        : "border-[#0F172A]/15 dark:border-[#FAF8F5]/15 focus:ring-[#E5B842]/40"
+                    }`}
+                  />
+                </div>
+                {/* Real-time match / mismatch validation */}
+                {isPasswordMismatch && (
+                  <p className="text-[11px] font-medium text-red-600 dark:text-red-400 mt-1.5 flex items-center gap-1 animate-in fade-in duration-150">
+                    <span>✕</span>
+                    <span>Passwords do not match (Not same)</span>
+                  </p>
+                )}
+                {isPasswordMatch && (
+                  <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mt-1.5 flex items-center gap-1 animate-in fade-in duration-150">
+                    <span>✓</span>
+                    <span>Passwords match</span>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPasswordChange(false);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                  setPasswordError(null);
+                }}
+                disabled={passwordSaving}
+                className="px-5 py-2 rounded-full text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 hover:bg-[#0F172A]/5 dark:hover:bg-[#FAF8F5]/5 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={passwordSaving || isPasswordMismatch || newPassword.length < 6}
+                className="px-6 py-2 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {passwordSaving ? "Updating Password…" : "Update Password"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
 
       {/* Change Avatar Modal */}
       {user && (

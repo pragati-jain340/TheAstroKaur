@@ -1,81 +1,167 @@
+"use client";
+
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "motion/react";
+
 export default function VisionSection() {
-  const pillars = [
-    {
-      title: "Self-Awareness",
-      description: "Understand your unique life path and underlying karmic inclinations.",
-      icon: (
-        <svg className="w-6 h-6 text-[#E5B842]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-        </svg>
-      ),
-    },
-    {
-      title: "Conscious Choices",
-      description: "Approach life, career, and partnership decisions with higher discernment.",
-      icon: (
-        <svg className="w-6 h-6 text-[#6B3448] dark:text-[#E5B842]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0 0 12 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52v11.455m0 0a24.255 24.255 0 0 1-3-.424m3 .424c-.99.195-2.02.34-3.08.434M5.25 4.97c-.99.143-1.99.317-3 .52m3-.52v11.455m0 0c1.01.143 2.01.317 3 .52m-3-.52a24.255 24.255 0 0 0 3-.424" />
-        </svg>
-      ),
-    },
-    {
-      title: "Personal Growth",
-      description: "Recognise your core strengths and navigate recurring tests gracefully.",
-      icon: (
-        <svg className="w-6 h-6 text-[#B87936] dark:text-[#E5B842]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
-        </svg>
-      ),
-    },
-    {
-      title: "A More Aligned Life",
-      description: "Live with clear intentional purpose, anchored in self-understanding.",
-      icon: (
-        <svg className="w-6 h-6 text-[#E5B842]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-.778.099-1.533.284-2.253" />
-        </svg>
-      ),
-    },
-  ];
+  const containerRef = useRef<HTMLElement>(null);
+
+  // Track scroll progress while the Vision section is pinned in the viewport
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"],
+  });
+
+  // ── Stage Progression Linked to Scroll ──
+  // Stage 1 (0.00 - 0.25): Initial View - Eyebrow label & partial zoomed-in headline ("There Is More Than One Way")
+  // Stage 2 (0.25 - 0.50): Mid-scroll - Headline smoothly zooms down into view, side lines extend vertically
+  // Stage 3 (0.50 - 0.75): Focused View - Full headline at peak focal scale, lines frame it, Paragraph 1 enters
+  // Stage 4 (0.75 - 1.00): Final View - Full composition settled and readable with Paragraph 1 & 2 before next section
+
+  // Heading scroll-linked zoom effect: restrained scale (1.35 down to 1.0) so it stays comfortably framed
+  const headingScale = useTransform(scrollYProgress, [0, 0.35, 0.65, 1], [1.35, 1.15, 1.0, 1.0]);
+  const headingY = useTransform(scrollYProgress, [0, 0.35, 0.65, 1], [12, 6, 0, 0]);
+
+  // Eyebrow label
+  const eyebrowOpacity = useTransform(scrollYProgress, [0, 0.2, 1], [0.85, 1, 1]);
+  const eyebrowScale = useTransform(scrollYProgress, [0, 0.35, 1], [1.08, 1, 1]);
+
+  // Decorative side lines: extend vertically from compact to full height & settle outward
+  const lineScaleY = useTransform(scrollYProgress, [0, 0.3, 0.65, 1], [0.4, 0.75, 1.0, 1.0]);
+  const lineOpacity = useTransform(scrollYProgress, [0, 0.2, 0.5, 1], [0.4, 0.75, 1.0, 1.0]);
+  const leftLineX = useTransform(scrollYProgress, [0, 0.35, 0.65], [16, 6, 0]);
+  const rightLineX = useTransform(scrollYProgress, [0, 0.35, 0.65], [-16, -6, 0]);
+
+  // Paragraphs (crisp, readable, stable, NO blur)
+  const p1Opacity = useTransform(scrollYProgress, [0, 0.45, 0.7, 1], [0, 0.2, 1, 1]);
+  const p1Y = useTransform(scrollYProgress, [0, 0.45, 0.7, 1], [24, 20, 0, 0]);
+
+  const p2Opacity = useTransform(scrollYProgress, [0, 0.58, 0.82, 1], [0, 0.1, 1, 1]);
+  const p2Y = useTransform(scrollYProgress, [0, 0.58, 0.82, 1], [28, 24, 0, 0]);
 
   return (
-    <section id="vision" className="scroll-mt-28 sm:scroll-mt-32 py-20 lg:py-28 px-6 lg:px-16 bg-transparent relative">
-      <div className="max-w-7xl mx-auto">
-        {/* Intro Vision Block */}
-        <div className="max-w-3xl mx-auto text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold tracking-widest uppercase bg-[#E5B842]/10 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/25 mb-4">
-            The Philosophy
-          </div>
-          <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight mb-6">
-            Ancient Vedic Wisdom, Made Relevant to Modern Life
-          </h2>
-          <p className="text-base sm:text-lg text-[#0F172A]/75 dark:text-[#FAF8F5]/80 font-light leading-relaxed mb-5">
-            My vision is to bridge the gap between ancient Vedic wisdom and the modern world. I aspire to make Vedic astrology accessible, practical, and empowering for people across the globe—not as a tool to predict or fear the future, but as a guide for self-awareness, conscious choices, and personal transformation.
-          </p>
-          <p className="text-sm sm:text-base text-[#0F172A]/65 dark:text-[#FAF8F5]/65 font-light leading-relaxed">
-            Through authentic Vedic knowledge, compassion, and practical guidance, I hope to help people understand their unique life path, embrace their strengths, navigate challenges with confidence, and live with greater purpose and clarity.
-          </p>
-        </div>
-
-        {/* 4 Visual Highlight Pillars */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {pillars.map((pillar) => (
-            <div
-              key={pillar.title}
-              className="bg-white dark:bg-[#1E293B]/70 p-7 rounded-2xl flex flex-col items-center text-center border border-[#0F172A]/6 dark:border-[#FAF8F5]/8 shadow-sm hover:shadow-md hover:border-[#E5B842]/35 transition-all group"
-            >
-              <div className="w-13 h-13 rounded-full bg-[#FAF8F5] dark:bg-[#0F172A] border border-[#E5B842]/25 flex items-center justify-center p-3 mb-5 transition-transform group-hover:scale-110">
-                {pillar.icon}
-              </div>
-              <h3 className="font-serif text-lg font-medium text-[#0F172A] dark:text-[#FAF8F5] mb-2">
-                {pillar.title}
-              </h3>
-              <p className="text-xs sm:text-sm text-[#0F172A]/70 dark:text-[#FAF8F5]/70 leading-relaxed font-light">
-                {pillar.description}
-              </p>
+    <section
+      id="vision"
+      ref={containerRef}
+      className="relative scroll-mt-20 sm:scroll-mt-24 h-[240vh] sm:h-[280vh] bg-transparent"
+    >
+      {/* Sticky viewport frame: keeps the content centered in view during scroll progress without trapping window */}
+      <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8">
+        <div className="relative w-full max-w-5xl lg:max-w-[1180px] mx-auto px-8 sm:px-14 md:px-20 lg:px-28 text-center">
+          
+          {/* ── Left Animated Decorative Gold Line ── */}
+          <motion.div
+            style={{
+              scaleY: lineScaleY,
+              opacity: lineOpacity,
+              x: leftLineX,
+            }}
+            className="absolute left-0 sm:left-2 md:left-4 lg:left-6 top-6 bottom-6 w-4 hidden sm:flex flex-col items-center pointer-events-none origin-center"
+            aria-hidden="true"
+          >
+            {/* Top Dot */}
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-80 shrink-0" />
+            
+            {/* Upper Line Segment */}
+            <span className="w-px flex-1 bg-gradient-to-b from-transparent via-[#C89B3C]/60 dark:via-[#E5B842]/60 to-[#C89B3C] dark:to-[#E5B842]" />
+            
+            {/* Celestial Star & Dot Accents */}
+            <div className="my-2.5 flex flex-col items-center gap-1.5 shrink-0 text-[#C89B3C] dark:text-[#E5B842]">
+              <span className="w-1 h-1 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-75" />
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0L14.4 9.6L24 12L14.4 14.4L12 24L9.6 14.4L0 12L9.6 9.6L12 0Z" />
+              </svg>
+              <span className="w-1 h-1 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-75" />
             </div>
-          ))}
+            
+            {/* Lower Line Segment */}
+            <span className="w-px flex-1 bg-gradient-to-b from-[#C89B3C] dark:from-[#E5B842] via-[#C89B3C]/60 dark:via-[#E5B842]/60 to-transparent" />
+            
+            {/* Bottom Dot */}
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-80 shrink-0" />
+          </motion.div>
+
+          {/* ── Right Animated Decorative Gold Line ── */}
+          <motion.div
+            style={{
+              scaleY: lineScaleY,
+              opacity: lineOpacity,
+              x: rightLineX,
+            }}
+            className="absolute right-0 sm:right-2 md:right-4 lg:right-6 top-6 bottom-6 w-4 hidden sm:flex flex-col items-center pointer-events-none origin-center"
+            aria-hidden="true"
+          >
+            {/* Top Dot */}
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-80 shrink-0" />
+            
+            {/* Upper Line Segment */}
+            <span className="w-px flex-1 bg-gradient-to-b from-transparent via-[#C89B3C]/60 dark:via-[#E5B842]/60 to-[#C89B3C] dark:to-[#E5B842]" />
+            
+            {/* Celestial Star & Dot Accents */}
+            <div className="my-2.5 flex flex-col items-center gap-1.5 shrink-0 text-[#C89B3C] dark:text-[#E5B842]">
+              <span className="w-1 h-1 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-75" />
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0L14.4 9.6L24 12L14.4 14.4L12 24L9.6 14.4L0 12L9.6 9.6L12 0Z" />
+              </svg>
+              <span className="w-1 h-1 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-75" />
+            </div>
+            
+            {/* Lower Line Segment */}
+            <span className="w-px flex-1 bg-gradient-to-b from-[#C89B3C] dark:from-[#E5B842] via-[#C89B3C]/60 dark:via-[#E5B842]/60 to-transparent" />
+            
+            {/* Bottom Dot */}
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-80 shrink-0" />
+          </motion.div>
+
+          {/* ── Section Content ── */}
+          <div className="relative z-10 flex flex-col items-center">
+            
+            {/* Eyebrow Label */}
+            <motion.div
+              style={{
+                opacity: eyebrowOpacity,
+                scale: eyebrowScale,
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold tracking-widest uppercase bg-[#E5B842]/10 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/25 mb-4 sm:mb-6"
+            >
+              A VISION FOR ASTROLOGY
+            </motion.div>
+
+            {/* Scroll-Linked Zoom Heading */}
+            <motion.h2
+              style={{
+                scale: headingScale,
+                y: headingY,
+              }}
+              className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-[2.65rem] text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight leading-[1.2] sm:leading-[1.18] mb-6 sm:mb-8 origin-center will-change-transform max-w-3xl lg:max-w-4xl"
+            >
+              <span className="block">There Is More Than One Way</span>
+              <span className="block mt-1">to See Your Story.</span>
+            </motion.h2>
+
+            {/* Paragraph 1 */}
+            <motion.p
+              style={{
+                opacity: p1Opacity,
+                y: p1Y,
+              }}
+              className="text-sm sm:text-base lg:text-[1.05rem] text-[#0F172A]/75 dark:text-[#FAF8F5]/80 font-light leading-relaxed max-w-2xl sm:max-w-3xl lg:max-w-4xl mx-auto mb-4 sm:mb-5"
+            >
+              The same experiences can look different when we understand ourselves a little better. Astrology offers a perspective on the relationships we build, the choices we face, and the paths we take.
+            </motion.p>
+
+            {/* Paragraph 2 */}
+            <motion.p
+              style={{
+                opacity: p2Opacity,
+                y: p2Y,
+              }}
+              className="text-xs sm:text-sm lg:text-[0.95rem] text-[#0F172A]/65 dark:text-[#FAF8F5]/70 font-light leading-relaxed max-w-2xl sm:max-w-3xl lg:max-w-4xl mx-auto"
+            >
+              Through my practice, I hope to bridge the gap between ancient Vedic wisdom and the modern world, making astrology easier to understand and relevant to everyday life. Rather than seeing it as a way to reflect on our experiences, understand ourselves better, and approach life&apos;s uncertainties with greater awareness.
+            </motion.p>
+
+          </div>
         </div>
       </div>
     </section>

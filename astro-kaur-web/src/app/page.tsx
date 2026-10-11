@@ -2,9 +2,9 @@ import Image from "next/image";
 import Navbar from "@/components/layout/Navbar";
 import HeroSection from "@/components/home/HeroSection";
 import ServicesPreview from "@/components/home/ServicesPreview";
-import RisingSignSection from "@/components/home/RisingSignSection";
 import AboutPreview from "@/components/home/AboutPreview";
 import VisionSection from "@/components/home/VisionSection";
+import ReviewsSection from "@/components/home/ReviewsSection";
 import FinalCTASection from "@/components/home/FinalCTASection";
 import Footer from "@/components/layout/Footer";
 
@@ -35,9 +35,9 @@ export default function Home() {
       <main className="flex-1 flex flex-col relative z-10">
         <HeroSection />
         <ServicesPreview />
-        <RisingSignSection />
         <AboutPreview />
         <VisionSection />
+        <ReviewsSection />
         <FinalCTASection />
       </main>
       <Footer />

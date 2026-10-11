@@ -28,8 +28,8 @@ export default function Footer() {
                 <span className="font-serif text-2xl tracking-wide font-medium">
                   TheAstroKaur
                 </span>
-                <span className="text-[10px] tracking-[0.24em] uppercase text-[#6B3448] dark:text-[#E5B842] font-semibold">
-                  Vedic Astrology
+                <span className="text-[10px] tracking-[0.22em] uppercase text-[#6B3448] dark:text-[#E5B842] font-semibold whitespace-nowrap">
+                  Written In The Stars
                 </span>
               </div>
             </a>
@@ -60,7 +60,12 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#free-reading" className="hover:text-[#E5B842] transition-colors">
+                <a href="#reviews" className="hover:text-[#E5B842] transition-colors">
+                  Client Reviews
+                </a>
+              </li>
+              <li>
+                <a href="/free-reading" className="hover:text-[#E5B842] transition-colors">
                   Free Reading
                 </a>
               </li>
