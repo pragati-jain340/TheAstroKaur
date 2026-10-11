@@ -150,7 +150,7 @@ function mapDbServiceToReadingItem(db: any): ReadingServiceItem {
 }
 
 const CARD_TRANSITION = {
-  type: "spring",
+  type: "spring" as const,
   stiffness: 300,
   damping: 26,
   mass: 0.75,
