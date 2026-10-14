@@ -20,6 +20,16 @@ const DEFAULT_ABOUT = {
   image_url: "/Owner_image.png",
 };
 
+const DEFAULT_VISION = {
+  tag: "A VISION FOR ASTROLOGY",
+  heading_line_1: "There Is More Than One Way",
+  heading_line_2: "to See Your Story.",
+  paragraph_1:
+    "The same experiences can look different when we understand ourselves a little better. Astrology offers a perspective on the relationships we build, the choices we face, and the paths we take.",
+  paragraph_2:
+    "Through my practice, I hope to bridge the gap between ancient Vedic wisdom and the modern world, making astrology easier to understand and relevant to everyday life. Rather than seeing it as a way to reflect on our experiences, understand ourselves better, and approach life's uncertainties with greater awareness.",
+};
+
 export async function GET() {
   try {
     // 1. Services
@@ -29,13 +39,14 @@ export async function GET() {
       .eq("is_active", true)
       .order("sort_order", { ascending: true });
 
-    // 2. About Me Profile
+    // 2. About Me Profile & Vision
     const { data: profilesData } = await supabase
       .from("profiles")
       .select("*")
       .limit(1);
 
     let aboutContent = DEFAULT_ABOUT;
+    let visionContent = DEFAULT_VISION;
 
     if (profilesData && profilesData.length > 0) {
       const p = profilesData[0];
@@ -48,7 +59,19 @@ export async function GET() {
             ...DEFAULT_ABOUT,
             paragraph_1: p.bio,
             heading_name: p.display_name || DEFAULT_ABOUT.heading_name,
-            tag: p.vision || DEFAULT_ABOUT.tag,
+            tag: DEFAULT_ABOUT.tag,
+          };
+        }
+      }
+
+      if (p.vision) {
+        try {
+          const parsedVision = JSON.parse(p.vision);
+          visionContent = { ...DEFAULT_VISION, ...parsedVision };
+        } catch {
+          visionContent = {
+            ...DEFAULT_VISION,
+            tag: p.vision,
           };
         }
       }
@@ -56,11 +79,13 @@ export async function GET() {
 
     return NextResponse.json({
       about: aboutContent,
+      vision: visionContent,
       services: servicesData || [],
     });
   } catch (err: any) {
     return NextResponse.json({
       about: DEFAULT_ABOUT,
+      vision: DEFAULT_VISION,
       services: [],
       error: err.message,
     });

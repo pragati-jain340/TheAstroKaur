@@ -13,6 +13,24 @@ interface AboutContent {
   image_url: string;
 }
 
+interface VisionContent {
+  tag: string;
+  heading_line_1: string;
+  heading_line_2: string;
+  paragraph_1: string;
+  paragraph_2: string;
+}
+
+const DEFAULT_VISION: VisionContent = {
+  tag: "A VISION FOR ASTROLOGY",
+  heading_line_1: "There Is More Than One Way",
+  heading_line_2: "to See Your Story.",
+  paragraph_1:
+    "The same experiences can look different when we understand ourselves a little better. Astrology offers a perspective on the relationships we build, the choices we face, and the paths we take.",
+  paragraph_2:
+    "Through my practice, I hope to bridge the gap between ancient Vedic wisdom and the modern world, making astrology easier to understand and relevant to everyday life. Rather than seeing it as a way to reflect on our experiences, understand ourselves better, and approach life's uncertainties with greater awareness.",
+};
+
 interface ServiceItem {
   id: string;
   sort_order: number;
@@ -40,9 +58,10 @@ function getServiceSlug(title?: string): string {
 }
 
 export default function AdminContentPage() {
-  const [activeTab, setActiveTab] = useState<"about" | "readings">("about");
+  const [activeTab, setActiveTab] = useState<"about" | "vision" | "readings">("about");
   const [loading, setLoading] = useState(true);
   const [savingAbout, setSavingAbout] = useState(false);
+  const [savingVision, setSavingVision] = useState(false);
   const [savingService, setSavingService] = useState(false);
 
   // Notifications
@@ -60,6 +79,9 @@ export default function AdminContentPage() {
     paragraph_2: "",
     image_url: "/Owner_image.png",
   });
+
+  // Vision Section form state
+  const [visionForm, setVisionForm] = useState<VisionContent>(DEFAULT_VISION);
 
   // Photo Upload & WebP Conversion state
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -299,6 +321,9 @@ export default function AdminContentPage() {
       if (json.about) {
         setAboutForm(json.about);
       }
+      if (json.vision) {
+        setVisionForm(json.vision);
+      }
       if (json.services) {
         setServices(json.services);
       }
@@ -343,6 +368,36 @@ export default function AdminContentPage() {
       });
     } finally {
       setSavingAbout(false);
+    }
+  };
+
+  // Save Vision Section
+  const handleSaveVision = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingVision(true);
+    try {
+      const res = await fetch("/api/admin/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "vision",
+          data: visionForm,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to save vision content");
+
+      setNotification({
+        type: "success",
+        message: "Vision section successfully updated on the website!",
+      });
+    } catch (err: any) {
+      setNotification({
+        type: "error",
+        message: err.message || "Could not save vision content",
+      });
+    } finally {
+      setSavingVision(false);
     }
   };
 
@@ -552,7 +607,7 @@ export default function AdminContentPage() {
             WEBSITE CONTENT
           </h1>
           <p className="mt-1 text-sm text-[#0F172A]/60 dark:text-[#FAF8F5]/60">
-            Edit About Me section copy, reading catalog prices, duration, and formats.
+            Edit About Me and Vision sections copy, reading catalog prices, duration, and formats.
           </p>
         </div>
 
@@ -644,6 +699,18 @@ export default function AdminContentPage() {
             }`}
           >
             About Me Section
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("vision")}
+            className={`px-4 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              activeTab === "vision"
+                ? "bg-[#E5B842] text-[#0F172A] font-semibold shadow-xs"
+                : "text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#0F172A] dark:hover:text-[#FAF8F5]"
+            }`}
+          >
+            Vision Section
           </button>
 
           <button
@@ -916,6 +983,207 @@ export default function AdminContentPage() {
                 <p>{aboutForm.paragraph_2}</p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── SUB-TAB: VISION SECTION ── */}
+      {activeTab === "vision" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left: Edit Form */}
+          <div className="lg:col-span-7 bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-6 sm:p-7 shadow-xs">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="font-serif text-lg font-semibold text-[#0F172A] dark:text-[#FAF8F5] uppercase tracking-wide">
+                  Edit A Vision For Astrology
+                </h2>
+                <p className="text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60 mt-1">
+                  Customize the philosophical vision section presented on the homepage.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVisionForm(DEFAULT_VISION)}
+                className="text-[11px] font-medium text-[#E5B842] hover:underline cursor-pointer"
+                title="Restore default copy"
+              >
+                Reset to Default
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveVision} className="space-y-4">
+              {/* Badge Label */}
+              <div>
+                <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                  Badge Label (Uppercase Pill)
+                </label>
+                <input
+                  type="text"
+                  value={visionForm.tag}
+                  onChange={(e) => setVisionForm({ ...visionForm, tag: e.target.value })}
+                  placeholder="A VISION FOR ASTROLOGY"
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-[#FAF8F5] dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40"
+                  required
+                />
+                <p className="text-[10px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mt-1">
+                  Displays in the gold-bordered eyebrow pill above the main headline.
+                </p>
+              </div>
+
+              {/* Headline Line 1 & Line 2 */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                    Headline Line 1
+                  </label>
+                  <input
+                    type="text"
+                    value={visionForm.heading_line_1}
+                    onChange={(e) =>
+                      setVisionForm({ ...visionForm, heading_line_1: e.target.value })
+                    }
+                    placeholder="There Is More Than One Way"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-[#FAF8F5] dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                    Headline Line 2 (Sub-line)
+                  </label>
+                  <input
+                    type="text"
+                    value={visionForm.heading_line_2}
+                    onChange={(e) =>
+                      setVisionForm({ ...visionForm, heading_line_2: e.target.value })
+                    }
+                    placeholder="to See Your Story."
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-[#FAF8F5] dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40"
+                  />
+                </div>
+              </div>
+
+              {/* Vision Paragraph 1 */}
+              <div>
+                <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                  Vision Statement — Paragraph 1 (Perspective &amp; Awareness)
+                </label>
+                <textarea
+                  rows={4}
+                  value={visionForm.paragraph_1}
+                  onChange={(e) =>
+                    setVisionForm({ ...visionForm, paragraph_1: e.target.value })
+                  }
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-[#FAF8F5] dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40 leading-relaxed"
+                  placeholder="The same experiences can look different when we understand ourselves a little better..."
+                  required
+                />
+              </div>
+
+              {/* Vision Paragraph 2 */}
+              <div>
+                <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                  Vision Statement — Paragraph 2 (Bridging Ancient Vedic Wisdom)
+                </label>
+                <textarea
+                  rows={4}
+                  value={visionForm.paragraph_2}
+                  onChange={(e) =>
+                    setVisionForm({ ...visionForm, paragraph_2: e.target.value })
+                  }
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-[#FAF8F5] dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40 leading-relaxed"
+                  placeholder="Through my practice, I hope to bridge the gap between ancient Vedic wisdom and the modern world..."
+                />
+              </div>
+
+              {/* Submit CTA */}
+              <div className="pt-3 flex items-center gap-3">
+                <button
+                  type="submit"
+                  disabled={savingVision}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  {savingVision ? (
+                    <>
+                      <span className="animate-spin text-xs">↻</span>
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Save Vision Section</span>
+                      <span>→</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Right: Live Preview Box */}
+          <div className="lg:col-span-5 bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-6 shadow-xs">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-[10px] font-bold tracking-widest uppercase text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
+                LIVE HOMEPAGE PREVIEW
+              </div>
+              <span className="text-[9px] font-semibold text-[#E5B842] uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#E5B842]/10 border border-[#E5B842]/20">
+                ✦ Celestial Center Stage
+              </span>
+            </div>
+
+            {/* Live Preview Container framed with celestial accents */}
+            <div className="relative p-6 sm:p-7 rounded-2xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 shadow-xs text-center overflow-hidden">
+              {/* Subtle decorative background ambient glow */}
+              <div className="absolute -top-12 -left-12 w-40 h-40 bg-[#E5B842]/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-12 -right-12 w-40 h-40 bg-[#E5B842]/10 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Left decorative line preview */}
+              <div className="absolute left-3 top-6 bottom-6 w-2 hidden sm:flex flex-col items-center pointer-events-none opacity-70">
+                <span className="w-1 h-1 rounded-full bg-[#E5B842]" />
+                <span className="w-px flex-1 bg-gradient-to-b from-transparent via-[#E5B842]/60 to-[#E5B842]" />
+                <span className="my-1 text-[#E5B842] text-[9px]">✦</span>
+                <span className="w-px flex-1 bg-gradient-to-b from-[#E5B842] via-[#E5B842]/60 to-transparent" />
+                <span className="w-1 h-1 rounded-full bg-[#E5B842]" />
+              </div>
+
+              {/* Right decorative line preview */}
+              <div className="absolute right-3 top-6 bottom-6 w-2 hidden sm:flex flex-col items-center pointer-events-none opacity-70">
+                <span className="w-1 h-1 rounded-full bg-[#E5B842]" />
+                <span className="w-px flex-1 bg-gradient-to-b from-transparent via-[#E5B842]/60 to-[#E5B842]" />
+                <span className="my-1 text-[#E5B842] text-[9px]">✦</span>
+                <span className="w-px flex-1 bg-gradient-to-b from-[#E5B842] via-[#E5B842]/60 to-transparent" />
+                <span className="w-1 h-1 rounded-full bg-[#E5B842]" />
+              </div>
+
+              {/* Eyebrow Pill */}
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[9px] font-semibold tracking-widest uppercase bg-[#E5B842]/10 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/30 mb-4">
+                {visionForm.tag || "A VISION FOR ASTROLOGY"}
+              </div>
+
+              {/* Heading */}
+              <h3 className="font-serif text-xl sm:text-2xl font-normal leading-tight text-[#0F172A] dark:text-[#FAF8F5] mb-4">
+                <span className="block">{visionForm.heading_line_1 || "There Is More Than One Way"}</span>
+                {visionForm.heading_line_2 && (
+                  <span className="block mt-1">{visionForm.heading_line_2}</span>
+                )}
+              </h3>
+
+              {/* Paragraphs */}
+              <div className="space-y-3 text-xs text-[#0F172A]/75 dark:text-slate-300 font-light leading-relaxed max-w-sm mx-auto">
+                {visionForm.paragraph_1 && (
+                  <p>{visionForm.paragraph_1}</p>
+                )}
+                {visionForm.paragraph_2 && (
+                  <p className="text-[11px] text-[#0F172A]/65 dark:text-slate-400">
+                    {visionForm.paragraph_2}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <p className="text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mt-4 text-center">
+              This section is rendered with an interactive scroll-linked focal zoom animation on the homepage.
+            </p>
           </div>
         </div>
       )}

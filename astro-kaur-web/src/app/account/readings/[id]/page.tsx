@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SubpageBackground from "@/components/layout/SubpageBackground";
+import ReviewModal from "@/components/reviews/ReviewModal";
 
 interface OrderDetail {
   id: string;
@@ -165,6 +166,8 @@ export default function ReadingDetailPage() {
   const [snapshot, setSnapshot] = useState<ReadingSnapshot | null>(null);
   const [fetching, setFetching] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewModalMode, setReviewModalMode] = useState<"write" | "edit">("write");
   const supabase = createClient();
 
   useEffect(() => {
@@ -381,30 +384,67 @@ export default function ReadingDetailPage() {
             )}
 
             {/* Review Section for Completed Reading */}
-            {isCompleted && !!order.review_rating && (
+            {isCompleted && (
               <Card title="YOUR REVIEW">
-                <div className="flex gap-1 text-xl">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <span
-                      key={s}
-                      className={
-                        s <= (order.review_rating ?? 0)
-                          ? "text-[#E5B842]"
-                          : "text-[#0F172A]/15 dark:text-[#FAF8F5]/15"
-                      }
+                {order.review_rating ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-1 text-xl">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <span
+                            key={s}
+                            className={
+                              s <= (order.review_rating ?? 0)
+                                ? "text-[#E5B842]"
+                                : "text-[#0F172A]/15 dark:text-[#FAF8F5]/15"
+                            }
+                          >
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReviewModalMode("edit");
+                          setReviewModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#E5B842] hover:text-[#d8ab34] transition-colors cursor-pointer"
+                      >
+                        <span>✎ Edit Review</span>
+                      </button>
+                    </div>
+                    {order.review_text && (
+                      <p className="text-sm italic text-[#0F172A]/70 dark:text-[#FAF8F5]/70 leading-relaxed">
+                        "{order.review_text}"
+                      </p>
+                    )}
+                    <p className="text-xs text-[#0F172A]/40 dark:text-[#FAF8F5]/40">
+                      Submitted · {formatDate(order.review_created_at)}
+                    </p>
+                  </>
+                ) : (
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <p className="font-serif text-lg font-medium text-[#0F172A] dark:text-[#FAF8F5]">
+                        Share your experience
+                      </p>
+                      <p className="text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60 mt-0.5">
+                        How was your consultation? Your reflection helps others on their journey.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReviewModalMode("write");
+                        setReviewModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
                     >
-                      ★
-                    </span>
-                  ))}
-                </div>
-                {order.review_text && (
-                  <p className="text-sm italic text-[#0F172A]/70 dark:text-[#FAF8F5]/70 leading-relaxed">
-                    "{order.review_text}"
-                  </p>
+                      <span>✦ Write a Review</span>
+                    </button>
+                  </div>
                 )}
-                <p className="text-xs text-[#0F172A]/40 dark:text-[#FAF8F5]/40">
-                  Submitted · {formatDate(order.review_created_at)}
-                </p>
               </Card>
             )}
 
@@ -422,6 +462,28 @@ export default function ReadingDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Review Modal */}
+      {order && (
+        <ReviewModal
+          isOpen={reviewModalOpen}
+          onClose={() => setReviewModalOpen(false)}
+          order={order}
+          initialMode={reviewModalMode}
+          onSuccess={(updated) => {
+            setOrder((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    review_rating: updated.rating,
+                    review_text: updated.content,
+                    review_created_at: updated.review_created_at,
+                  }
+                : null
+            );
+          }}
+        />
+      )}
 
       <Footer />
     </div>

@@ -39,6 +39,10 @@ interface AuthContextType {
   selectedBookingService: BookingService | null;
   openBookingModal: (service?: BookingService) => void;
   closeBookingModal: () => void;
+  contactModalOpen: boolean;
+  setContactModalOpen: (open: boolean) => void;
+  openContactModal: () => void;
+  closeContactModal: () => void;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (
     email: string,
@@ -83,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profileModalTab, setProfileModalTab] = useState<"profile" | "orders" | "receipts" | "users" | "dashboard">("profile");
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [selectedBookingService, setSelectedBookingService] = useState<BookingService | null>(null);
+  const [contactModalOpen, setContactModalOpen] = useState(false);
 
   const supabase = createClient();
 
@@ -361,6 +366,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setBookingModalOpen(false);
   };
 
+  const openContactModal = () => {
+    setContactModalOpen(true);
+  };
+
+  const closeContactModal = () => {
+    setContactModalOpen(false);
+  };
+
   // Admin authorization is determined strictly from database profile role (no hardcoded emails)
   const isAdmin = profile?.role === "admin";
 
@@ -387,6 +400,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         selectedBookingService,
         openBookingModal,
         closeBookingModal,
+        contactModalOpen,
+        setContactModalOpen,
+        openContactModal,
+        closeContactModal,
         signIn,
         signUp,
         updateProfile,

@@ -28,8 +28,15 @@ export default function Navbar() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const router = useRouter();
 
-  const { user, profile, isAdmin, openAuthModal, openProfileModal, signOut } = useAuth();
+  const { user, profile, isAdmin, openAuthModal, openProfileModal, openContactModal, signOut } = useAuth();
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleNavItemClick = (e: React.MouseEvent<HTMLAnchorElement>, label: string) => {
+    if (label === "Contact") {
+      e.preventDefault();
+      openContactModal();
+    }
+  };
 
   // Close user dropdown if clicked outside
   useEffect(() => {
@@ -144,7 +151,8 @@ export default function Navbar() {
             <a
               key={item.label}
               href={item.href}
-              className="relative px-3.5 lg:px-4.5 py-1.5 rounded-full text-[17.5px] lg:text-[18.5px] font-serif font-medium tracking-wide text-[#0F172A]/85 dark:text-[#FAF8F5]/90 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] transition-all duration-300 group"
+              onClick={(e) => handleNavItemClick(e, item.label)}
+              className="relative px-3.5 lg:px-4.5 py-1.5 rounded-full text-[17.5px] lg:text-[18.5px] font-serif font-medium tracking-wide text-[#0F172A]/85 dark:text-[#FAF8F5]/90 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] transition-all duration-300 group cursor-pointer"
             >
               {/* Subtle ambient hover background */}
               <span className="absolute inset-0 rounded-full bg-gradient-to-r from-[#E5B842]/12 via-[#E5B842]/18 to-[#6B3448]/12 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
@@ -343,7 +351,10 @@ export default function Navbar() {
               <a
                 key={item.label}
                 href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={(e) => {
+                  setMobileMenuOpen(false);
+                  handleNavItemClick(e, item.label);
+                }}
                 className="flex items-center justify-between px-4 py-3 rounded-xl text-lg font-serif font-medium text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/15 transition-all"
               >
                 <span>{item.label}</span>

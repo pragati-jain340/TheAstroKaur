@@ -2,8 +2,6 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
 
 export interface ReviewItem {
   id: string;
@@ -97,8 +95,6 @@ export default function ReviewsSection() {
   const [activeModalReview, setActiveModalReview] = useState<ReviewItem | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { user, openAuthModal } = useAuth();
-  const router = useRouter();
 
   // Load live published reviews with real customer avatars
   useEffect(() => {
@@ -171,21 +167,29 @@ export default function ReviewsSection() {
     };
   }, [activeModalReview]);
 
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
+  }, []);
+
   const scroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
-      const scrollAmount = 390;
+      const card = scrollContainerRef.current.querySelector<HTMLElement>(".shrink-0");
+      const scrollAmount = card ? card.offsetWidth + 24 : 390;
       scrollContainerRef.current.scrollBy({
         left: direction === "left" ? -scrollAmount : scrollAmount,
         behavior: "smooth",
       });
-    }
-  };
 
-  const handleLeaveReviewClick = () => {
-    if (user) {
-      router.push("/account");
-    } else {
-      openAuthModal("signin");
+      // Briefly pause continuous marquee so user can comfortably browse via arrows
+      setIsPaused(true);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        setIsPaused(false);
+      }, 4000);
     }
   };
 
@@ -228,17 +232,17 @@ export default function ReviewsSection() {
             {/* Pill Tag */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold tracking-widest uppercase bg-[#E5B842]/10 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/25 mb-3.5">
               <span className="text-[#E5B842] text-sm">✦</span>
-              REAL EXPERIENCES
+              REVIEWS &amp; REFLECTIONS
             </div>
 
             {/* Main Heading */}
             <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight">
-              Words from Your Journey
+              A Closer Look at Their Experiences
             </h2>
 
             {/* Subtitle */}
             <p className="text-base text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mt-3 font-light leading-relaxed">
-              Reflections from people who have explored their path with TheAstroKaur.
+              Read what people have to say about their readings and the perspectives they&apos;ve gained.
             </p>
           </div>
 
@@ -309,44 +313,6 @@ export default function ReviewsSection() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* ── Dot Indicators (Subtle Visual Polish) ── */}
-        <div className="flex items-center justify-center gap-2 mt-6 mb-12">
-          <span className="w-2 h-2 rounded-full bg-[#E5B842]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-[#0F172A]/20 dark:bg-[#FAF8F5]/20" />
-          <span className="w-1.5 h-1.5 rounded-full bg-[#0F172A]/20 dark:bg-[#FAF8F5]/20" />
-          <span className="w-1.5 h-1.5 rounded-full bg-[#0F172A]/20 dark:bg-[#FAF8F5]/20" />
-        </div>
-
-        {/* ── Bottom Callout Banner: "Have you had a reading with us?" ── */}
-        <div className="w-full rounded-2xl sm:rounded-3xl border border-[#E5B842]/30 bg-white/70 dark:bg-[#1E293B]/60 backdrop-blur-md p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-[0_10px_30px_rgba(229,184,66,0.06)] dark:shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-          <div className="flex items-center gap-4 sm:gap-6 text-center sm:text-left">
-            {/* Celestial Star Icon */}
-            <div className="w-12 h-12 rounded-full bg-[#E5B842]/10 border border-[#E5B842]/30 flex items-center justify-center text-[#E5B842] shrink-0">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
-              </svg>
-            </div>
-
-            <div>
-              <h3 className="font-serif text-lg sm:text-xl font-normal text-[#0F172A] dark:text-[#FAF8F5]">
-                Have you had a reading with us?
-              </h3>
-              <p className="text-xs sm:text-sm text-[#0F172A]/70 dark:text-[#FAF8F5]/70 font-light mt-0.5">
-                Your experience can inspire and guide others on their own journey.
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleLeaveReviewClick}
-            className="inline-flex items-center gap-2 px-7 py-3 rounded-full bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] font-bold text-xs tracking-wider uppercase transition-all duration-300 shadow-[0_4px_18px_rgba(229,184,66,0.3)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.5)] hover:scale-[1.02] active:scale-[0.98] shrink-0 cursor-pointer"
-          >
-            <span>Leave a Review</span>
-            <span className="text-sm">→</span>
-          </button>
         </div>
       </div>
 

@@ -88,9 +88,20 @@ const DEFAULT_ABOUT = {
   image_url: "/Owner_image.png",
 };
 
+// Default Vision fallback
+const DEFAULT_VISION = {
+  tag: "A VISION FOR ASTROLOGY",
+  heading_line_1: "There Is More Than One Way",
+  heading_line_2: "to See Your Story.",
+  paragraph_1:
+    "The same experiences can look different when we understand ourselves a little better. Astrology offers a perspective on the relationships we build, the choices we face, and the paths we take.",
+  paragraph_2:
+    "Through my practice, I hope to bridge the gap between ancient Vedic wisdom and the modern world, making astrology easier to understand and relevant to everyday life. Rather than seeing it as a way to reflect on our experiences, understand ourselves better, and approach life's uncertainties with greater awareness.",
+};
+
 /**
  * GET /api/admin/content
- * Returns both about content and reading services from Supabase
+ * Returns about content, vision content, and reading services from Supabase
  */
 export async function GET() {
   try {
@@ -104,13 +115,14 @@ export async function GET() {
       console.error("Error fetching services:", servicesErr);
     }
 
-    // 2. Fetch About Profile
+    // 2. Fetch About Profile & Vision
     const { data: profilesData, error: profilesErr } = await supabaseAdmin
       .from("profiles")
       .select("*")
       .limit(1);
 
     let aboutContent = DEFAULT_ABOUT;
+    let visionContent = DEFAULT_VISION;
 
     if (!profilesErr && profilesData && profilesData.length > 0) {
       const p = profilesData[0];
@@ -125,7 +137,21 @@ export async function GET() {
             ...DEFAULT_ABOUT,
             paragraph_1: p.bio,
             heading_name: p.display_name || DEFAULT_ABOUT.heading_name,
-            tag: p.vision || DEFAULT_ABOUT.tag,
+            tag: DEFAULT_ABOUT.tag,
+          };
+        }
+      }
+
+      // Check if vision contains JSON payload
+      if (p.vision) {
+        try {
+          const parsedVision = JSON.parse(p.vision);
+          visionContent = { ...DEFAULT_VISION, ...parsedVision };
+        } catch {
+          // If plain text vision
+          visionContent = {
+            ...DEFAULT_VISION,
+            tag: p.vision,
           };
         }
       }
@@ -133,6 +159,7 @@ export async function GET() {
 
     return NextResponse.json({
       about: aboutContent,
+      vision: visionContent,
       services: servicesData || [],
     });
   } catch (err: any) {
@@ -146,7 +173,7 @@ export async function GET() {
 
 /**
  * PUT /api/admin/content
- * Updates either "about" or "services"
+ * Updates "about", "vision", or "services"
  */
 export async function PUT(req: NextRequest) {
   try {
@@ -174,7 +201,6 @@ export async function PUT(req: NextRequest) {
           .from("profiles")
           .update({
             display_name: data.heading_name || "TheAstroKaur",
-            vision: data.tag,
             bio: jsonPayload,
             is_published: true,
             updated_at: new Date().toISOString(),
@@ -187,7 +213,6 @@ export async function PUT(req: NextRequest) {
           .from("profiles")
           .insert({
             display_name: data.heading_name || "TheAstroKaur",
-            vision: data.tag,
             bio: jsonPayload,
             is_published: true,
           });
@@ -196,6 +221,47 @@ export async function PUT(req: NextRequest) {
       }
 
       return NextResponse.json({ success: true, message: "About section saved successfully" });
+    }
+
+    if (type === "vision") {
+      // Upsert into profiles (vision column)
+      const { data: existingProfiles } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .limit(1);
+
+      const visionPayload = JSON.stringify({
+        tag: data.tag || DEFAULT_VISION.tag,
+        heading_line_1: data.heading_line_1 || DEFAULT_VISION.heading_line_1,
+        heading_line_2: data.heading_line_2 || DEFAULT_VISION.heading_line_2,
+        paragraph_1: data.paragraph_1 || DEFAULT_VISION.paragraph_1,
+        paragraph_2: data.paragraph_2 || DEFAULT_VISION.paragraph_2,
+      });
+
+      if (existingProfiles && existingProfiles.length > 0) {
+        const { error: updateErr } = await supabaseAdmin
+          .from("profiles")
+          .update({
+            vision: visionPayload,
+            is_published: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingProfiles[0].id);
+
+        if (updateErr) throw updateErr;
+      } else {
+        const { error: insertErr } = await supabaseAdmin
+          .from("profiles")
+          .insert({
+            display_name: "TheAstroKaur",
+            vision: visionPayload,
+            is_published: true,
+          });
+
+        if (insertErr) throw insertErr;
+      }
+
+      return NextResponse.json({ success: true, message: "Vision section saved successfully" });
     }
 
     if (type === "service_update") {

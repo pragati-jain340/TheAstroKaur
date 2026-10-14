@@ -9,6 +9,7 @@ import Footer from "@/components/layout/Footer";
 import SubpageBackground from "@/components/layout/SubpageBackground";
 import AvatarDisplay from "@/components/avatar/AvatarDisplay";
 import AvatarPickerModal from "@/components/avatar/AvatarPickerModal";
+import ReviewModal from "@/components/reviews/ReviewModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -64,220 +65,182 @@ function formatBirthTime(t: string | null): string {
   return `${h12}:${m} ${ampm}`;
 }
 
-// ─── Inline Review Form Component ─────────────────────────────────────────────
-
-function LeaveReviewInline({
-  orderId,
-  onSubmitted,
-}: {
-  orderId: string;
-  onSubmitted: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [hovered, setHovered] = useState(0);
-  const [text, setText] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const supabase = createClient();
-
-  const submit = async () => {
-    if (!rating) {
-      setError("Please select a star rating.");
-      return;
-    }
-    setSaving(true);
-    const { error: err } = await supabase
-      .from("orders")
-      .update({
-        review_rating: rating,
-        review_text: text.trim() || null,
-        review_created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", orderId);
-    setSaving(false);
-    if (err) {
-      setError(err.message);
-      return;
-    }
-    setOpen(false);
-    onSubmitted();
-  };
-
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 hover:text-[#E5B842] transition-colors cursor-pointer"
-      >
-        <span className="text-[#E5B842] text-sm">☆</span> Leave a Review
-      </button>
-    );
-  }
-
-  return (
-    <div className="w-full mt-4 pt-4 border-t border-[#0F172A]/10 dark:border-[#FAF8F5]/10 space-y-3">
-      <p className="text-[11px] font-bold uppercase tracking-widest text-[#0F172A]/60 dark:text-[#FAF8F5]/60">
-        Leave a Review
-      </p>
-      <div className="flex gap-1.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            type="button"
-            onClick={() => setRating(star)}
-            onMouseEnter={() => setHovered(star)}
-            onMouseLeave={() => setHovered(0)}
-            className="text-2xl transition-transform hover:scale-110 cursor-pointer"
-          >
-            <span
-              className={
-                (hovered || rating) >= star
-                  ? "text-[#E5B842]"
-                  : "text-[#0F172A]/20 dark:text-[#FAF8F5]/20"
-              }
-            >
-              ★
-            </span>
-          </button>
-        ))}
-      </div>
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Share your experience (optional)..."
-        rows={3}
-        className="w-full text-sm px-4 py-2.5 rounded-xl bg-[#0F172A]/5 dark:bg-[#FAF8F5]/5 border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 text-[#0F172A] dark:text-[#FAF8F5] placeholder:text-[#0F172A]/30 dark:placeholder:text-[#FAF8F5]/30 resize-none focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40"
-      />
-      {error && <p className="text-xs text-red-500">{error}</p>}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={submit}
-          disabled={saving}
-          className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-colors disabled:opacity-60 cursor-pointer"
-        >
-          {saving ? "Submitting…" : "Submit Review"}
-        </button>
-        <button
-          onClick={() => {
-            setOpen(false);
-            setError("");
-          }}
-          className="px-4 py-2 rounded-xl text-xs font-medium text-[#0F172A]/50 dark:text-[#FAF8F5]/50 hover:bg-[#0F172A]/5 dark:hover:bg-[#FAF8F5]/5 transition-colors cursor-pointer"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ─── Reading Card Component ───────────────────────────────────────────────────
 
 function ReadingCard({ order, onReviewSubmitted }: { order: Order; onReviewSubmitted: () => void }) {
   const router = useRouter();
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"write" | "edit" | "view">("write");
+
   const isUpcoming = order.status === "confirmed" || order.status === "pending";
   const isCompleted = order.status === "completed";
   const hasReview = !!order.review_rating;
 
   return (
-    <div className="relative bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/20 hover:border-[#E5B842]/40 rounded-2xl md:rounded-3xl p-6 md:p-8 transition-all duration-300 shadow-sm hover:shadow-[0_8px_30px_rgba(229,184,66,0.08)]">
-      <div className="flex items-start gap-4 sm:gap-5">
-        {/* Astrology Emblem */}
-        <div className="w-10 h-10 rounded-full bg-[#E5B842]/10 flex items-center justify-center flex-shrink-0 text-[#E5B842] text-lg font-serif">
-          ✦
-        </div>
+    <>
+      <div className="relative bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/20 hover:border-[#E5B842]/40 rounded-2xl md:rounded-3xl p-6 md:p-8 transition-all duration-300 shadow-sm hover:shadow-[0_8px_30px_rgba(229,184,66,0.08)] flex flex-col justify-between">
+        <div className="flex items-start gap-4 sm:gap-5">
+          {/* Astrology Emblem */}
+          <div className="w-10 h-10 rounded-full bg-[#E5B842]/10 flex items-center justify-center flex-shrink-0 text-[#E5B842] text-lg font-serif">
+            ✦
+          </div>
 
-        {/* Content Details */}
-        <div className="flex-1 min-w-0">
-          <h3 className="font-serif text-lg sm:text-xl font-semibold text-[#0F172A] dark:text-[#FAF8F5] uppercase tracking-wide leading-snug">
-            {order.service_title}
-          </h3>
-          <p className="text-xs text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mt-1">
-            {order.service_title} · Vedic Astrology
-          </p>
+          {/* Content Details */}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-serif text-lg sm:text-xl font-semibold text-[#0F172A] dark:text-[#FAF8F5] uppercase tracking-wide leading-snug">
+              {order.service_title}
+            </h3>
+            <p className="text-xs text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mt-1">
+              {order.service_title} · Vedic Astrology
+            </p>
 
-          {/* Status & Date */}
-          <div className="mt-4">
-            {isUpcoming ? (
-              <div>
-                <p className="text-[10px] font-bold tracking-widest text-[#E5B842] uppercase">
-                  UPCOMING
+            {/* Status & Date */}
+            <div className="mt-4">
+              {isUpcoming ? (
+                <div>
+                  <p className="text-[10px] font-bold tracking-widest text-[#E5B842] uppercase">
+                    UPCOMING
+                  </p>
+                  <p className="text-xs font-medium text-[#0F172A]/80 dark:text-[#FAF8F5]/80 mt-0.5">
+                    {order.scheduled_at
+                      ? `${formatDate(order.scheduled_at).toUpperCase()} · ${formatTime(order.scheduled_at)}`
+                      : formatDate(order.created_at).toUpperCase()}
+                  </p>
+                </div>
+              ) : isCompleted ? (
+                <p className="text-xs font-medium tracking-wide text-[#0F172A]/70 dark:text-[#FAF8F5]/70 uppercase">
+                  COMPLETED · {formatDate(order.created_at)}
                 </p>
-                <p className="text-xs font-medium text-[#0F172A]/80 dark:text-[#FAF8F5]/80 mt-0.5">
-                  {order.scheduled_at
-                    ? `${formatDate(order.scheduled_at).toUpperCase()} · ${formatTime(order.scheduled_at)}`
-                    : formatDate(order.created_at).toUpperCase()}
-                </p>
-              </div>
-            ) : isCompleted ? (
-              <p className="text-xs font-medium tracking-wide text-[#0F172A]/70 dark:text-[#FAF8F5]/70 uppercase">
-                COMPLETED · {formatDate(order.created_at)}
-              </p>
-            ) : (
-              <p className="text-xs font-medium tracking-wide text-[#0F172A]/60 dark:text-[#FAF8F5]/60 uppercase">
-                {order.status} · {formatDate(order.created_at)}
-              </p>
-            )}
-          </div>
-
-          {/* Format & Price */}
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#0F172A]/6 dark:border-[#FAF8F5]/6">
-            <span className="text-xs font-medium text-[#0F172A]/60 dark:text-[#FAF8F5]/60">
-              {order.format === "voice_call" ? "Voice Call" : "Text Reading"}
-            </span>
-            <span className="font-serif text-lg font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
-              {formatPrice(order.price_eur)}
-            </span>
-          </div>
-
-          {/* Actions */}
-          <div className="mt-4 pt-3 border-t border-[#0F172A]/6 dark:border-[#FAF8F5]/6 flex flex-wrap items-center justify-between gap-3">
-            <button
-              onClick={() => router.push(`/account/readings/${order.id}`)}
-              className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-[#0F172A] dark:text-[#FAF8F5] hover:text-[#E5B842] transition-colors cursor-pointer group"
-            >
-              <span>View Details</span>
-              <span className="text-[#E5B842] transition-transform duration-200 group-hover:translate-x-1">→</span>
-            </button>
-
-            {/* Leave a review button for completed readings without review */}
-            {isCompleted && !hasReview && (
-              <LeaveReviewInline orderId={order.id} onSubmitted={onReviewSubmitted} />
-            )}
-          </div>
-
-          {/* Already reviewed display */}
-          {isCompleted && hasReview && (
-            <div className="mt-4 pt-4 border-t border-[#0F172A]/6 dark:border-[#FAF8F5]/6 space-y-1">
-              <div className="flex gap-0.5 text-sm">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <span
-                    key={s}
-                    className={
-                      s <= (order.review_rating ?? 0)
-                        ? "text-[#E5B842]"
-                        : "text-[#0F172A]/15 dark:text-[#FAF8F5]/15"
-                    }
-                  >
-                    ★
-                  </span>
-                ))}
-              </div>
-              {order.review_text && (
-                <p className="text-xs italic text-[#0F172A]/70 dark:text-[#FAF8F5]/70 line-clamp-2">
-                  "{order.review_text}"
+              ) : (
+                <p className="text-xs font-medium tracking-wide text-[#0F172A]/60 dark:text-[#FAF8F5]/60 uppercase">
+                  {order.status} · {formatDate(order.created_at)}
                 </p>
               )}
-              <p className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40">
-                Your review · {formatDate(order.review_created_at)}
-              </p>
             </div>
-          )}
+
+            {/* Format & Price */}
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#0F172A]/6 dark:border-[#FAF8F5]/6">
+              <span className="text-xs font-medium text-[#0F172A]/60 dark:text-[#FAF8F5]/60">
+                {order.format === "voice_call" ? "Voice Call" : "Text Reading"}
+              </span>
+              <span className="font-serif text-lg font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
+                {formatPrice(order.price_eur)}
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-4 pt-3 border-t border-[#0F172A]/6 dark:border-[#FAF8F5]/6 flex flex-wrap items-center justify-between gap-3">
+              <button
+                onClick={() => router.push(`/account/readings/${order.id}`)}
+                className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-[#0F172A] dark:text-[#FAF8F5] hover:text-[#E5B842] transition-colors cursor-pointer group"
+              >
+                <span>View Details</span>
+                <span className="text-[#E5B842] transition-transform duration-200 group-hover:translate-x-1">→</span>
+              </button>
+
+              {/* Review Action based on status */}
+              {isCompleted && !hasReview && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModalMode("write");
+                    setReviewModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                >
+                  <span className="text-xs">✦</span>
+                  <span>Write a Review</span>
+                </button>
+              )}
+
+              {isCompleted && hasReview && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalMode("view");
+                      setReviewModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 hover:text-[#E5B842] transition-colors cursor-pointer"
+                  >
+                    <span>View Review</span>
+                  </button>
+                  <span className="text-[#0F172A]/20 dark:text-[#FAF8F5]/20">·</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalMode("edit");
+                      setReviewModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#E5B842] hover:text-[#d8ab34] transition-colors cursor-pointer"
+                  >
+                    <span>Edit Review</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Already reviewed display */}
+            {isCompleted && hasReview && (
+              <div className="mt-4 pt-3.5 border-t border-[#0F172A]/6 dark:border-[#FAF8F5]/6 space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-0.5 text-sm">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <span
+                        key={s}
+                        className={
+                          s <= (order.review_rating ?? 0)
+                            ? "text-[#E5B842]"
+                            : "text-[#0F172A]/15 dark:text-[#FAF8F5]/15"
+                        }
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalMode("edit");
+                      setReviewModalOpen(true);
+                    }}
+                    className="text-[11px] font-semibold text-[#E5B842] hover:underline cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                </div>
+                {order.review_text && (
+                  <p
+                    onClick={() => {
+                      setModalMode("view");
+                      setReviewModalOpen(true);
+                    }}
+                    className="text-xs italic text-[#0F172A]/70 dark:text-[#FAF8F5]/70 line-clamp-2 cursor-pointer hover:text-[#0F172A] dark:hover:text-[#FAF8F5] transition-colors"
+                    title="Click to view full review"
+                  >
+                    "{order.review_text}"
+                  </p>
+                )}
+                <p className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40">
+                  Your review · {formatDate(order.review_created_at)}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Review Modal */}
+      <ReviewModal
+        isOpen={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        order={order}
+        initialMode={modalMode}
+        onSuccess={() => {
+          onReviewSubmitted();
+        }}
+      />
+    </>
   );
 }
 

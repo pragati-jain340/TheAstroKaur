@@ -1,10 +1,43 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 
-export default function VisionSection() {
+export interface VisionContent {
+  tag: string;
+  heading_line_1: string;
+  heading_line_2: string;
+  paragraph_1: string;
+  paragraph_2: string;
+}
+
+export const DEFAULT_VISION: VisionContent = {
+  tag: "A VISION FOR ASTROLOGY",
+  heading_line_1: "There Is More Than One Way",
+  heading_line_2: "to See Your Story.",
+  paragraph_1:
+    "The same experiences can look different when we understand ourselves a little better. Astrology offers a perspective on the relationships we build, the choices we face, and the paths we take.",
+  paragraph_2:
+    "Through my practice, I hope to bridge the gap between ancient Vedic wisdom and the modern world, making astrology easier to understand and relevant to everyday life. Rather than seeing it as a way to reflect on our experiences, understand ourselves better, and approach life's uncertainties with greater awareness.",
+};
+
+export default function VisionSection({ initialContent }: { initialContent?: Partial<VisionContent> }) {
   const containerRef = useRef<HTMLElement>(null);
+  const [content, setContent] = useState<VisionContent>({
+    ...DEFAULT_VISION,
+    ...initialContent,
+  });
+
+  useEffect(() => {
+    fetch("/api/content")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.vision) {
+          setContent((prev) => ({ ...prev, ...data.vision }));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Track scroll progress while the Vision section is pinned in the viewport
   const { scrollYProgress } = useScroll({
@@ -124,7 +157,7 @@ export default function VisionSection() {
               }}
               className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold tracking-widest uppercase bg-[#E5B842]/10 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/25 mb-4 sm:mb-6"
             >
-              A VISION FOR ASTROLOGY
+              {content.tag || DEFAULT_VISION.tag}
             </motion.div>
 
             {/* Scroll-Linked Zoom Heading */}
@@ -135,31 +168,37 @@ export default function VisionSection() {
               }}
               className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-[2.65rem] text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight leading-[1.2] sm:leading-[1.18] mb-6 sm:mb-8 origin-center will-change-transform max-w-3xl lg:max-w-4xl"
             >
-              <span className="block">There Is More Than One Way</span>
-              <span className="block mt-1">to See Your Story.</span>
+              <span className="block">{content.heading_line_1 || DEFAULT_VISION.heading_line_1}</span>
+              {content.heading_line_2 && (
+                <span className="block mt-1">{content.heading_line_2}</span>
+              )}
             </motion.h2>
 
             {/* Paragraph 1 */}
-            <motion.p
-              style={{
-                opacity: p1Opacity,
-                y: p1Y,
-              }}
-              className="text-sm sm:text-base lg:text-[1.05rem] text-[#0F172A]/75 dark:text-[#FAF8F5]/80 font-light leading-relaxed max-w-2xl sm:max-w-3xl lg:max-w-4xl mx-auto mb-4 sm:mb-5"
-            >
-              The same experiences can look different when we understand ourselves a little better. Astrology offers a perspective on the relationships we build, the choices we face, and the paths we take.
-            </motion.p>
+            {content.paragraph_1 && (
+              <motion.p
+                style={{
+                  opacity: p1Opacity,
+                  y: p1Y,
+                }}
+                className="text-sm sm:text-base lg:text-[1.05rem] text-[#0F172A]/75 dark:text-[#FAF8F5]/80 font-light leading-relaxed max-w-2xl sm:max-w-3xl lg:max-w-4xl mx-auto mb-4 sm:mb-5"
+              >
+                {content.paragraph_1}
+              </motion.p>
+            )}
 
             {/* Paragraph 2 */}
-            <motion.p
-              style={{
-                opacity: p2Opacity,
-                y: p2Y,
-              }}
-              className="text-xs sm:text-sm lg:text-[0.95rem] text-[#0F172A]/65 dark:text-[#FAF8F5]/70 font-light leading-relaxed max-w-2xl sm:max-w-3xl lg:max-w-4xl mx-auto"
-            >
-              Through my practice, I hope to bridge the gap between ancient Vedic wisdom and the modern world, making astrology easier to understand and relevant to everyday life. Rather than seeing it as a way to reflect on our experiences, understand ourselves better, and approach life&apos;s uncertainties with greater awareness.
-            </motion.p>
+            {content.paragraph_2 && (
+              <motion.p
+                style={{
+                  opacity: p2Opacity,
+                  y: p2Y,
+                }}
+                className="text-xs sm:text-sm lg:text-[0.95rem] text-[#0F172A]/65 dark:text-[#FAF8F5]/70 font-light leading-relaxed max-w-2xl sm:max-w-3xl lg:max-w-4xl mx-auto"
+              >
+                {content.paragraph_2}
+              </motion.p>
+            )}
 
           </div>
         </div>

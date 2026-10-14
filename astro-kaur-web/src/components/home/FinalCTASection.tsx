@@ -1,58 +1,101 @@
+"use client";
+
+import React from "react";
+import { useAuth } from "@/context/AuthContext";
+
 export default function FinalCTASection() {
+  const { openContactModal } = useAuth();
+
+  const scrollToReadings = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const element = document.getElementById("readings");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    } else {
+      window.location.hash = "readings";
+    }
+  };
+
   return (
-    <section className="w-full bg-[#0F172A]/85 backdrop-blur-sm text-[#FAF8F5] py-20 lg:py-28 px-6 lg:px-16 relative overflow-hidden border-t border-[#E5B842]/20">
-      {/* Starfield / Glow Accent Overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-40"
-        style={{
-          background:
-            "radial-gradient(circle at 50% 30%, rgba(229, 184, 66, 0.15) 0%, rgba(107, 52, 72, 0.15) 45%, transparent 70%)",
-        }}
-        aria-hidden="true"
-      />
+    <section className="w-full py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-16 bg-transparent relative overflow-hidden">
+      <div className="max-w-5xl mx-auto">
+        {/* Harmonious Light & Dark Theme Container */}
+        <div className="relative rounded-3xl bg-white/90 dark:bg-[#131F33] backdrop-blur-md border border-[#E5B842]/35 dark:border-[#E5B842]/20 py-16 sm:py-20 px-6 sm:px-12 text-center shadow-[0_20px_50px_rgba(229,184,66,0.12),0_4px_24px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] overflow-hidden transition-colors duration-300">
+          {/* Subtle Ambient Radial Glow */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-60 dark:opacity-40"
+            style={{
+              background:
+                "radial-gradient(circle at 50% 15%, rgba(229, 184, 66, 0.22) 0%, rgba(229, 184, 66, 0.06) 45%, transparent 70%)",
+            }}
+            aria-hidden="true"
+          />
 
-      <div className="max-w-4xl mx-auto text-center relative z-10 flex flex-col items-center">
-        {/* Celestial Star Icon */}
-        <div className="w-13 h-13 rounded-full bg-[#1E293B] border border-[#E5B842]/40 flex items-center justify-center text-[#E5B842] mb-6 shadow-md p-3">
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
-          </svg>
-        </div>
+          {/* Subtle ambient blurred celestial accents */}
+          <div className="absolute -top-20 -left-20 w-72 h-72 bg-[#E5B842]/12 dark:bg-[#E5B842]/10 rounded-full blur-[90px] pointer-events-none" />
+          <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-[#6B3448]/8 dark:bg-[#1E3A8A]/25 rounded-full blur-[100px] pointer-events-none" />
 
-        <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#FAF8F5] font-normal tracking-tight mb-5 max-w-2xl">
-          Begin Your Journey Towards Greater Clarity
-        </h2>
+          <div className="relative z-10 flex flex-col items-center">
+            {/* Small Gold Sparkle Icon */}
+            <div className="mb-6 text-[#E5B842] flex items-center justify-center">
+              <svg
+                className="w-7 h-7 sm:w-8 sm:h-8"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                {/* 4-point sparkle star */}
+                <path d="M12 2.5 L13.5 9 L20 10.5 L13.5 12 L12 18.5 L10.5 12 L4 10.5 L10.5 9 Z" />
+                {/* Small satellite sparkles */}
+                <circle cx="19" cy="5" r="1" fill="currentColor" stroke="none" />
+                <circle cx="5" cy="18" r="0.75" fill="currentColor" stroke="none" />
+              </svg>
+            </div>
 
-        <p className="text-base sm:text-lg text-[#FAF8F5]/80 max-w-xl mb-10 font-light leading-relaxed">
-          Explore the readings and find the one that feels relevant to your path, or get in touch to ask any preliminary questions.
-        </p>
+            {/* Elegant Serif Heading */}
+            <h2 className="font-serif text-3xl sm:text-4xl lg:text-[42px] text-[#0F172A] dark:text-white font-normal tracking-tight leading-tight max-w-2xl mb-4">
+              Begin Your Journey Towards Greater Clarity
+            </h2>
 
-        {/* Dual CTAs */}
-        <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
-          <a
-            href="#readings"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-[#E5B842] hover:bg-[#d6a935] text-[#0F172A] font-semibold text-xs tracking-wider uppercase shadow-md transition-all group"
-          >
-            <span>Explore My Readings</span>
-            <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-            </svg>
-          </a>
+            {/* Supporting Description */}
+            <p className="text-sm sm:text-base text-[#0F172A]/70 dark:text-[#CBD5E1] max-w-xl mx-auto mb-9 font-light leading-relaxed">
+              Explore the readings and find the one that feels relevant to your path, or get in touch with any preliminary questions.
+            </p>
 
-          <a
-            href="#contact"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full border border-[#FAF8F5]/30 hover:border-[#E5B842] text-[#FAF8F5] font-medium text-xs tracking-wider uppercase hover:bg-[#E5B842]/10 transition-all"
-          >
-            <span>Contact Me</span>
-          </a>
-        </div>
+            {/* Dual Horizontally Aligned Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto mb-7">
+              {/* Primary Button: EXPLORE MY READINGS → */}
+              <a
+                href="#readings"
+                onClick={scrollToReadings}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] font-bold text-xs tracking-wider uppercase transition-all duration-300 shadow-[0_4px_18px_rgba(229,184,66,0.3)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.5)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              >
+                <span>EXPLORE MY READINGS</span>
+                <span className="text-sm font-bold">→</span>
+              </a>
 
-        {/* Reassurance Badge */}
-        <div className="inline-flex items-center gap-2 text-xs text-[#FAF8F5]/60 bg-[#1E293B]/70 px-4 py-2 rounded-full border border-[#FAF8F5]/10">
-          <svg className="w-4 h-4 text-[#E5B842]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-          </svg>
-          <span>100% private &amp; confidential · Conducted via Google Meet or thorough written reading</span>
+              {/* Secondary Button: GET IN TOUCH */}
+              <button
+                type="button"
+                onClick={() => openContactModal()}
+                className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-white/90 hover:bg-white text-[#0F172A] border border-[#0F172A]/15 hover:border-[#6B3448]/40 shadow-sm dark:bg-[#2A374A] dark:hover:bg-[#34445A] dark:border-white/20 dark:hover:border-white/40 dark:text-white font-semibold text-xs tracking-wider uppercase transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              >
+                <span>GET IN TOUCH</span>
+              </button>
+            </div>
+
+            {/* Trust Line */}
+            <div className="inline-flex items-center justify-center gap-2 text-xs sm:text-[13px] text-[#0F172A]/60 dark:text-[#94A3B8] font-normal">
+              <span className="text-[#E5B842] text-sm" role="img" aria-label="Privacy lock">
+                🔒
+              </span>
+              <span>Private &amp; Confidential · Online or Written Readings</span>
+            </div>
+          </div>
         </div>
       </div>
     </section>
