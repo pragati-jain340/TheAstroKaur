@@ -444,6 +444,118 @@ export interface Database {
           error_message?: string | null
         }
       }
+      ascendant_readings: {
+        Row: {
+          id: string
+          sign: string
+          ruler: string
+          element: string
+          quality: string
+          overview: string
+          personality_traits: string
+          life_path_guidance: string
+          strengths: string[]
+          growth_areas: string[]
+          content: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          sign: string
+          ruler: string
+          element: string
+          quality: string
+          overview: string
+          personality_traits: string
+          life_path_guidance: string
+          strengths?: string[]
+          growth_areas?: string[]
+          content?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          sign?: string
+          ruler?: string
+          element?: string
+          quality?: string
+          overview?: string
+          personality_traits?: string
+          life_path_guidance?: string
+          strengths?: string[]
+          growth_areas?: string[]
+          content?: Json | null
+          updated_at?: string
+        }
+      }
+      free_readings: {
+        Row: {
+          id: string
+          user_id: string
+          email: string
+          date_of_birth: string
+          time_of_birth: string
+          place_of_birth: string
+          latitude: number
+          longitude: number
+          timezone: number
+          ascendant: string
+          reading_content: string
+          reading_source_id: string | null
+          status: 'pending' | 'completed' | 'failed'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          email: string
+          date_of_birth: string
+          time_of_birth: string
+          place_of_birth: string
+          latitude: number
+          longitude: number
+          timezone: number
+          ascendant: string
+          reading_content: string
+          reading_source_id?: string | null
+          status?: 'pending' | 'completed' | 'failed'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          date_of_birth?: string
+          time_of_birth?: string
+          place_of_birth?: string
+          latitude?: number
+          longitude?: number
+          timezone?: number
+          ascendant?: string
+          reading_content?: string
+          reading_source_id?: string | null
+          status?: 'pending' | 'completed' | 'failed'
+          updated_at?: string
+        }
+      }
+      free_reading_content: {
+        Row: {
+          id: string
+          content: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          content?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          updated_at?: string
+        }
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -461,5 +573,8 @@ export type Testimonial = Database['public']['Tables']['testimonials']['Row']
 export type ContactMessage = Database['public']['Tables']['contact_messages']['Row']
 export type Order = Database['public']['Tables']['orders']['Row']
 export type WebsiteNotification = Database['public']['Tables']['website_notifications']['Row']
+export type AscendantReadingRow = Database['public']['Tables']['ascendant_readings']['Row']
+export type FreeReadingRecord = Database['public']['Tables']['free_readings']['Row']
+
 
 

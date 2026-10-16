@@ -367,8 +367,6 @@ export default function ServicesPreview() {
         {/* ── Free Reading Banner Block (Tasteful, Clean Interactive Pop) ── */}
         <motion.a
           href="/free-reading"
-          target="_blank"
-          rel="noopener noreferrer"
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
@@ -376,7 +374,7 @@ export default function ServicesPreview() {
           whileHover={{ y: -3 }}
           whileTap={{ scale: 0.99 }}
           className="group relative mt-12 sm:mt-16 w-full block rounded-2xl sm:rounded-3xl p-6 sm:p-7 bg-white/80 dark:bg-[#0D1829]/80 backdrop-blur-md border border-[#E5B842]/30 hover:border-[#E5B842]/70 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
-          aria-label="Explore free Vedic rising sign reading (opens in new tab)"
+          aria-label="Explore free Vedic rising sign reading"
         >
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
             {/* Left Column: Icon + Text Content */}

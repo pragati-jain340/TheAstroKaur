@@ -566,7 +566,25 @@ export default function AuthModal() {
 
         {/* Footer Note */}
         <p className="mt-4 text-center text-[11px] text-[#0F172A]/60 dark:text-[#FAF8F5]/60">
-          By signing in, you agree to our Terms of Service & Privacy Policy.
+          By signing in, you agree to our{" "}
+          <a
+            href="/terms-of-service"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-[#6B3448] dark:hover:text-[#E5B842] transition-colors"
+          >
+            Terms of Service
+          </a>{" "}
+          &amp;{" "}
+          <a
+            href="/privacy-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-[#6B3448] dark:hover:text-[#E5B842] transition-colors"
+          >
+            Privacy Policy
+          </a>
+          .
         </p>
       </div>
     </div>

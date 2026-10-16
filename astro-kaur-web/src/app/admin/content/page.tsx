@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { ASCENDANT_READINGS, AscendantReading } from "@/lib/astrology/ascendantData";
+import { DEFAULT_FREE_READING_CONTENT, FreeReadingContent } from "@/lib/astrology/freeReadingContent";
 
 interface AboutContent {
   tag: string;
@@ -58,11 +60,20 @@ function getServiceSlug(title?: string): string {
 }
 
 export default function AdminContentPage() {
-  const [activeTab, setActiveTab] = useState<"about" | "vision" | "readings">("about");
+  const [activeTab, setActiveTab] = useState<"about" | "vision" | "free-reading" | "readings">("about");
   const [loading, setLoading] = useState(true);
   const [savingAbout, setSavingAbout] = useState(false);
   const [savingVision, setSavingVision] = useState(false);
   const [savingService, setSavingService] = useState(false);
+  const [savingFreeReading, setSavingFreeReading] = useState(false);
+
+  // Database setup state
+  const [dbStatus, setDbStatus] = useState<{
+    profiles: { exists: boolean; rows: number };
+    services: { exists: boolean; rows: number };
+    freeReadingContent: { exists: boolean; rows: number };
+  } | null>(null);
+  const [settingUpDb, setSettingUpDb] = useState(false);
 
   // Notifications
   const [notification, setNotification] = useState<{
@@ -82,6 +93,9 @@ export default function AdminContentPage() {
 
   // Vision Section form state
   const [visionForm, setVisionForm] = useState<VisionContent>(DEFAULT_VISION);
+  const [selectedAscendant, setSelectedAscendant] = useState("Aries");
+  const [ascendantContent, setAscendantContent] = useState<Record<string, AscendantReading>>(ASCENDANT_READINGS);
+  const [freeReadingForm, setFreeReadingForm] = useState<FreeReadingContent>(DEFAULT_FREE_READING_CONTENT);
 
   // Photo Upload & WebP Conversion state
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -311,6 +325,40 @@ export default function AdminContentPage() {
     }
   }, [notification]);
 
+  // Check DB table status
+  const checkDbStatus = async () => {
+    try {
+      const res = await fetch("/api/admin/setup-db");
+      const json = await res.json();
+      setDbStatus(json);
+    } catch {
+      // silently ignore
+    }
+  };
+
+  // One-click database setup — creates tables + seeds default data
+  const handleSetupDb = async () => {
+    setSettingUpDb(true);
+    try {
+      const res = await fetch("/api/admin/setup-db", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Setup failed");
+      setNotification({
+        type: "success",
+        message: "✓ Database tables created! Loading content now…",
+      });
+      await checkDbStatus();
+      await loadContent();
+    } catch (err: any) {
+      setNotification({
+        type: "error",
+        message: "DB setup failed: " + (err.message || "Unknown error"),
+      });
+    } finally {
+      setSettingUpDb(false);
+    }
+  };
+
   // Load content from API
   const loadContent = async () => {
     setLoading(true);
@@ -323,6 +371,16 @@ export default function AdminContentPage() {
       }
       if (json.vision) {
         setVisionForm(json.vision);
+      }
+      if (json.ascendantReadings) {
+        const savedContent = json.ascendantReadings.reduce(
+          (all: Record<string, AscendantReading>, item: { sign: string; content: AscendantReading | null }) => {
+            if (item.content) all[item.sign] = item.content;
+            return all;
+          },
+          { ...ASCENDANT_READINGS }
+        );
+        setAscendantContent(savedContent);
       }
       if (json.services) {
         setServices(json.services);
@@ -338,6 +396,7 @@ export default function AdminContentPage() {
   };
 
   useEffect(() => {
+    checkDbStatus();
     loadContent();
   }, []);
 
@@ -398,6 +457,25 @@ export default function AdminContentPage() {
       });
     } finally {
       setSavingVision(false);
+    }
+  };
+
+  const handleSaveFreeReading = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingFreeReading(true);
+    try {
+      const res = await fetch("/api/admin/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "ascendant_reading", data: { sign: selectedAscendant, content: ascendantContent[selectedAscendant] } }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to save free reading content");
+      setNotification({ type: "success", message: `${selectedAscendant} Ascendant reading updated on the website!` });
+    } catch (err: any) {
+      setNotification({ type: "error", message: err.message || "Could not save free reading content" });
+    } finally {
+      setSavingFreeReading(false);
     }
   };
 
@@ -585,6 +663,14 @@ export default function AdminContentPage() {
 
   const activeServicesCount = services.filter((s) => s.is_active).length;
   const hiddenServicesCount = services.filter((s) => !s.is_active).length;
+  const readingSectionKeys = [
+    ["Core Energy", "coreEnergy"],
+    ["Career & Success", "careerSuccess"],
+    ["Love & Relationships", "loveRelationships"],
+    ["Money & Security", "moneySecurity"],
+    ["Your Emotional World", "emotionalWorld"],
+    ["Your Hidden Potential", "hiddenPotential"],
+  ] as const;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200 pb-16">
@@ -661,6 +747,50 @@ export default function AdminContentPage() {
         </div>
       </div>
 
+      {/* ─── Database Setup Warning Banner ─── */}
+      {dbStatus && (!dbStatus.profiles.exists || !dbStatus.services.exists || !dbStatus.freeReadingContent.exists) && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl border border-amber-500/40 bg-amber-500/8 animate-in slide-in-from-top-2 duration-200">
+          <div className="flex items-start gap-3">
+            <span className="text-amber-500 text-base mt-0.5">⚠</span>
+            <div>
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                Database tables are missing
+              </p>
+              <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 mt-0.5">
+                {!dbStatus.profiles.exists && <span className="mr-2">❌ <code>profiles</code> (About Me + Vision)</span>}
+                {!dbStatus.services.exists && <span>❌ <code>services</code> (Readings catalog)</span>}
+                {!dbStatus.freeReadingContent.exists && <span className="mr-2">❌ <code>free_reading_content</code> (Free Reading copy)</span>}
+                {" — admin edits won't save until tables are created."}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleSetupDb}
+            disabled={settingUpDb}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-all shadow-xs cursor-pointer disabled:opacity-60 shrink-0"
+          >
+            {settingUpDb ? (
+              <><span className="animate-spin">⟳</span> Creating tables…</>
+            ) : (
+              <>⚡ Create Tables Now</>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* ─── DB tables all good banner ─── */}
+      {dbStatus && dbStatus.profiles.exists && dbStatus.services.exists && dbStatus.freeReadingContent.exists && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-emerald-500/25 bg-emerald-500/6 text-[11px] text-emerald-700 dark:text-emerald-400">
+          <span>✓</span>
+          <span>
+            Database ready — <code>profiles</code> ({dbStatus.profiles.rows} row{dbStatus.profiles.rows !== 1 ? "s" : ""}){" "}
+            &amp; <code>services</code> ({dbStatus.services.rows} service{dbStatus.services.rows !== 1 ? "s" : ""})
+            {" "}&amp; <code>free_reading_content</code> ({dbStatus.freeReadingContent.rows} record{dbStatus.freeReadingContent.rows !== 1 ? "s" : ""})
+          </span>
+        </div>
+      )}
+
       {/* ─── 5-Second Dismissible Notification Alert ─── */}
       {notification && (
         <div
@@ -711,6 +841,18 @@ export default function AdminContentPage() {
             }`}
           >
             Vision Section
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("free-reading")}
+            className={`px-4 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              activeTab === "free-reading"
+                ? "bg-[#E5B842] text-[#0F172A] font-semibold shadow-xs"
+                : "text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#0F172A] dark:hover:text-[#FAF8F5]"
+            }`}
+          >
+            Free Reading
           </button>
 
           <button
@@ -1189,6 +1331,56 @@ export default function AdminContentPage() {
       )}
 
       {/* ── SUB-TAB 2: READINGS & SERVICES ── */}
+      {activeTab === "free-reading" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div className="lg:col-span-8 bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-6 sm:p-7 shadow-xs">
+            <h2 className="font-serif text-lg font-semibold text-[#0F172A] dark:text-[#FAF8F5] uppercase tracking-wide">Edit Ascendant Reading</h2>
+            <p className="text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60 mt-1 mb-5">Choose a sign and edit the complete reading shown to people with that Ascendant.</p>
+            <form onSubmit={handleSaveFreeReading} className="space-y-4">
+              <div><label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">Ascendant Sign</label><select value={selectedAscendant} onChange={(e) => setSelectedAscendant(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-[#FAF8F5] dark:bg-[#131F33] text-sm text-[#0F172A] dark:text-[#FAF8F5]">{Object.keys(ASCENDANT_READINGS).map((sign) => <option key={sign}>{sign}</option>)}</select></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">Sanskrit Name</label><input value={ascendantContent[selectedAscendant].sanskritName} onChange={(e) => setAscendantContent({ ...ascendantContent, [selectedAscendant]: { ...ascendantContent[selectedAscendant], sanskritName: e.target.value } })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 bg-white dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-sm" /></div><div><label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">Ruling Planet</label><input value={ascendantContent[selectedAscendant].ruler} onChange={(e) => setAscendantContent({ ...ascendantContent, [selectedAscendant]: { ...ascendantContent[selectedAscendant], ruler: e.target.value } })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 bg-white dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-sm" /></div></div>
+              {readingSectionKeys.map(([label, key]) => { const section = ascendantContent[selectedAscendant][key]; return <div key={key} className="p-4 rounded-2xl border border-[#E5B842]/25 bg-[#E5B842]/5 space-y-3"><label className="block text-sm font-semibold text-[#0F172A] dark:text-[#FAF8F5]">{label}</label><input value={section.title} onChange={(e) => setAscendantContent({ ...ascendantContent, [selectedAscendant]: { ...ascendantContent[selectedAscendant], [key]: { ...section, title: e.target.value } } })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 bg-white dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-sm" placeholder="Section heading" /><textarea rows={5} value={section.paragraphs.join('\n\n')} onChange={(e) => setAscendantContent({ ...ascendantContent, [selectedAscendant]: { ...ascendantContent[selectedAscendant], [key]: { ...section, paragraphs: e.target.value.split(/\n\s*\n/).filter(Boolean) } } })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 bg-white dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-sm leading-relaxed" placeholder="Write one paragraph, leave a blank line, then write the next." /><p className="text-[10px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50">Use a blank line between paragraphs.</p></div>; })}
+              <button type="submit" disabled={savingFreeReading} className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-xs cursor-pointer disabled:opacity-50">{savingFreeReading ? "Saving..." : `Save ${selectedAscendant} Reading`}</button>
+            </form>
+          </div>
+          <div className="lg:col-span-4 bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-6 shadow-xs sticky top-6"><p className="text-[10px] font-bold tracking-widest uppercase text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mb-4">Live reading preview</p><div className="max-h-[70vh] overflow-y-auto p-5 rounded-2xl bg-gradient-to-b from-[#E5B842]/20 to-transparent border border-[#E5B842]/35 space-y-5"><div><h3 className="font-serif text-2xl text-[#0F172A] dark:text-[#FAF8F5]">{selectedAscendant} Ascendant</h3><p className="text-xs italic text-[#0F172A]/60 mt-1">{ascendantContent[selectedAscendant]?.sanskritName} Lagna · Ruled by {ascendantContent[selectedAscendant]?.ruler}</p></div>{(['coreEnergy', 'careerSuccess', 'loveRelationships', 'moneySecurity', 'emotionalWorld', 'hiddenPotential'] as const).map((key) => <div key={key} className="border-t border-[#0F172A]/10 pt-4"><h4 className="font-serif text-lg text-[#0F172A] dark:text-[#FAF8F5]">{ascendantContent[selectedAscendant][key].title}</h4>{ascendantContent[selectedAscendant][key].paragraphs.map((paragraph, index) => <p key={index} className="mt-2 text-xs leading-relaxed text-[#0F172A]/70 dark:text-[#FAF8F5]/70">{paragraph}</p>)}</div>)}</div></div>
+        </div>
+      )}
+
+      {false && activeTab === "free-reading" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div className="lg:col-span-7 bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-6 sm:p-7 shadow-xs">
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h2 className="font-serif text-lg font-semibold text-[#0F172A] dark:text-[#FAF8F5] uppercase tracking-wide">Edit Free Reading Section</h2>
+                <p className="text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60 mt-1">Control the public copy shown before and after a visitor receives their Vedic Ascendant reading.</p>
+              </div>
+              <button type="button" onClick={() => setFreeReadingForm(DEFAULT_FREE_READING_CONTENT)} className="shrink-0 text-[11px] font-medium text-[#E5B842] hover:underline cursor-pointer">Reset to Default</button>
+            </div>
+            <form onSubmit={handleSaveFreeReading} className="space-y-4">
+              {Object.entries(freeReadingForm).map(([key, value]) => {
+                const label = key.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+                const isLongCopy = ["section_intro", "sign_in_description", "cta_description", "cta_quote"].includes(key);
+                return <div key={key}>
+                  <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">{label}</label>
+                  {isLongCopy ? <textarea rows={3} value={value} onChange={(e) => setFreeReadingForm({ ...freeReadingForm, [key]: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-[#FAF8F5] dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40" required /> : <input type="text" value={value} onChange={(e) => setFreeReadingForm({ ...freeReadingForm, [key]: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-[#FAF8F5] dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40" required />}
+                </div>;
+              })}
+              <button type="submit" disabled={savingFreeReading} className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-xs cursor-pointer disabled:opacity-50">{savingFreeReading ? "Saving..." : "Save Free Reading Section"}</button>
+            </form>
+          </div>
+          <div className="lg:col-span-5 bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-6 shadow-xs sticky top-6">
+            <p className="text-[10px] font-bold tracking-widest uppercase text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mb-4">Live homepage preview</p>
+            <div className="text-center p-6 rounded-2xl bg-gradient-to-b from-[#E5B842]/20 via-[#E5B842]/5 to-transparent border border-[#E5B842]/35 space-y-4">
+              <h3 className="font-serif text-2xl text-[#0F172A] dark:text-[#FAF8F5]">{freeReadingForm.section_heading}</h3>
+              <p className="text-xs leading-relaxed text-[#0F172A]/70 dark:text-[#FAF8F5]/70">{freeReadingForm.section_intro}</p>
+              <span className="inline-block px-3 py-1 rounded-full text-[10px] bg-white/70 dark:bg-[#0F172A]/70 border border-[#0F172A]/10 dark:border-white/10 text-[#0F172A]/70 dark:text-[#FAF8F5]/70">{freeReadingForm.eligibility_note}</span>
+              <div className="pt-5 border-t border-[#0F172A]/10 dark:border-white/10"><h4 className="font-serif text-xl text-[#0F172A] dark:text-[#FAF8F5]">{freeReadingForm.cta_heading}</h4><p className="mt-2 text-xs text-[#0F172A]/70 dark:text-[#FAF8F5]/70">{freeReadingForm.cta_description}</p><p className="mt-3 text-xs font-semibold text-[#6B3448] dark:text-[#E5B842]">✦ {freeReadingForm.cta_accent}</p><button type="button" className="mt-4 px-5 py-2.5 rounded-full bg-[#E5B842] text-[#0F172A] text-[10px] font-bold uppercase">{freeReadingForm.cta_primary_label}</button></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === "readings" && (
         <div className="space-y-6">
           {/* Services Cards Grid: Spacious & Breathable */}

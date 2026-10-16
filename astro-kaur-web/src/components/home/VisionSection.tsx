@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 
 export interface VisionContent {
@@ -23,21 +23,11 @@ export const DEFAULT_VISION: VisionContent = {
 
 export default function VisionSection({ initialContent }: { initialContent?: Partial<VisionContent> }) {
   const containerRef = useRef<HTMLElement>(null);
-  const [content, setContent] = useState<VisionContent>({
+  // Content is fully resolved server-side and passed as a prop — no client fetch, no flash
+  const content: VisionContent = {
     ...DEFAULT_VISION,
     ...initialContent,
-  });
-
-  useEffect(() => {
-    fetch("/api/content")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.vision) {
-          setContent((prev) => ({ ...prev, ...data.vision }));
-        }
-      })
-      .catch(() => {});
-  }, []);
+  };
 
   // Track scroll progress while the Vision section is pinned in the viewport
   const { scrollYProgress } = useScroll({

@@ -39,10 +39,7 @@ export default function Footer() {
             <p className="text-sm text-[#0F172A]/70 dark:text-[#FAF8F5]/70 max-w-sm font-light leading-relaxed">
               Astrology for self-discovery and clarity.
             </p>
-            <div className="pt-1 flex flex-col items-start gap-1.5">
-              <span className="text-[10px] tracking-[0.22em] uppercase text-[#6B3448] dark:text-[#E5B842] font-semibold">
-                Direct Inquiries
-              </span>
+            <div className="pt-1">
               <a
                 href={`mailto:${CONTACT_EMAIL}`}
                 className="inline-flex items-center gap-2.5 text-sm text-[#0F172A]/75 dark:text-[#FAF8F5]/75 hover:text-[#6B3448] dark:hover:text-[#E5B842] transition-colors group"
@@ -120,7 +117,7 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#terms" className="hover:text-[#E5B842] transition-colors">
+                <a href="/terms-of-service" className="hover:text-[#E5B842] transition-colors">
                   Terms of Service
                 </a>
               </li>
@@ -130,7 +127,7 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#disclaimer" className="hover:text-[#E5B842] transition-colors">
+                <a href="/disclaimer" className="hover:text-[#E5B842] transition-colors">
                   Astrology Disclaimer
                 </a>
               </li>

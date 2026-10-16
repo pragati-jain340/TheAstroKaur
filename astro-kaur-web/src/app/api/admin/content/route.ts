@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import fs from "fs/promises";
 import path from "path";
+import { DEFAULT_FREE_READING_CONTENT } from "@/lib/astrology/freeReadingContent";
 
 // Initialize Supabase Admin client with Service Role Key
 const supabaseAdmin = createClient(
@@ -121,6 +122,21 @@ export async function GET() {
       .select("*")
       .limit(1);
 
+    const { data: freeReadingRow, error: freeReadingErr } = await supabaseAdmin
+      .from("free_reading_content")
+      .select("content")
+      .eq("id", "free-reading")
+      .maybeSingle();
+
+    const { data: ascendantReadings } = await supabaseAdmin
+      .from("ascendant_readings")
+      .select("sign, content")
+      .order("sign");
+
+    if (freeReadingErr) {
+      console.warn("Free reading content table is not ready:", freeReadingErr.message);
+    }
+
     let aboutContent = DEFAULT_ABOUT;
     let visionContent = DEFAULT_VISION;
 
@@ -157,9 +173,14 @@ export async function GET() {
       }
     }
 
+    const { cta_secondary_label: _deprecatedCtaLabel, ...freeReadingContent } =
+      (freeReadingRow?.content || {}) as Record<string, unknown>;
+
     return NextResponse.json({
       about: aboutContent,
       vision: visionContent,
+      freeReading: { ...DEFAULT_FREE_READING_CONTENT, ...freeReadingContent },
+      ascendantReadings: ascendantReadings || [],
       services: servicesData || [],
     });
   } catch (err: any) {
@@ -262,6 +283,43 @@ export async function PUT(req: NextRequest) {
       }
 
       return NextResponse.json({ success: true, message: "Vision section saved successfully" });
+    }
+
+    if (type === "free_reading") {
+      const content = { ...DEFAULT_FREE_READING_CONTENT, ...data };
+      const { error } = await supabaseAdmin
+        .from("free_reading_content")
+        .upsert(
+          { id: "free-reading", content, updated_at: new Date().toISOString() },
+          { onConflict: "id" }
+        );
+
+      if (error) throw error;
+      return NextResponse.json({ success: true, message: "Free reading section saved successfully" });
+    }
+
+    if (type === "ascendant_reading") {
+      if (!data?.sign || !data?.content) {
+        return NextResponse.json({ error: "A sign and its reading content are required" }, { status: 400 });
+      }
+      const content = data.content;
+      const { error } = await supabaseAdmin
+        .from("ascendant_readings")
+        .upsert({
+          sign: data.sign,
+          ruler: content.ruler || "",
+          element: content.element || "",
+          quality: content.quality || "",
+          overview: content.overview || "",
+          personality_traits: content.personalityTraits || "",
+          life_path_guidance: content.lifePathGuidance || "",
+          strengths: content.strengths || [],
+          growth_areas: content.growthAreas || [],
+          content,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "sign" });
+      if (error) throw error;
+      return NextResponse.json({ success: true, message: `${data.sign} reading saved successfully` });
     }
 
     if (type === "service_update") {

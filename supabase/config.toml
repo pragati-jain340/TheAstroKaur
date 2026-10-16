@@ -1,0 +1,2 @@
+[functions.free-reading]
+verify_jwt = true

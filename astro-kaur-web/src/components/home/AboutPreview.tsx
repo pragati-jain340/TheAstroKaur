@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
 import { InView } from "@/components/ui/in-view";
 
@@ -15,19 +14,9 @@ const DEFAULT_ABOUT = {
   image_url: "/Owner_image.png",
 };
 
-export default function AboutPreview() {
-  const [content, setContent] = useState(DEFAULT_ABOUT);
-
-  useEffect(() => {
-    fetch("/api/content")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.about) {
-          setContent((prev) => ({ ...prev, ...data.about }));
-        }
-      })
-      .catch(() => {});
-  }, []);
+export default function AboutPreview({ initialContent }: { initialContent?: Partial<typeof DEFAULT_ABOUT> }) {
+  // Content is fully resolved server-side and passed as a prop — no client fetch needed
+  const content = { ...DEFAULT_ABOUT, ...initialContent };
 
   return (
     <section
