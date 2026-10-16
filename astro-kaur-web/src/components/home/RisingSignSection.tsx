@@ -39,10 +39,10 @@ export default function RisingSignSection() {
   const [eligibilityMessage, setEligibilityMessage] = useState<string | null>(null);
   const [savedReading, setSavedReading] = useState<SavedReading | null>(null);
   const [adminTestingMode, setAdminTestingMode] = useState(false);
-  const [apiAdmin, setApiAdmin] = useState(false);
   const [pageContent, setPageContent] = useState<FreeReadingContent>(DEFAULT_FREE_READING_CONTENT);
 
-  const isEffectiveAdmin = isAdmin || apiAdmin;
+  // Admin controls belong only to the signed-in user's own admin profile.
+  const isEffectiveAdmin = Boolean(user && isAdmin && profile?.auth_user_id === user.id);
 
   useEffect(() => {
     fetch("/api/content")
@@ -131,9 +131,8 @@ export default function RisingSignSection() {
         const data = await res.json();
         if (isCancelled) return;
 
-        if (data.isAdmin) {
+        if (isEffectiveAdmin && data.isAdmin) {
           // Admin has unlimited testing access
-          setApiAdmin(true);
           setAlreadyClaimed(false);
           if (data.lastReading) {
             setSavedReading(data.lastReading);
@@ -164,7 +163,7 @@ export default function RisingSignSection() {
     return () => {
       isCancelled = true;
     };
-  }, [user, authLoading]);
+  }, [user, authLoading, isEffectiveAdmin]);
 
   // Place Autocomplete Debounced Search
   useEffect(() => {
@@ -328,8 +327,7 @@ export default function RisingSignSection() {
 
       if (data.reading) {
         setSavedReading(data.reading);
-        if (isEffectiveAdmin || data.isAdmin) {
-          setApiAdmin(true);
+        if (isEffectiveAdmin) {
           setAdminTestingMode(false);
           setAlreadyClaimed(false);
         } else {
@@ -361,12 +359,7 @@ export default function RisingSignSection() {
           <p className="text-sm sm:text-base text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mt-3 font-light leading-relaxed">
             {pageContent.section_intro}
           </p>
-          {isEffectiveAdmin ? (
-            <div className="inline-flex items-center gap-2 mt-3 text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3.5 py-1.5 rounded-full font-medium">
-              <span>👑</span>
-              <span>Admin Testing Mode · Unlimited Vedic chart calculations enabled</span>
-            </div>
-          ) : (
+          {!isEffectiveAdmin && (
             <div className="inline-block mt-3 text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60 bg-black/5 dark:bg-white/5 px-3 py-1 rounded-full">
               {pageContent.eligibility_note}
             </div>
@@ -407,7 +400,7 @@ export default function RisingSignSection() {
                   onClick={() => openAuthModal("signup")}
                   className="w-full sm:w-auto px-7 py-3.5 rounded-full border border-[#0F172A]/20 dark:border-[#FAF8F5]/20 text-xs font-semibold tracking-wider uppercase text-[#0F172A] dark:text-[#FAF8F5] hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
                 >
-                  Create Free Account
+                  Create New Account
                 </button>
               </div>
             </div>
@@ -934,7 +927,7 @@ export default function RisingSignSection() {
                   ) : (
                     <span>
                       {isEffectiveAdmin
-                        ? "Calculate Vedic Ascendant (Admin Test) ✦"
+                        ? "Calculate Vedic Ascendant ✦"
                         : "Calculate My Vedic Ascendant & Reveal Reading ✦"}
                     </span>
                   )}

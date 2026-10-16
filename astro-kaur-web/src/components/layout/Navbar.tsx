@@ -11,7 +11,6 @@ import AvatarDisplay from "@/components/avatar/AvatarDisplay";
 const NAV_ITEMS = [
   { label: "About", href: "/#about" },
   { label: "Readings", href: "/#readings" },
-  { label: "Free Reading", href: "/free-reading" },
   { label: "Vision", href: "/#vision" },
   { label: "Reviews", href: "/#reviews" },
   { label: "Contact", href: "/#contact" },

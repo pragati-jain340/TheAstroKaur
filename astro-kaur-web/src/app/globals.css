@@ -57,17 +57,6 @@ body > *, main {
     font-size: 16px;
   }
 
-  /* Small screens use a stable composition instead of scroll-driven overlap. */
-  .hero-content {
-    opacity: 1 !important;
-  }
-
-  .hero-parallax,
-  .vision-section [style] {
-    transform: none !important;
-    opacity: 1 !important;
-  }
-
   .hero-actions > a {
     text-align: center;
   }
@@ -76,8 +65,9 @@ body > *, main {
     animation: none;
   }
 
+  /* The phone carousel animates scrollLeft so swipes and autoplay share a position. */
   .reviews-scroller {
-    scroll-snap-type: x mandatory;
+    scroll-behavior: auto;
   }
 
   footer a {
@@ -102,10 +92,6 @@ body > *, main {
     height: auto;
   }
 
-  .vision-section [style] {
-    transform: none !important;
-    opacity: 1 !important;
-  }
 }
 
 @keyframes astroWheelSpin {

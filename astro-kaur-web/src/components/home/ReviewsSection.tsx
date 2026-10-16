@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import { useInView } from "motion/react";
 import { createClient } from "@/lib/supabase/client";
+import { useMediaQuery } from "@/components/ui/use-media-query";
 
 export interface ReviewItem {
   id: string;
@@ -95,6 +97,30 @@ export default function ReviewsSection() {
   const [activeModalReview, setActiveModalReview] = useState<ReviewItem | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const phoneLayout = useMediaQuery("(max-width: 639px)");
+  const carouselInView = useInView(scrollContainerRef);
+
+  // Native scrolling keeps phone autoplay and touch gestures in the same coordinate
+  // system. Stop while the visitor is interacting or the carousel is off screen.
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !phoneLayout || !carouselInView || isPaused || activeModalReview) return;
+
+    let frame: number;
+    let lastTime: number | undefined;
+    let position = container.scrollLeft;
+    const advance = (time: number) => {
+      const loopWidth = container.firstElementChild?.firstElementChild?.clientWidth || 0;
+      if (loopWidth > 0 && lastTime !== undefined) {
+        position = (position + Math.min(time - lastTime, 64) * loopWidth / 45000) % loopWidth;
+        container.scrollLeft = position;
+      }
+      lastTime = time;
+      frame = requestAnimationFrame(advance);
+    };
+    frame = requestAnimationFrame(advance);
+    return () => cancelAnimationFrame(frame);
+  }, [phoneLayout, carouselInView, isPaused, activeModalReview]);
 
   // Load live published reviews with real customer avatars
   useEffect(() => {
@@ -169,6 +195,16 @@ export default function ReviewsSection() {
 
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const pauseScrolling = () => {
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    setIsPaused(true);
+  };
+
+  const resumeScrolling = () => {
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => setIsPaused(false), 4000);
+  };
+
   useEffect(() => {
     return () => {
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
@@ -177,6 +213,7 @@ export default function ReviewsSection() {
 
   const scroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
+      pauseScrolling();
       const card = scrollContainerRef.current.querySelector<HTMLElement>(".snap-start");
       const scrollAmount = card ? card.offsetWidth + 24 : 390;
       scrollContainerRef.current.scrollBy({
@@ -185,11 +222,7 @@ export default function ReviewsSection() {
       });
 
       // Briefly pause continuous marquee so user can comfortably browse via arrows
-      setIsPaused(true);
-      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-      scrollTimeoutRef.current = setTimeout(() => {
-        setIsPaused(false);
-      }, 4000);
+      resumeScrolling();
     }
   };
 
@@ -284,10 +317,13 @@ export default function ReviewsSection() {
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             <div
-              onTouchStart={() => setIsPaused(true)}
-              onTouchEnd={() => setIsPaused(false)}
+              onTouchStart={pauseScrolling}
+              onTouchEnd={resumeScrolling}
+              onTouchCancel={resumeScrolling}
+              onFocusCapture={pauseScrolling}
+              onBlurCapture={resumeScrolling}
               className="flex w-max reviews-marquee-track"
-              style={isPaused ? { animationPlayState: "paused" } : undefined}
+              style={isPaused || activeModalReview ? { animationPlayState: "paused" } : undefined}
             >
               {/* Primary Track */}
               <div className="flex shrink-0 gap-6 pr-6">
@@ -301,7 +337,7 @@ export default function ReviewsSection() {
               </div>
 
               {/* Duplicate Track for Seamless Infinite Loop */}
-              <div className="hidden sm:flex shrink-0 gap-6 pr-6" aria-hidden="true">
+              <div className="flex shrink-0 gap-6 pr-6" aria-hidden="true">
                 {reviews.map((review) => (
                   <ReviewCard
                     key={`duplicate-${review.id}`}

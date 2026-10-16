@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion, useInView, useScroll, useTransform } from "motion/react";
+import { COMPACT_MOTION_QUERY, useMediaQuery } from "@/components/ui/use-media-query";
 
 export interface VisionContent {
   tag: string;
@@ -23,6 +24,14 @@ export const DEFAULT_VISION: VisionContent = {
 
 export default function VisionSection({ initialContent }: { initialContent?: Partial<VisionContent> }) {
   const containerRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const compactMotion = useMediaQuery(COMPACT_MOTION_QUERY);
+  const contentInView = useInView(contentRef, { amount: 0.2 });
+  // Key animated nodes by layout below: switching from scroll-bound style values
+  // to entrance animations needs fresh Motion nodes when the viewport rotates.
+  const reveal = compactMotion
+    ? { opacity: contentInView ? 1 : 0, y: contentInView ? 0 : 16 }
+    : undefined;
   // Content is fully resolved server-side and passed as a prop — no client fetch, no flash
   const content: VisionContent = {
     ...DEFAULT_VISION,
@@ -137,11 +146,15 @@ export default function VisionSection({ initialContent }: { initialContent?: Par
           </motion.div>
 
           {/* ── Section Content ── */}
-          <div className="relative z-10 flex flex-col items-center">
+          <div ref={contentRef} className="relative z-10 flex flex-col items-center">
             
             {/* Eyebrow Label */}
             <motion.div
-              style={{
+              key={compactMotion ? "compact-label" : "desktop-label"}
+              initial={compactMotion ? { opacity: 0, y: 16 } : false}
+              animate={reveal}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              style={compactMotion ? undefined : {
                 opacity: eyebrowOpacity,
                 scale: eyebrowScale,
               }}
@@ -152,7 +165,11 @@ export default function VisionSection({ initialContent }: { initialContent?: Par
 
             {/* Scroll-Linked Zoom Heading */}
             <motion.h2
-              style={{
+              key={compactMotion ? "compact-heading" : "desktop-heading"}
+              initial={compactMotion ? { opacity: 0, y: 16 } : false}
+              animate={reveal}
+              transition={{ duration: 0.6, delay: 0.08, ease: "easeOut" }}
+              style={compactMotion ? undefined : {
                 scale: headingScale,
                 y: headingY,
               }}
@@ -167,7 +184,11 @@ export default function VisionSection({ initialContent }: { initialContent?: Par
             {/* Paragraph 1 */}
             {content.paragraph_1 && (
               <motion.p
-                style={{
+                key={compactMotion ? "compact-paragraph-1" : "desktop-paragraph-1"}
+                initial={compactMotion ? { opacity: 0, y: 16 } : false}
+                animate={reveal}
+                transition={{ duration: 0.6, delay: 0.16, ease: "easeOut" }}
+                style={compactMotion ? undefined : {
                   opacity: p1Opacity,
                   y: p1Y,
                 }}
@@ -180,7 +201,11 @@ export default function VisionSection({ initialContent }: { initialContent?: Par
             {/* Paragraph 2 */}
             {content.paragraph_2 && (
               <motion.p
-                style={{
+                key={compactMotion ? "compact-paragraph-2" : "desktop-paragraph-2"}
+                initial={compactMotion ? { opacity: 0, y: 16 } : false}
+                animate={reveal}
+                transition={{ duration: 0.6, delay: 0.24, ease: "easeOut" }}
+                style={compactMotion ? undefined : {
                   opacity: p2Opacity,
                   y: p2Y,
                 }}

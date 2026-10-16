@@ -4,8 +4,10 @@ import { useRef } from "react";
 import { motion, useScroll, useTransform, useSpring } from "motion/react";
 import AstrologyWheel from "@/components/AstrologyWheel";
 import { InView } from "@/components/ui/in-view";
+import { COMPACT_MOTION_QUERY, useMediaQuery } from "@/components/ui/use-media-query";
 
 export default function HeroSection() {
+  const compactMotion = useMediaQuery(COMPACT_MOTION_QUERY);
   const containerRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -13,27 +15,27 @@ export default function HeroSection() {
   });
 
   // Silky scroll-driven parallax springs
-  const textY = useSpring(useTransform(scrollYProgress, [0, 1], [0, -70]), {
+  const textY = useSpring(useTransform(scrollYProgress, [0, 1], [0, compactMotion ? -16 : -70]), {
     stiffness: 110,
     damping: 26,
     mass: 0.1,
   });
-  const subtitleY = useSpring(useTransform(scrollYProgress, [0, 1], [0, -45]), {
+  const subtitleY = useSpring(useTransform(scrollYProgress, [0, 1], [0, compactMotion ? -10 : -45]), {
     stiffness: 110,
     damping: 26,
     mass: 0.1,
   });
-  const wheelY = useSpring(useTransform(scrollYProgress, [0, 1], [0, 60]), {
+  const wheelY = useSpring(useTransform(scrollYProgress, [0, 1], [0, compactMotion ? 12 : 60]), {
     stiffness: 110,
     damping: 26,
     mass: 0.1,
   });
-  const wheelScale = useSpring(useTransform(scrollYProgress, [0, 1], [1, 0.92]), {
+  const wheelScale = useSpring(useTransform(scrollYProgress, [0, 1], [1, compactMotion ? 0.97 : 0.92]), {
     stiffness: 110,
     damping: 26,
     mass: 0.1,
   });
-  const heroOpacity = useSpring(useTransform(scrollYProgress, [0, 0.9], [1, 0.55]), {
+  const heroOpacity = useSpring(useTransform(scrollYProgress, [0, 0.9], [1, compactMotion ? 0.85 : 0.55]), {
     stiffness: 110,
     damping: 26,
     mass: 0.1,
