@@ -177,7 +177,7 @@ export default function ReviewsSection() {
 
   const scroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
-      const card = scrollContainerRef.current.querySelector<HTMLElement>(".shrink-0");
+      const card = scrollContainerRef.current.querySelector<HTMLElement>(".snap-start");
       const scrollAmount = card ? card.offsetWidth + 24 : 390;
       scrollContainerRef.current.scrollBy({
         left: direction === "left" ? -scrollAmount : scrollAmount,
@@ -280,7 +280,7 @@ export default function ReviewsSection() {
           {/* Scrollable Container with Smooth Marquee Track */}
           <div
             ref={scrollContainerRef}
-            className="overflow-x-auto no-scrollbar scroll-smooth pb-4 pt-2"
+            className="reviews-scroller overflow-x-auto no-scrollbar scroll-smooth pb-4 pt-2"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             <div
@@ -301,7 +301,7 @@ export default function ReviewsSection() {
               </div>
 
               {/* Duplicate Track for Seamless Infinite Loop */}
-              <div className="flex shrink-0 gap-6 pr-6" aria-hidden="true">
+              <div className="hidden sm:flex shrink-0 gap-6 pr-6" aria-hidden="true">
                 {reviews.map((review) => (
                   <ReviewCard
                     key={`duplicate-${review.id}`}
@@ -326,7 +326,7 @@ export default function ReviewsSection() {
           aria-labelledby="modal-review-author"
         >
           <div
-            className="relative w-full max-w-lg bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/35 rounded-3xl p-6 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.45)] text-[#0F172A] dark:text-[#FAF8F5] max-h-[90vh] overflow-y-auto no-scrollbar"
+            className="relative w-full max-w-lg bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/35 rounded-3xl p-6 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.45)] text-[#0F172A] dark:text-[#FAF8F5] max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
@@ -359,7 +359,7 @@ export default function ReviewsSection() {
               </div>
 
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <h3 id="modal-review-author" className="font-serif text-lg font-medium">
                     {activeModalReview.author_name}
                   </h3>
@@ -425,11 +425,11 @@ function ReviewCard({
   isDuplicate?: boolean;
 }) {
   return (
-    <div className="w-[320px] sm:w-[360px] md:w-[380px] shrink-0 rounded-2xl sm:rounded-3xl bg-white/85 dark:bg-[#1E293B]/80 backdrop-blur-sm border border-[#E5B842]/20 p-6 sm:p-7 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)] hover:border-[#E5B842]/45 transition-all duration-300 group">
+    <div className="snap-start w-[min(320px,calc(100vw-48px))] sm:w-[360px] md:w-[380px] shrink-0 rounded-2xl sm:rounded-3xl bg-white/85 dark:bg-[#1E293B]/80 backdrop-blur-sm border border-[#E5B842]/20 p-5 sm:p-7 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)] hover:border-[#E5B842]/45 transition-all duration-300 group">
       <div>
         {/* Top Header: Avatar + Details on Left, Stars on Right */}
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-4">
+          <div className="flex min-w-0 items-center gap-3">
             {/* Customer Profile Avatar */}
             <div className="w-12 h-12 rounded-2xl overflow-hidden border border-[#E5B842]/35 bg-gradient-to-br from-[#E5B842]/20 via-[#6B3448]/15 to-transparent flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-300">
               {review.avatar_url ? (

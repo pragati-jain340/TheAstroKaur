@@ -514,13 +514,13 @@ export default function EditProfileModal() {
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/65 backdrop-blur-sm animate-in fade-in duration-200"
     >
-      <div className="relative w-full max-w-2xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/40 rounded-3xl shadow-2xl overflow-hidden my-8">
+      <div className="relative w-full max-w-2xl max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)] flex flex-col bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/40 rounded-3xl shadow-2xl overflow-hidden my-auto">
         {/* Top Celestial Glow */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#B87936] via-[#E5B842] to-[#B87936]" />
 
         {/* Modal Header */}
-        <div className="p-6 border-b border-[#0F172A]/10 dark:border-[#FAF8F5]/10 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="p-5 sm:p-6 shrink-0 border-b border-[#0F172A]/10 dark:border-[#FAF8F5]/10 flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="relative w-12 h-12 rounded-full border border-[#E5B842] bg-[#E5B842]/15 flex items-center justify-center text-xl overflow-hidden shrink-0">
               {isCustomPhoto ? (
                 <img src={selectedAvatar} alt="Profile" className="w-full h-full object-cover" />
@@ -528,8 +528,8 @@ export default function EditProfileModal() {
                 <span>{CELESTIAL_AVATARS.find((a) => a.id === selectedAvatar)?.emoji || "✨"}</span>
               )}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0 break-words">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 className="font-serif text-xl sm:text-2xl text-[#0F172A] dark:text-[#FAF8F5]">
                   {profile?.display_name || user.email?.split("@")[0] || "Account Hub"}
                 </h3>
@@ -557,7 +557,7 @@ export default function EditProfileModal() {
         </div>
 
         {/* ── Subtabs Navigation Bar: Role-Separated ── */}
-        <div className="px-6 pt-4 pb-2 flex gap-2 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 bg-white/40 dark:bg-[#131F33]/40 overflow-x-auto no-scrollbar">
+        <div className="px-5 sm:px-6 pt-4 pb-2 flex shrink-0 gap-2 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 bg-white/40 dark:bg-[#131F33]/40 overflow-x-auto no-scrollbar">
           {/* ✦ My Profile (Available for both) */}
           <button
             type="button"
@@ -633,7 +633,7 @@ export default function EditProfileModal() {
         </div>
 
         {/* Modal Scrollable Content */}
-        <div className="p-6 max-h-[72vh] overflow-y-auto no-scrollbar">
+        <div className="p-5 sm:p-6 min-h-0 overflow-y-auto overscroll-contain no-scrollbar">
           {/* Feedback Messages */}
           {errorMsg && (
             <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs">

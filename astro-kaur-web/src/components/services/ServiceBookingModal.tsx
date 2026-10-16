@@ -162,14 +162,14 @@ export default function ServiceBookingModal() {
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/65 backdrop-blur-sm animate-in fade-in duration-200"
     >
-      <div className="relative w-full max-w-2xl bg-[#FAF8F5] dark:bg-[#0F172A] border border-[#E5B842]/40 rounded-3xl shadow-2xl overflow-hidden my-8">
+      <div className="relative w-full max-w-2xl max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)] flex flex-col bg-[#FAF8F5] dark:bg-[#0F172A] border border-[#E5B842]/40 rounded-3xl shadow-2xl overflow-hidden my-auto">
         {/* Ambient Top Glow */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#B87936] via-[#E5B842] to-[#B87936]" />
 
         {/* Modal Header */}
-        <div className="p-6 sm:p-8 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 bg-white/50 dark:bg-[#1E293B]/40 flex items-start justify-between gap-4">
+        <div className="p-5 sm:p-8 shrink-0 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 bg-white/50 dark:bg-[#1E293B]/40 flex items-start justify-between gap-3 sm:gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="text-[11px] font-semibold tracking-widest uppercase px-3 py-1 rounded-full bg-[#E5B842]/15 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/30">
                 ✦ Reading Intake
               </span>
@@ -202,7 +202,7 @@ export default function ServiceBookingModal() {
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 sm:p-8 max-h-[75vh] overflow-y-auto no-scrollbar">
+        <div className="p-5 sm:p-8 min-h-0 overflow-y-auto overscroll-contain no-scrollbar">
           {submittedOrder ? (
             /* Celebration / Success Screen */
             <div className="text-center py-6 animate-in zoom-in-95 duration-200">

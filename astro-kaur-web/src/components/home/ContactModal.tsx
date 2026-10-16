@@ -176,7 +176,7 @@ export default function ContactModal() {
       aria-labelledby="contact-modal-title"
     >
       <div
-        className="relative w-full max-w-xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_25px_60px_rgba(0,0,0,0.35)] text-[#0F172A] dark:text-[#FAF8F5] max-h-[92vh] overflow-y-auto no-scrollbar"
+        className="relative w-full max-w-xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_25px_60px_rgba(0,0,0,0.35)] text-[#0F172A] dark:text-[#FAF8F5] max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -211,7 +211,7 @@ export default function ContactModal() {
         </div>
 
         {/* ── Direct Email Banner ── */}
-        <div className="mb-6 p-4 rounded-2xl bg-white/80 dark:bg-[#162133] border border-[#E5B842]/25 dark:border-white/10 flex items-center justify-between gap-3 shadow-xs">
+        <div className="mb-6 p-4 rounded-2xl bg-white/80 dark:bg-[#162133] border border-[#E5B842]/25 dark:border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#E5B842]/10 border border-[#E5B842]/30 text-[#E5B842] flex items-center justify-center shrink-0">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
@@ -232,7 +232,7 @@ export default function ContactModal() {
 
           <a
             href="mailto:pragatiijain841@gmail.com"
-            className="text-xs font-semibold text-[#E5B842] hover:text-[#d8ab34] transition-colors shrink-0"
+            className="text-xs break-all font-semibold text-[#E5B842] hover:text-[#d8ab34] transition-colors"
           >
             pragatiijain841@gmail.com ↗
           </a>

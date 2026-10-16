@@ -277,8 +277,8 @@ export default function ServicesPreview() {
           </p>
         </div>
 
-        {/* ── App Store Motion Grid: 2 columns on mobile, 3 columns on laptop/desktop ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-6 lg:gap-8">
+        {/* Give reading titles and format badges enough room on phones. */}
+        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {servicesList.map((service) => (
             <motion.div
               key={service.id}
@@ -333,7 +333,7 @@ export default function ServicesPreview() {
               </motion.div>
 
               {/* Title */}
-              <h3 className="font-serif text-sm sm:text-base lg:text-lg font-normal text-[#0F172A] dark:text-[#FAF8F5] leading-snug mb-1.5 group-hover:text-[#6B3448] dark:group-hover:text-[#E5B842] transition-colors">
+              <h3 className="font-serif text-base lg:text-lg font-normal text-[#0F172A] dark:text-[#FAF8F5] leading-snug mb-1.5 group-hover:text-[#6B3448] dark:group-hover:text-[#E5B842] transition-colors">
                 {service.title}
               </h3>
 
@@ -400,7 +400,7 @@ export default function ServicesPreview() {
 
             {/* Right Column: Clean, Crisp CTA Button */}
             <div className="shrink-0 w-full sm:w-auto flex justify-center">
-              <span className="inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full bg-[#E5B842] hover:bg-[#d9a832] text-[#070D18] font-bold text-xs sm:text-sm tracking-wider uppercase shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-200 whitespace-nowrap">
+              <span className="inline-flex items-center justify-center gap-2 px-4 sm:px-7 py-3 rounded-full bg-[#E5B842] hover:bg-[#d9a832] text-[#070D18] font-bold text-xs sm:text-sm tracking-wider uppercase shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-200">
                 <span>Explore Free Reading</span>
                 <span className="text-base group-hover:translate-x-1 transition-transform duration-200">→</span>
               </span>
@@ -433,7 +433,7 @@ export default function ServicesPreview() {
               layoutId={`reading-card-${selectedService.id}`}
               transition={CARD_TRANSITION}
               onClick={(e) => e.stopPropagation()}
-              className="relative z-10 w-full max-w-md sm:max-w-[500px] bg-[#FFFDF9] dark:bg-[#0D1829] border border-[#E5B842]/35 rounded-3xl p-6 sm:p-7 sm:px-8 shadow-[0_25px_60px_rgba(0,0,0,0.55)] text-[#0F172A] dark:text-[#FAF8F5] max-h-[90vh] overflow-y-auto no-scrollbar my-auto"
+              className="relative z-10 w-full max-w-md sm:max-w-[500px] bg-[#FFFDF9] dark:bg-[#0D1829] border border-[#E5B842]/35 rounded-3xl p-6 sm:p-7 sm:px-8 shadow-[0_25px_60px_rgba(0,0,0,0.55)] text-[#0F172A] dark:text-[#FAF8F5] max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar my-auto"
             >
               {/* Top Tag & Close Button */}
               <div className="flex items-center justify-between gap-3 mb-1.5">
@@ -527,7 +527,7 @@ export default function ServicesPreview() {
                 </p>
 
                 {/* Bottom Price & Booking CTA */}
-                <div className="pt-4 border-t border-[#0F172A]/10 dark:border-[#FAF8F5]/10 flex items-center justify-between gap-4">
+                <div className="pt-4 border-t border-[#0F172A]/10 dark:border-[#FAF8F5]/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                   <div>
                     <p className="text-[10px] uppercase tracking-widest text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
                       PRICE

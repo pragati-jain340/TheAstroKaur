@@ -146,7 +146,7 @@ export default function AuthModal() {
       {/* Modal Container */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/35 shadow-2xl p-6 sm:p-8 text-[#0F172A] dark:text-[#FAF8F5] scrollbar-thin scrollbar-thumb-[#E5B842]/20"
+        className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/35 shadow-2xl p-6 sm:p-8 text-[#0F172A] dark:text-[#FAF8F5] scrollbar-thin scrollbar-thumb-[#E5B842]/20"
       >
         {/* Subtle Ambient Background Glow */}
         <div className="absolute -top-20 -right-20 w-52 h-52 bg-[#E5B842]/15 rounded-full blur-[80px] pointer-events-none" />

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
@@ -111,14 +112,14 @@ export default function Navbar() {
         isNavbarVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6 h-18 sm:h-20 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 h-18 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
         {/* Official Brand Logo: Celestial Emblem + Typography */}
         <a
           href="/"
-          className="flex items-center gap-3 sm:gap-3.5 group py-1.5 flex-shrink-0"
+          className="flex items-center gap-1.5 sm:gap-3.5 group py-1.5 min-w-0"
           aria-label="TheAstroKaur Home"
         >
-          <div className="relative h-13 w-13 sm:h-16 sm:w-16 flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
+          <div className="relative h-8 w-8 sm:h-16 sm:w-16 flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
             <Image
               src="/astro-emblem-light.png?v=6"
               alt="TheAstroKaur Celestial Logo"
@@ -137,23 +138,23 @@ export default function Navbar() {
             />
           </div>
           <div className="flex flex-col justify-center">
-            <span className="font-serif text-xl sm:text-2xl md:text-[1.65rem] tracking-wide font-medium text-[#0F172A] dark:text-[#FAF8F5] leading-tight">
+            <span className="font-serif text-lg sm:text-2xl md:text-[1.65rem] tracking-wide font-medium text-[#0F172A] dark:text-[#FAF8F5] leading-tight">
               TheAstroKaur
             </span>
-            <span className="text-[9px] sm:text-[10.5px] md:text-xs tracking-[0.22em] uppercase text-[#6B3448] dark:text-[#E5B842] mt-0.5 font-semibold whitespace-nowrap">
+            <span className="text-[7px] sm:text-[10.5px] md:text-xs tracking-[0.22em] uppercase text-[#6B3448] dark:text-[#E5B842] mt-0.5 font-semibold whitespace-nowrap">
               Written In The Stars
             </span>
           </div>
         </a>
 
         {/* Navigation Tabs - Open & Elegant Layout */}
-        <nav className="hidden md:flex items-center gap-2 lg:gap-3.5">
+        <nav aria-label="Main navigation" className="hidden xl:flex items-center gap-0 2xl:gap-3.5">
           {NAV_ITEMS.map((item) => (
             <a
               key={item.label}
               href={item.href}
               onClick={(e) => handleNavItemClick(e, item.label)}
-              className="relative px-3.5 lg:px-4.5 py-1.5 rounded-full text-[17.5px] lg:text-[18.5px] font-serif font-medium tracking-wide text-[#0F172A]/85 dark:text-[#FAF8F5]/90 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] transition-all duration-300 group cursor-pointer"
+              className="relative px-2 2xl:px-4.5 py-1.5 rounded-full text-base 2xl:text-[18.5px] font-serif font-medium tracking-wide whitespace-nowrap text-[#0F172A]/85 dark:text-[#FAF8F5]/90 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] transition-all duration-300 group cursor-pointer"
             >
               {/* Subtle ambient hover background */}
               <span className="absolute inset-0 rounded-full bg-gradient-to-r from-[#E5B842]/12 via-[#E5B842]/18 to-[#6B3448]/12 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
@@ -173,7 +174,7 @@ export default function Navbar() {
         </nav>
 
         {/* Action Controls: Theme Switch, User Profile Icon & Book Reading CTA */}
-        <div className="flex items-center gap-2.5 sm:gap-3.5 flex-shrink-0">
+        <div className="flex items-center gap-1 sm:gap-3.5 flex-shrink-0">
           <ThemeToggle />
 
           {/* User Profile Trigger Button */}
@@ -317,7 +318,7 @@ export default function Navbar() {
           {/* Book Reading CTA Button */}
           <a
             href="/#readings"
-            className="group relative inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-semibold tracking-wider uppercase text-[#0F172A] bg-gradient-to-r from-[#E5B842] via-[#F3CE6D] to-[#E5B842] bg-[length:200%_auto] hover:bg-right shadow-[0_4px_16px_rgba(229,184,66,0.35)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.55)] transition-all duration-300 active:scale-95 whitespace-nowrap"
+            className="group relative hidden sm:inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-semibold tracking-wider uppercase text-[#0F172A] bg-gradient-to-r from-[#E5B842] via-[#F3CE6D] to-[#E5B842] bg-[length:200%_auto] hover:bg-right shadow-[0_4px_16px_rgba(229,184,66,0.35)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.55)] transition-all duration-300 active:scale-95 whitespace-nowrap"
           >
             <span>Book Reading</span>
             <span className="text-[#6B3448] font-bold text-xs transition-transform duration-300 group-hover:rotate-45">✦</span>
@@ -327,9 +328,10 @@ export default function Navbar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2.5 rounded-full border border-[#E5B842]/30 text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/10 transition-colors cursor-pointer"
+            className="xl:hidden w-10 h-10 flex items-center justify-center rounded-full border border-[#E5B842]/30 text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/10 transition-colors cursor-pointer"
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation"
           >
             {mobileMenuOpen ? (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -346,7 +348,7 @@ export default function Navbar() {
 
       {/* Mobile Navigation Dropdown Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-[#E5B842]/20 bg-[#FAF8F5]/98 dark:bg-[#0F172A]/98 backdrop-blur-xl px-6 py-5 shadow-xl animate-in slide-in-from-top-2 duration-200">
+        <nav id="mobile-navigation" aria-label="Mobile navigation" className="xl:hidden absolute top-full inset-x-0 max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain border-t border-[#E5B842]/20 bg-[#FAF8F5]/98 dark:bg-[#0F172A]/98 backdrop-blur-xl px-4 sm:px-6 py-4 shadow-xl animate-in slide-in-from-top-2 duration-200">
           <div className="flex flex-col gap-2">
             {NAV_ITEMS.map((item) => (
               <a
@@ -362,8 +364,11 @@ export default function Navbar() {
                 <span className="text-[#E5B842] text-sm">✦</span>
               </a>
             ))}
+            <Link href="/#readings" onClick={() => setMobileMenuOpen(false)} className="sm:hidden mt-2 px-5 py-3.5 rounded-full bg-[#E5B842] text-[#0F172A] text-center text-sm font-semibold">
+              Book a Reading
+            </Link>
           </div>
-        </div>
+        </nav>
       )}
     </header>
   );

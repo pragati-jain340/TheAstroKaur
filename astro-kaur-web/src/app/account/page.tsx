@@ -469,8 +469,8 @@ function ProfileTab() {
       </div>
 
       {/* ─── Profile Avatar Area ─── */}
-      <div className="p-5 sm:p-6 rounded-2xl md:rounded-3xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/25 flex items-center justify-between gap-4 shadow-xs">
-        <div className="flex items-center gap-4 sm:gap-5">
+      <div className="p-5 sm:p-6 rounded-2xl md:rounded-3xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+        <div className="flex min-w-0 items-center gap-4 sm:gap-5">
           <button
             type="button"
             onClick={() => setAvatarModalOpen(true)}
@@ -490,7 +490,7 @@ function ProfileTab() {
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-serif text-lg sm:text-xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
+              <h3 className="font-serif break-words text-lg sm:text-xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
                 {displayName || profile?.display_name || (isAdminUser ? "Administrator" : "Celestial Member")}
               </h3>
               {isAdminUser && (
@@ -1209,7 +1209,7 @@ function ReceiptModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl max-w-md w-full p-8 md:p-10 shadow-2xl relative">
+      <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-5 sm:p-8 md:p-10 shadow-2xl relative">
         <button
           onClick={onClose}
           className="absolute top-5 right-5 text-[#0F172A]/40 dark:text-[#FAF8F5]/40 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] text-lg cursor-pointer"
@@ -1481,8 +1481,8 @@ function AccountContent() {
           </div>
 
           {/* Elegant Horizontal Tabs Navigation (Active Navy, Gold Underline, Muted Inactive, Gap 48–55px to content) */}
-          <div className="flex justify-center mb-12 sm:mb-14">
-            <div className="inline-flex items-center gap-8 sm:gap-14 border-b border-[#0F172A]/10 dark:border-[#FAF8F5]/10 px-4 sm:px-8">
+          <div className="flex sm:justify-center overflow-x-auto mb-8 sm:mb-14">
+            <div className="inline-flex mx-auto items-center gap-5 sm:gap-14 border-b border-[#0F172A]/10 dark:border-[#FAF8F5]/10 px-1 sm:px-8">
               {TABS.map((t) => {
                 const active = tab === t.key;
                 return (
@@ -1492,7 +1492,7 @@ function AccountContent() {
                       setTab(t.key);
                       router.replace(`/account?tab=${t.key}`);
                     }}
-                    className={`pb-3.5 text-sm sm:text-[15px] tracking-wide transition-all relative cursor-pointer select-none ${
+                    className={`shrink-0 whitespace-nowrap py-3.5 text-sm sm:text-[15px] tracking-wide transition-all relative cursor-pointer select-none ${
                       active
                         ? "text-[#0F172A] dark:text-[#FAF8F5] font-semibold"
                         : "text-[#0F172A]/50 dark:text-[#FAF8F5]/50 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] font-normal"

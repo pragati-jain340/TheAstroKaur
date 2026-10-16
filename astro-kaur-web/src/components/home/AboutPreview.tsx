@@ -21,13 +21,13 @@ export default function AboutPreview({ initialContent }: { initialContent?: Part
   return (
     <section
       id="about"
-      className="scroll-mt-28 sm:scroll-mt-32 py-12 sm:py-14 lg:py-16 px-6 sm:px-10 lg:px-16 bg-transparent relative overflow-hidden text-[#0F172A] dark:text-[#FAF8F5]"
+      className="scroll-mt-28 sm:scroll-mt-32 py-12 sm:py-14 lg:py-16 px-4 sm:px-10 lg:px-16 bg-transparent relative overflow-hidden text-[#0F172A] dark:text-[#FAF8F5]"
     >
       {/* ── Outer Section Container: Expanded horizontal width ── */}
       <div className="max-w-6xl mx-auto w-full relative z-10">
 
         {/* ── Signature Curved Feature Block: Balanced Light & Dark Mode Aesthetic ── */}
-        <div className="relative rounded-3xl sm:rounded-[36px] bg-white/85 dark:bg-[#0D1829]/95 backdrop-blur-md border border-[#E5B842]/30 dark:border-[#E5B842]/25 py-7 sm:py-9 lg:py-10 px-8 sm:px-12 lg:px-16 xl:px-20 shadow-[0_20px_50px_rgba(229,184,66,0.12),0_4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.7)] overflow-hidden transition-colors duration-300">
+        <div className="relative rounded-3xl sm:rounded-[36px] bg-white/85 dark:bg-[#0D1829]/95 backdrop-blur-md border border-[#E5B842]/30 dark:border-[#E5B842]/25 py-7 sm:py-9 lg:py-10 px-5 sm:px-12 lg:px-16 xl:px-20 shadow-[0_20px_50px_rgba(229,184,66,0.12),0_4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.7)] overflow-hidden transition-colors duration-300">
 
           {/* Subtle Ambient Celestial Accents inside the curved block */}
           <div className="absolute -top-24 -left-24 w-80 h-80 bg-[#E5B842]/15 dark:bg-[#E5B842]/10 rounded-full blur-[100px] pointer-events-none" />
@@ -147,7 +147,7 @@ export default function AboutPreview({ initialContent }: { initialContent?: Part
               </h2>
 
               {/* Body Paragraphs */}
-              <div className="space-y-4 text-xs sm:text-[14px] text-[#0F172A]/75 dark:text-slate-300 font-light leading-[1.75]">
+              <div className="space-y-4 text-sm text-[#0F172A]/75 dark:text-slate-300 font-light leading-[1.75]">
                 <p>
                   {content.paragraph_1}
                 </p>

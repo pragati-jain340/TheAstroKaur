@@ -560,7 +560,7 @@ export default function AdminTestimonialsPage() {
       {/* Add / Edit Testimonial Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 rounded-2xl w-full max-w-lg shadow-2xl p-6 space-y-5 animate-in zoom-in-95">
+          <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-white dark:bg-[#070D18] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 rounded-2xl w-full max-w-lg shadow-2xl p-6 space-y-5 animate-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 pb-3">
               <div>
                 <h3 className="font-serif text-lg font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
@@ -689,7 +689,7 @@ export default function AdminTestimonialsPage() {
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white dark:bg-[#070D18] border border-red-500/20 rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4 animate-in zoom-in-95">
+          <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-white dark:bg-[#070D18] border border-red-500/20 rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4 animate-in zoom-in-95">
             <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto text-xl font-serif">
               ✕
             </div>

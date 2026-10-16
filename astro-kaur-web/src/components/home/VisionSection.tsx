@@ -66,11 +66,11 @@ export default function VisionSection({ initialContent }: { initialContent?: Par
     <section
       id="vision"
       ref={containerRef}
-      className="relative scroll-mt-20 sm:scroll-mt-24 h-[240vh] sm:h-[280vh] bg-transparent"
+      className="vision-section relative scroll-mt-20 sm:scroll-mt-24 py-12 sm:py-0 sm:h-[280vh] bg-transparent"
     >
       {/* Sticky viewport frame: keeps the content centered in view during scroll progress without trapping window */}
-      <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8">
-        <div className="relative w-full max-w-5xl lg:max-w-[1180px] mx-auto px-8 sm:px-14 md:px-20 lg:px-28 text-center">
+      <div className="sm:sticky top-0 sm:h-screen w-full flex items-center justify-center overflow-hidden px-5 sm:px-6 lg:px-8">
+        <div className="relative w-full max-w-5xl lg:max-w-[1180px] mx-auto sm:px-14 md:px-20 lg:px-28 text-center">
           
           {/* ── Left Animated Decorative Gold Line ── */}
           <motion.div
@@ -184,7 +184,7 @@ export default function VisionSection({ initialContent }: { initialContent?: Par
                   opacity: p2Opacity,
                   y: p2Y,
                 }}
-                className="text-xs sm:text-sm lg:text-[0.95rem] text-[#0F172A]/65 dark:text-[#FAF8F5]/70 font-light leading-relaxed max-w-2xl sm:max-w-3xl lg:max-w-4xl mx-auto"
+              className="text-sm lg:text-[0.95rem] text-[#0F172A]/65 dark:text-[#FAF8F5]/70 font-light leading-relaxed max-w-2xl sm:max-w-3xl lg:max-w-4xl mx-auto"
               >
                 {content.paragraph_2}
               </motion.p>

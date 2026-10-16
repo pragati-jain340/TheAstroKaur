@@ -140,7 +140,7 @@ function BirthDetailsCard({
           <p className="font-medium text-[#0F172A] dark:text-[#FAF8F5] text-base">{name}</p>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <Row label="Date of Birth" value={formatDate(dob)} />
         <Row label="Time of Birth" value={formatBirthTime(tob)} />
       </div>
@@ -266,10 +266,10 @@ export default function ReadingDetailPage() {
       <SubpageBackground />
       <Navbar />
 
-      <main className="flex-1 pt-28 pb-20 relative z-10">
+      <main className="flex-1 pt-10 sm:pt-28 pb-20 relative z-10">
         <div className="max-w-2xl mx-auto px-5">
           {/* Back Navigation & Home Link */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
             <button
               onClick={() => router.push("/account?tab=readings")}
               className="inline-flex items-center gap-2 text-sm text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#E5B842] transition-colors cursor-pointer group"
@@ -303,7 +303,7 @@ export default function ReadingDetailPage() {
           <div className="space-y-8">
             {/* Section A — Reading / Booking Overview */}
             <Card title="READING DETAILS">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <Row label="Service" value={order.service_title} />
                 <Row
                   label="Format"

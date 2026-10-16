@@ -204,7 +204,7 @@ export default function AdminSidebar() {
 
       {/* ─── Persistent Sidebar (Desktop & Mobile Drawer) ─── */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-[#FAF8F5] dark:bg-[#0D1829] border-r border-[#E5B842]/20 flex flex-col justify-between transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-64 overflow-y-auto overscroll-contain bg-[#FAF8F5] dark:bg-[#0D1829] border-r border-[#E5B842]/20 flex flex-col justify-between transition-transform duration-200 ease-in-out lg:translate-x-0 ${
           mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
         }`}
       >

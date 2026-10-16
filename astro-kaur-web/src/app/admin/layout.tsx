@@ -58,7 +58,7 @@ export default function AdminLayout({
       <AdminSidebar />
 
       {/* Main Workspace Canvas (Offset by sidebar width on desktop) */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen relative z-10">
+      <div className="flex-1 min-w-0 lg:pl-64 flex flex-col min-h-screen relative z-10">
         <main className="flex-1 p-5 sm:p-8 lg:p-10 max-w-7xl w-full mx-auto">
           {children}
         </main>

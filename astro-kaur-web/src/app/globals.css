@@ -33,6 +33,81 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Let page and grid children shrink to the viewport instead of their text width. */
+body > *, main {
+  min-width: 0;
+}
+
+/* Preserve readable day columns inside the calendar's own scroll container. */
+.calendar-scroll > .grid {
+  min-width: 42rem;
+}
+
+@media (max-width: 639px) {
+  html {
+    scrollbar-gutter: auto;
+  }
+
+  /* Keep phone text readable without iOS zooming the entire page on focus. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  /* Small screens use a stable composition instead of scroll-driven overlap. */
+  .hero-content {
+    opacity: 1 !important;
+  }
+
+  .hero-parallax,
+  .vision-section [style] {
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  .hero-actions > a {
+    text-align: center;
+  }
+
+  .reviews-scroller .reviews-marquee-track {
+    animation: none;
+  }
+
+  .reviews-scroller {
+    scroll-snap-type: x mandatory;
+  }
+
+  footer a {
+    overflow-wrap: anywhere;
+  }
+
+  footer li a {
+    display: inline-block;
+    padding-block: 0.35rem;
+  }
+}
+
+/* Phone landscape also needs room to read the complete Vision section. */
+@media (min-width: 640px) and (max-width: 1023px) and (max-height: 600px) {
+  .vision-section {
+    height: auto;
+    padding-block: 3rem;
+  }
+
+  .vision-section > div {
+    position: static;
+    height: auto;
+  }
+
+  .vision-section [style] {
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
+
 @keyframes astroWheelSpin {
   from {
     transform: rotate(0deg);

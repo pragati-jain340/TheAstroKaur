@@ -365,7 +365,7 @@ export default function AdminCalendarPage() {
       {/* Calendar Controls Bar */}
       <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Date Navigation */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={handleToday}
             className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 hover:border-[#E5B842] text-[#0F172A] dark:text-[#FAF8F5] transition-colors shadow-2xs"
@@ -442,7 +442,7 @@ export default function AdminCalendarPage() {
         </div>
       ) : viewMode === "month" ? (
         /* ================= MONTH VIEW ================= */
-        <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl overflow-hidden shadow-xs">
+        <div className="calendar-scroll bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl overflow-x-auto shadow-xs" role="region" aria-label="Monthly calendar, scroll horizontally to see all days" tabIndex={0}>
           {/* Day of Week Headers */}
           <div className="grid grid-cols-7 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 text-center bg-[#FAF8F5] dark:bg-[#0D1829]">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((dayName, idx) => (
@@ -540,7 +540,7 @@ export default function AdminCalendarPage() {
         </div>
       ) : viewMode === "week" ? (
         /* ================= WEEK VIEW ================= */
-        <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl overflow-hidden shadow-xs">
+        <div className="calendar-scroll bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl overflow-x-auto shadow-xs" role="region" aria-label="Weekly calendar, scroll horizontally to see all days" tabIndex={0}>
           <div className="grid grid-cols-7 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 text-center bg-[#FAF8F5] dark:bg-[#0D1829]">
             {weekDays.map((d, idx) => {
               const dateStr = d.toISOString().split("T")[0];
@@ -696,7 +696,7 @@ export default function AdminCalendarPage() {
       {/* Appointment Detail Popup / Modal */}
       {selectedEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-5 animate-in zoom-in-95">
+          <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-white dark:bg-[#070D18] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-5 animate-in zoom-in-95">
             <div className="flex items-start justify-between border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 pb-3">
               <div>
                 <span className="text-[10px] font-bold tracking-widest text-[#E5B842] uppercase">
@@ -797,7 +797,7 @@ export default function AdminCalendarPage() {
       {/* Reschedule / Schedule Modal */}
       {schedulingOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4 animate-in zoom-in-95">
+          <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-white dark:bg-[#070D18] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4 animate-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 pb-3">
               <div>
                 <h3 className="font-serif text-base font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
@@ -857,7 +857,7 @@ export default function AdminCalendarPage() {
       {/* Google Calendar OAuth Configuration Info Drawer */}
       {isGCalModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 rounded-2xl w-full max-w-lg shadow-2xl p-6 space-y-5 animate-in zoom-in-95">
+          <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-white dark:bg-[#070D18] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 rounded-2xl w-full max-w-lg shadow-2xl p-6 space-y-5 animate-in zoom-in-95">
             <div className="flex items-start justify-between border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 pb-3">
               <div>
                 <span className="text-[10px] font-bold tracking-widest text-[#E5B842] uppercase">

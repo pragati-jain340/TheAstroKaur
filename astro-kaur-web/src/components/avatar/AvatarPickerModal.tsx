@@ -180,7 +180,7 @@ export default function AvatarPickerModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md rounded-3xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/35 shadow-2xl p-6 sm:p-7 text-[#0F172A] dark:text-[#FAF8F5] space-y-6 animate-in zoom-in-95 duration-150"
+        className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-3xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/35 shadow-2xl p-5 sm:p-7 text-[#0F172A] dark:text-[#FAF8F5] space-y-6 animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -268,7 +268,7 @@ export default function AvatarPickerModal({
             Or Choose A Celestial Avatar
           </p>
 
-          <div className="grid grid-cols-6 gap-2">
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
             {CELESTIAL_AVATARS.map((av) => {
               const active = selectedSeed?.toLowerCase() === av.id.toLowerCase();
               return (

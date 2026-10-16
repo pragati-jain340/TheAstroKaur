@@ -148,7 +148,7 @@ export default function ReviewModal({
       aria-modal="true"
     >
       <div
-        className="relative w-full max-w-lg bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl p-6 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.45)] text-[#0F172A] dark:text-[#FAF8F5] max-h-[92vh] overflow-y-auto no-scrollbar"
+        className="relative w-full max-w-lg bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl p-6 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.45)] text-[#0F172A] dark:text-[#FAF8F5] max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}

@@ -344,7 +344,7 @@ export default function AdminUsersPage() {
       {/* ─── ADD USER DRAWER / MODAL ─── */}
       {addModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl relative">
+          <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl relative">
             <div className="flex items-center justify-between pb-3 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
               <div>
                 <p className="text-[10px] font-bold tracking-widest text-[#E5B842] uppercase">

@@ -818,7 +818,7 @@ export default function AdminContentPage() {
       {/* ─── Filter & Sub-Tabs Bar matching Readings & Users tabs ─── */}
       <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-xs">
         {/* Unified Tab Pills Container */}
-        <div className="inline-flex p-1 rounded-xl bg-white dark:bg-[#131F33] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 self-start">
+        <div className="inline-flex max-w-full overflow-x-auto shrink-0 [&>button]:shrink-0 p-1 rounded-xl bg-white dark:bg-[#131F33] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 self-start">
           <button
             type="button"
             onClick={() => setActiveTab("about")}
@@ -1547,7 +1547,7 @@ export default function AdminContentPage() {
           aria-modal="true"
         >
           <div
-            className="relative w-full max-w-lg bg-white dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-2xl p-6 sm:p-7 shadow-2xl text-[#0F172A] dark:text-[#FAF8F5] max-h-[90vh] overflow-y-auto no-scrollbar"
+            className="relative w-full max-w-lg bg-white dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-2xl p-6 sm:p-7 shadow-2xl text-[#0F172A] dark:text-[#FAF8F5] max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -1873,7 +1873,7 @@ export default function AdminContentPage() {
           aria-modal="true"
         >
           <div
-            className="relative w-full max-w-md bg-white dark:bg-[#0D1829] border border-rose-500/30 rounded-2xl p-6 sm:p-7 shadow-2xl text-[#0F172A] dark:text-[#FAF8F5] animate-in zoom-in-95 duration-150"
+            className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain relative w-full max-w-md bg-white dark:bg-[#0D1829] border border-rose-500/30 rounded-2xl p-6 sm:p-7 shadow-2xl text-[#0F172A] dark:text-[#FAF8F5] animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Warning Icon Badge */}
