@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
+import ChangeUserPassword from "@/components/admin/ChangeUserPassword";
 
 type CustomerProfile = Database["public"]["Tables"]["customer_profiles"]["Row"];
 type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
@@ -278,6 +279,7 @@ export default function AdminUserDetailPage({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <ChangeUserPassword key={profile.id} id={profile.id} email={profile.email} />
           <button
             onClick={() => setIsEditing(true)}
             className="px-4 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[#131F33] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 text-[#0F172A] dark:text-[#FAF8F5] hover:border-[#E5B842]/50 hover:bg-[#E5B842]/5 transition-all shadow-xs cursor-pointer"
