@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SubpageBackground from "@/components/layout/SubpageBackground";
+import BookingControls from "@/components/services/BookingControls";
 import ReviewModal from "@/components/reviews/ReviewModal";
 
 interface OrderDetail {
@@ -14,7 +15,7 @@ interface OrderDetail {
   service_title: string;
   format: "text" | "voice_call";
   price_eur: number;
-  status: "pending" | "confirmed" | "completed" | "cancelled";
+  status: "pending" | "pending_payment" | "confirmed" | "completed" | "cancelled" | "expired" | "payment_review";
   payment_status: "pending" | "paid" | "failed" | "refunded";
   scheduled_at: string | null;
   stripe_receipt_url: string | null;
@@ -159,8 +160,6 @@ export default function ReadingDetailPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const searchParams = useSearchParams();
-  const showReceipt = searchParams.get("tab") === "receipt";
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [snapshot, setSnapshot] = useState<ReadingSnapshot | null>(null);
@@ -353,35 +352,7 @@ export default function ReadingDetailPage() {
               />
             )}
 
-            {/* Section C — Appointment (only when relevant) */}
-            {isUpcoming && order.scheduled_at && (
-              <Card title="YOUR APPOINTMENT">
-                <div>
-                  <p className="text-xs text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mb-1">Scheduled Time</p>
-                  <p className="font-serif text-xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
-                    {formatDate(order.scheduled_at)}
-                  </p>
-                  <p className="text-sm font-medium text-[#E5B842] mt-0.5">
-                    {formatTime(order.scheduled_at)} (45 min session)
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mb-1">Format</p>
-                  <p className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">
-                    {order.format === "voice_call" ? "Voice Call" : "Text Reading"}
-                  </p>
-                </div>
-                <div className="pt-2">
-                  <button
-                    onClick={() => alert("Your consultation details and call link will be provided via email prior to the scheduled session.")}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-colors cursor-pointer"
-                  >
-                    <span>View Appointment</span>
-                    <span>→</span>
-                  </button>
-                </div>
-              </Card>
-            )}
+            <BookingControls id={order.id} />
 
             {/* Review Section for Completed Reading */}
             {isCompleted && (

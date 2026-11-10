@@ -2,17 +2,7 @@
 
 import Image from "next/image";
 import { InView } from "@/components/ui/in-view";
-
-const DEFAULT_ABOUT = {
-  tag: "THE PERSON BEHIND THE READINGS",
-  heading_prefix: "Meet",
-  heading_name: "TheAstroKaur",
-  paragraph_1:
-    "Graduating from top universities in India and Germany and building a career in IT & technology, I was trained to think analytically and rely on logic and structured reasoning. Like many people, I believed that success and life's outcomes were entirely within my control, leaving little room for magic.",
-  paragraph_2:
-    "Everything changed when I began noticing recurring patterns in my own life—similar challenges, relationships, and turning points that seemed to repeat themselves. Searching for answers led me to Vedic astrology, that completely changed my perspective on life. Not just as a prediction tool, but astrology has helped me for self-awareness and personal growth.",
-  image_url: "/Owner_image.png",
-};
+import { DEFAULT_ABOUT } from "@/lib/homeContent";
 
 export default function AboutPreview({ initialContent }: { initialContent?: Partial<typeof DEFAULT_ABOUT> }) {
   // Content is fully resolved server-side and passed as a prop — no client fetch needed

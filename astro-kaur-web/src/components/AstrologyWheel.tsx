@@ -15,8 +15,6 @@
  * - Animation: Continuous, butter-smooth 360° celestial rotation (~30s per cycle).
  */
 
-import React from "react";
-
 // ─── Props ───────────────────────────────────────────────────────────────────
 export interface AstrologyWheelProps {
   /**
@@ -65,18 +63,6 @@ export default function AstrologyWheel({
 }: AstrologyWheelProps) {
   return (
     <>
-      {/* ── Keyframe Animations ── */}
-      <style>{`
-        @keyframes astroWheelSpin {
-          0% {
-            transform: rotate(0deg);
-          }
-          100% {
-            transform: rotate(360deg);
-          }
-        }
-      `}</style>
-
       {/* ── Outer Wheel Container (100% Transparent) ── */}
       <div
         className={`relative inline-flex items-center justify-center select-none bg-transparent ${className}`}
@@ -137,8 +123,8 @@ export default function AstrologyWheel({
             loading="eager"
             onError={(e) => {
               const target = e.currentTarget;
-              if (target.src && !target.src.includes("astrology-wheel.svg")) {
-                target.src = "/astrology-wheel.svg";
+              if (target.src && !target.src.includes("astrology-wheel-light.svg")) {
+                target.src = "/astrology-wheel-light.svg";
               }
             }}
           />
@@ -158,8 +144,8 @@ export default function AstrologyWheel({
             loading="eager"
             onError={(e) => {
               const target = e.currentTarget;
-              if (target.src && !target.src.includes("astrology-wheel.svg")) {
-                target.src = "/astrology-wheel.svg";
+              if (target.src && !target.src.includes("astrology-wheel-light.svg")) {
+                target.src = "/astrology-wheel-light.svg";
               }
             }}
           />

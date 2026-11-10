@@ -16,20 +16,12 @@ const NAV_ITEMS = [
   { label: "Contact", href: "/#contact" },
 ];
 
-const AVATAR_EMOJIS: Record<string, string> = {
-  sun: "☀️",
-  moon: "🌙",
-  star: "✨",
-  lotus: "🪷",
-  cosmos: "🪐",
-};
-
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const router = useRouter();
 
-  const { user, profile, isAdmin, openAuthModal, openProfileModal, openContactModal, signOut } = useAuth();
+  const { user, profile, isAdmin, openAuthModal, openContactModal, signOut } = useAuth();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleNavItemClick = (e: React.MouseEvent<HTMLAnchorElement>, label: string) => {

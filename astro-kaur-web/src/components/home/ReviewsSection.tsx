@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useInView } from "motion/react";
 import { createClient } from "@/lib/supabase/client";
 import { useMediaQuery } from "@/components/ui/use-media-query";

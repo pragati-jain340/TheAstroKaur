@@ -1,7 +1,11 @@
 # TheAstroKaur — Database Schema & Live Content Reference
 
+> **Google schema update - 19 October 2026:** `migrations/20261019_google_accounts.sql` is applied. `google_user_connections` stores encrypted per-authenticated-user credentials, expiry, granted scopes and reconnect/disconnect state. Browser roles cannot read this table or execute its mutation functions. The existing organizer singleton references the selected user's connection. Organizer changes/disconnection protect verified calls, holds and calendar jobs; changing organizers disables new call booking. See [GOOGLE_CALENDAR_SETUP.md](GOOGLE_CALENDAR_SETUP.md). The older snapshot below predates this addition; no customer records were re-exported.
+
+> **Booking schema update - 19 October 2026:** `migrations/20261019_booking.sql` and `migrations/20261019_booking_payment_hardening.sql` have been applied. The older schema/content snapshot below predates these changes. Availability, reservations, webhook audit, private jobs, encrypted Google connection, booking requests/change logs and private reading notes now exist; orders/readings have payment, scheduling, policy, sync and fulfillment extensions. Customer order writes and private-note access are protected. See [BOOKING_SETUP.md](BOOKING_SETUP.md) for the schema/workflow changes. Call booking is disabled and weekly windows are empty. This update did not re-export customer records.
+
 > **Auto-Updated Documentation**  
-> Last synced: `2026-10-15T05:55:03.854058+00:00`  
+> Last synced: `2026-10-18T16:22:10.955652+00:00`  
 > To re-sync this file anytime you make database changes, run: `python scripts/sync-database-doc.py`
 
 ---
@@ -11,31 +15,48 @@
 ```
 AUTH USER (auth.users)
     │
-    ▼ (1 : 1 auto-created via trg_auto_create_customer_profile)
-CUSTOMER PROFILE (public.customer_profiles)
-    │   ├── auth_user_id
-    │   ├── display_name, email, role ('customer' | 'admin'), account_status
-    │   ├── avatar_seed, avatar_url
-    │   ├── Personal birth details (date_of_birth, time_of_birth, place_of_birth, time_uncertain)
-    │   └── Optional partner details (partner_name, partner_date_of_birth, partner_time_of_birth, etc.)
+    ├─► (1 : 1 auto-created via trg_auto_create_customer_profile)
+    │   CUSTOMER PROFILE (public.customer_profiles)
+    │       ├── auth_user_id
+    │       ├── display_name, email, role ('customer' | 'admin'), account_status
+    │       ├── avatar_seed, avatar_url
+    │       ├── Personal birth details (date_of_birth, time_of_birth, place_of_birth, time_uncertain)
+    │       └── Optional partner details (partner_name, partner_date_of_birth, partner_time_of_birth, etc.)
     │
-    ▼ (1 : N)
-ORDER (public.orders)
-    │   ├── auth_user_id, service_title, format, price_eur, status, scheduled_at
-    │   ├── Client snapshot at booking (client_name, client_dob, client_tob, client_pob, client_time_uncertain)
-    │   ├── Partner snapshot if applicable (partner_name, partner_dob, partner_tob, partner_pob, etc.)
-    │   ├── Stripe receipt & payment details (payment_status, stripe_payment_intent_id)
-    │   └── Customer review (review_rating, review_text, review_created_at)
+    ├─► (1 : N)
+    │   ORDER (public.orders)
+    │       ├── auth_user_id, service_title, format, price_eur, status, scheduled_at
+    │       ├── Client snapshot at booking (client_name, client_dob, client_tob, client_pob, client_time_uncertain)
+    │       ├── Partner snapshot if applicable (partner_name, partner_dob, partner_tob, partner_pob, etc.)
+    │       ├── Stripe receipt & payment details (payment_status, stripe_payment_intent_id)
+    │       └── Customer review (review_rating, review_text, review_created_at)
+    │       │
+    │       ▼ (1 : 1 auto-snapshotted via trg_order_reading_details_snapshot)
+    │   READING DETAILS (public.reading_details)
+    │           ├── order_id (FK -> orders.id)
+    │           ├── customer_id (FK -> customer_profiles.id)
+    │           ├── service_id (FK -> services.id)
+    │           ├── Snapshot client info for astrologer (client_name, client_date_of_birth, etc.)
+    │           ├── Snapshot partner info for astrologer (partner_name, partner_date_of_birth, etc.)
+    │           ├── Google Calendar event ID
+    │           └── Reading status & admin notes
     │
-    ▼ (1 : 1 auto-snapshotted via trg_order_reading_details_snapshot)
-READING DETAILS (public.reading_details)
-        ├── order_id (FK -> orders.id)
-        ├── customer_id (FK -> customer_profiles.id)
-        ├── service_id (FK -> services.id)
-        ├── Snapshot client info for astrologer (client_name, client_date_of_birth, etc.)
-        ├── Snapshot partner info for astrologer (partner_name, partner_date_of_birth, etc.)
-        ├── Google Calendar event ID
-        └── Reading status & admin notes
+    └─► (1 : 1 unique per user/email)
+        FREE READING CLAIM (public.free_readings)
+            ├── user_id (FK -> auth.users.id)
+            ├── email (Unique lower email index)
+            ├── reading_source_id (FK -> public.ascendant_readings.id)
+            └── Astrological snapshot (ascendant, reading_content JSON, dob, tob, pob, coordinates)
+
+CONTENT & CATALOG TABLES
+    ├── public.ascendant_readings (12 Vedic Lagna definitions & rich content)
+    ├── public.free_reading_content (Singleton 'free-reading' CMS copy & headings)
+    ├── public.services (Active reading catalog & offerings)
+    ├── public.testimonials (Client reviews & published status)
+    ├── public.profiles (Astrologer bio, meet copy & vision)
+    ├── public.contact_messages (Inbound enquiries & messages)
+    ├── public.free_reading_requests (Legacy intake requests)
+    └── public.website_notifications (System / user announcements)
 ```
 
 ---
@@ -45,16 +66,17 @@ READING DETAILS (public.reading_details)
 1. [`public.ascendant_readings`](#1-publicascendantreadings)
 2. [`public.contact_messages`](#2-publiccontactmessages)
 3. [`public.customer_profiles`](#3-publiccustomerprofiles)
-4. [`public.free_reading_requests`](#4-publicfreereadingrequests)
-5. [`public.free_readings`](#5-publicfreereadings)
-6. [`public.orders`](#6-publicorders)
-7. [`public.profiles`](#7-publicprofiles)
-8. [`public.reading_details`](#8-publicreadingdetails)
-9. [`public.services`](#9-publicservices)
-10. [`public.testimonials`](#10-publictestimonials)
-11. [`public.website_notifications`](#11-publicwebsitenotifications)
-12. [Storage Buckets & Policies](#12-storage-buckets--policies)
-13. [Database Functions, Triggers & Security Policies](#13-database-functions-triggers--security-policies)
+4. [`public.free_reading_content`](#4-publicfreereadingcontent)
+5. [`public.free_reading_requests`](#5-publicfreereadingrequests)
+6. [`public.free_readings`](#6-publicfreereadings)
+7. [`public.orders`](#7-publicorders)
+8. [`public.profiles`](#8-publicprofiles)
+9. [`public.reading_details`](#9-publicreadingdetails)
+10. [`public.services`](#10-publicservices)
+11. [`public.testimonials`](#11-publictestimonials)
+12. [`public.website_notifications`](#12-publicwebsitenotifications)
+13. [Storage Buckets & Policies](#13-storage-buckets--policies)
+14. [Database Functions, Triggers & Security Policies](#14-database-functions-triggers--security-policies)
 
 ---
 
@@ -74,6 +96,7 @@ READING DETAILS (public.reading_details)
 | `growth_areas` | `ARRAY` | Yes | `'{}'::text[]` |
 | `created_at` | `timestamp with time zone` | **No** | `now()` |
 | `updated_at` | `timestamp with time zone` | **No** | `now()` |
+| `content` | `jsonb` | Yes | — |
 
 **Current Live Data:**
 
@@ -100,7 +123,8 @@ READING DETAILS (public.reading_details)
       "Recognizing that true strength often lies in patience and collaborative grace"
     ],
     "created_at": "2026-10-15 05:31:20.232313+00",
-    "updated_at": "2026-10-15 05:31:20.232313+00"
+    "updated_at": "2026-10-15 05:31:20.232313+00",
+    "content": null
   },
   {
     "id": "fba0a639-d52c-4ea0-9926-00eec3beefa8",
@@ -123,7 +147,8 @@ READING DETAILS (public.reading_details)
       "Balancing physical comfort with active renewal and mindful movement"
     ],
     "created_at": "2026-10-15 05:31:20.232313+00",
-    "updated_at": "2026-10-15 05:31:20.232313+00"
+    "updated_at": "2026-10-15 05:31:20.232313+00",
+    "content": null
   },
   {
     "id": "bd794537-5f2c-4c4f-a45e-b91c13867e63",
@@ -146,7 +171,8 @@ READING DETAILS (public.reading_details)
       "Trusting intuitive feeling as much as analytical rationalization"
     ],
     "created_at": "2026-10-15 05:31:20.232313+00",
-    "updated_at": "2026-10-15 05:31:20.232313+00"
+    "updated_at": "2026-10-15 05:31:20.232313+00",
+    "content": null
   },
   {
     "id": "3bc5aef4-c27a-4c24-bbc2-faacf3b79e02",
@@ -169,7 +195,8 @@ READING DETAILS (public.reading_details)
       "Directly voicing needs rather than retreating into an introspective shell"
     ],
     "created_at": "2026-10-15 05:31:20.232313+00",
-    "updated_at": "2026-10-15 05:31:20.232313+00"
+    "updated_at": "2026-10-15 05:31:20.232313+00",
+    "content": null
   },
   {
     "id": "a84f2998-46ef-494a-a7d6-fa9e8eeabcd9",
@@ -192,7 +219,8 @@ READING DETAILS (public.reading_details)
       "Allowing yourself vulnerability and resting from the burden of always being strong"
     ],
     "created_at": "2026-10-15 05:31:20.232313+00",
-    "updated_at": "2026-10-15 05:31:20.232313+00"
+    "updated_at": "2026-10-15 05:31:20.232313+00",
+    "content": null
   },
   {
     "id": "4ffd7ad2-333f-4cc3-9058-e6c225ea5854",
@@ -215,7 +243,8 @@ READING DETAILS (public.reading_details)
       "Remembering that mistakes are sacred stepping stones toward mastery"
     ],
     "created_at": "2026-10-15 05:31:20.232313+00",
-    "updated_at": "2026-10-15 05:31:20.232313+00"
+    "updated_at": "2026-10-15 05:31:20.232313+00",
+    "content": null
   },
   {
     "id": "bd9ba4b8-f94d-4379-9e6d-841793a0d01c",
@@ -238,7 +267,8 @@ READING DETAILS (public.reading_details)
       "Embracing healthy confrontation when integrity requires it"
     ],
     "created_at": "2026-10-15 05:31:20.232313+00",
-    "updated_at": "2026-10-15 05:31:20.232313+00"
+    "updated_at": "2026-10-15 05:31:20.232313+00",
+    "content": null
   },
   {
     "id": "cfd35db8-a621-4ad0-a209-042268802d7b",
@@ -261,7 +291,8 @@ READING DETAILS (public.reading_details)
       "Channeling intense emotional energy into creative, spiritual regeneration"
     ],
     "created_at": "2026-10-15 05:31:20.232313+00",
-    "updated_at": "2026-10-15 05:31:20.232313+00"
+    "updated_at": "2026-10-15 05:31:20.232313+00",
+    "content": null
   },
   {
     "id": "d476c1f0-8bcf-42bb-b97a-f93b759caae8",
@@ -284,7 +315,8 @@ READING DETAILS (public.reading_details)
       "Staying committed through quiet, routine phases of long-term goals"
     ],
     "created_at": "2026-10-15 05:31:20.232313+00",
-    "updated_at": "2026-10-15 05:31:20.232313+00"
+    "updated_at": "2026-10-15 05:31:20.232313+00",
+    "content": null
   },
   {
     "id": "580c1a5d-e9f1-48d2-9156-d684bceb6f9d",
@@ -307,7 +339,8 @@ READING DETAILS (public.reading_details)
       "Recognizing that your intrinsic worth is not defined solely by productivity"
     ],
     "created_at": "2026-10-15 05:31:20.232313+00",
-    "updated_at": "2026-10-15 05:31:20.232313+00"
+    "updated_at": "2026-10-15 05:31:20.232313+00",
+    "content": null
   },
   {
     "id": "3e570155-fdb7-4235-bd28-80a0aa61918c",
@@ -330,7 +363,8 @@ READING DETAILS (public.reading_details)
       "Balancing grand ideals with compassionate patience for human imperfections"
     ],
     "created_at": "2026-10-15 05:31:20.232313+00",
-    "updated_at": "2026-10-15 05:31:20.232313+00"
+    "updated_at": "2026-10-15 05:31:20.232313+00",
+    "content": null
   },
   {
     "id": "b29ddeb8-8d00-40a2-8167-ce03fa3c5733",
@@ -353,7 +387,8 @@ READING DETAILS (public.reading_details)
       "Seeing people and situations with clear discernment rather than through idealization"
     ],
     "created_at": "2026-10-15 05:31:20.232313+00",
-    "updated_at": "2026-10-15 05:31:20.232313+00"
+    "updated_at": "2026-10-15 05:31:20.232313+00",
+    "content": null
   }
 ]
 ```
@@ -531,6 +566,48 @@ READING DETAILS (public.reading_details)
 ```json
 [
   {
+    "id": "f7eb6aca-2211-48f3-bf62-0839f60febad",
+    "auth_user_id": "16b6d7c1-e717-49fb-8c77-fd74098a1869",
+    "display_name": null,
+    "email": "testadmin999@gmail.com",
+    "date_of_birth": "1995-08-15",
+    "time_of_birth": "14:30:00",
+    "time_uncertain": false,
+    "place_of_birth": "New Delhi, Delhi, India",
+    "avatar_seed": null,
+    "created_at": "2026-10-11 18:29:46.597559+00",
+    "updated_at": "2026-10-15 09:00:26.915639+00",
+    "role": "customer",
+    "partner_name": null,
+    "partner_date_of_birth": null,
+    "partner_time_of_birth": null,
+    "partner_time_uncertain": false,
+    "partner_place_of_birth": null,
+    "account_status": "active",
+    "avatar_url": null
+  },
+  {
+    "id": "0bd2fa94-a01d-4f58-8802-c2a55edc7e93",
+    "auth_user_id": "e2c17b1e-de58-4758-8d71-0af11cd4c54e",
+    "display_name": "Pragati Jain",
+    "email": "pragatijain841@gmail.com",
+    "date_of_birth": "2003-11-19",
+    "time_of_birth": "01:45:00",
+    "time_uncertain": false,
+    "place_of_birth": "Aligarh, Koil, Aligarh, Uttar Pradesh, 202001, India",
+    "avatar_seed": null,
+    "created_at": "2026-10-03 18:20:01.629501+00",
+    "updated_at": "2026-10-17 04:08:17.455834+00",
+    "role": "admin",
+    "partner_name": null,
+    "partner_date_of_birth": null,
+    "partner_time_of_birth": null,
+    "partner_time_uncertain": false,
+    "partner_place_of_birth": null,
+    "account_status": "active",
+    "avatar_url": null
+  },
+  {
     "id": "9d90f4dd-17e5-46d8-b497-e1f37b37b9d8",
     "auth_user_id": "54d730b2-150b-4100-b5e6-5fccc6a5809e",
     "display_name": "Priya Sharma",
@@ -594,27 +671,6 @@ READING DETAILS (public.reading_details)
     "avatar_url": "https://qdnwmfriilknnwqrepuy.supabase.co/storage/v1/object/public/custom_profle_photo/2583c2ac-b95a-447f-b555-22cc26f7384f/avatar.webp?t=1791733988080"
   },
   {
-    "id": "f7eb6aca-2211-48f3-bf62-0839f60febad",
-    "auth_user_id": "16b6d7c1-e717-49fb-8c77-fd74098a1869",
-    "display_name": null,
-    "email": "testadmin999@gmail.com",
-    "date_of_birth": null,
-    "time_of_birth": null,
-    "time_uncertain": false,
-    "place_of_birth": null,
-    "avatar_seed": null,
-    "created_at": "2026-10-11 18:29:46.597559+00",
-    "updated_at": "2026-10-11 18:29:46.597559+00",
-    "role": "customer",
-    "partner_name": null,
-    "partner_date_of_birth": null,
-    "partner_time_of_birth": null,
-    "partner_time_uncertain": false,
-    "partner_place_of_birth": null,
-    "account_status": "active",
-    "avatar_url": null
-  },
-  {
     "id": "7b9fc2d9-5d08-4995-ab8b-61f4276467ff",
     "auth_user_id": "e34a4077-eaac-4a33-9c8b-6ee3f13b3077",
     "display_name": null,
@@ -634,34 +690,50 @@ READING DETAILS (public.reading_details)
     "partner_place_of_birth": null,
     "account_status": "active",
     "avatar_url": null
-  },
-  {
-    "id": "0bd2fa94-a01d-4f58-8802-c2a55edc7e93",
-    "auth_user_id": "e2c17b1e-de58-4758-8d71-0af11cd4c54e",
-    "display_name": "Pragati Jain",
-    "email": "pragatijain841@gmail.com",
-    "date_of_birth": "2003-11-19",
-    "time_of_birth": "17:45:00",
-    "time_uncertain": false,
-    "place_of_birth": "Aligarh, Koil, Aligarh, Uttar Pradesh, 202001, India",
-    "avatar_seed": null,
-    "created_at": "2026-10-03 18:20:01.629501+00",
-    "updated_at": "2026-10-15 05:37:39.173176+00",
-    "role": "admin",
-    "partner_name": null,
-    "partner_date_of_birth": null,
-    "partner_time_of_birth": null,
-    "partner_time_uncertain": false,
-    "partner_place_of_birth": null,
-    "account_status": "active",
-    "avatar_url": null
   }
 ]
 ```
 
 ---
 
-### 4. `public.free_reading_requests` (3 rows)
+### 4. `public.free_reading_content` (1 row)
+
+| Column | Data Type | Nullable | Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `text` | **No** | — |
+| `content` | `jsonb` | **No** | `'{}'::jsonb` |
+| `created_at` | `timestamp with time zone` | **No** | `now()` |
+| `updated_at` | `timestamp with time zone` | **No** | `now()` |
+
+**Current Live Data:**
+
+```json
+[
+  {
+    "id": "free-reading",
+    "content": {
+      "cta_quote": "Your Ascendant is the beginning. Your complete chart tells the story.",
+      "cta_accent": "Book a personalized Vedic Astrology Reading with me.",
+      "cta_heading": "Want to Discover Your Story?",
+      "result_label": "Your Mini Reading",
+      "section_intro": "In authentic Vedic astrology, your Lagna (Rising Sign) is the sacred gateway to your chart\u2014defining your instinctive vitality, core character, and life orientation.",
+      "cta_description": "Your Ascendant is only the beginning. Explore your relationships, career, and life path through a personalised Vedic reading.",
+      "section_heading": "Discover Your Vedic Ascendant",
+      "sign_in_heading": "Sign In to Claim Your Free Reading",
+      "eligibility_note": "One free personalized reading per verified email \u00b7 Calculated using Lahiri Ayanamsha",
+      "cta_primary_label": "Book a Reading",
+      "cta_secondary_label": "View All 1-on-1 Services",
+      "sign_in_description": "To ensure one complimentary reading per seeker and securely save your calculated result to your private account, please sign in or register below."
+    },
+    "created_at": "2026-10-15 20:43:30.668425+00",
+    "updated_at": "2026-10-15 20:43:30.668425+00"
+  }
+]
+```
+
+---
+
+### 5. `public.free_reading_requests` (3 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -725,7 +797,7 @@ READING DETAILS (public.reading_details)
 
 ---
 
-### 5. `public.free_readings` (1 row)
+### 6. `public.free_readings` (2 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -750,28 +822,45 @@ READING DETAILS (public.reading_details)
 ```json
 [
   {
+    "id": "43dc9dc1-e343-4512-b100-d400f7e85c4e",
+    "user_id": "16b6d7c1-e717-49fb-8c77-fd74098a1869",
+    "email": "testadmin999@gmail.com",
+    "date_of_birth": "1995-08-15",
+    "time_of_birth": "14:30:00",
+    "place_of_birth": "New Delhi, Delhi, India",
+    "latitude": "28.613895",
+    "longitude": "77.209006",
+    "timezone": "5.50",
+    "ascendant": "Scorpio",
+    "reading_content": "{\"sign\":\"Scorpio\",\"sanskritName\":\"Vrischika\",\"ruler\":\"Mars & Ketu (Mangal & Ketu)\",\"element\":\"Water\",\"quality\":\"Fixed\",\"glyph\":\"\u264f\",\"iconPath\":\"/zodiac/scorpio.svg\",\"overview\":\"With Scorpio on the Ascendant, your chart is governed by Mars and co-ruled by Ketu in Vedic astrology. You are a soul of extraordinary psychological depth, transformative power, and unwavering spiritual determination.\",\"personalityTraits\":\"You carry an intense, magnetic, and perceptive presence that pierces beneath surface illusions. You rarely engage in superficial chatter; you seek truth, authenticity, and profound connection. Resilient beyond measure, you have an innate capacity to rise from adversity transformed and stronger.\",\"lifePathGuidance\":\"Your life is an alchemical journey of emotional mastery and spiritual rebirth. Learning to surrender control, trust the natural rhythm of life, and transmute intensity into healing wisdom is your highest destiny.\",\"strengths\":[\"Incredible psychological insight and radar for authenticity\",\"Unmatched resilience, inner courage, and transformative power\",\"Fierce, lifelong loyalty to those who earn your sacred trust\",\"Deep focus and investigative ability to master complex mysteries\"],\"growthAreas\":[\"Practicing conscious emotional forgiveness to release old grudges\",\"Opening up gradually to trust worthy individuals without guarded suspicion\",\"Channeling intense emotional energy into creative, spiritual regeneration\"],\"coreEnergy\":{\"emoji\":\"\ud83e\udd82\",\"title\":\"Your Core Energy\",\"paragraphs\":[\"You are intensely perceptive, emotionally profound, private and magnetically resilient.\",\"You do not navigate life on the surface. You instinctively read between the lines, sense hidden motives, and perceive what is left unsaid.\",\"You possess immense inner strength\u2014when life brings crises or radical changes, you do not crumble; you endure, adapt, and transform.\"],\"challenge\":\"Your challenge? Trust and control. Because you feel so deeply and remember every wound, you can build impenetrable emotional fortresses, harbor suspicion, or struggle to let go.\",\"quote\":\"\u00ab\\\"True power is not holding on to control; it is trusting your ability to rise after whatever falls away.\\\"\u00bb\"},\"careerSuccess\":{\"title\":\"Career & Success\",\"paragraphs\":[\"You are drawn to work that requires depth, strategy, investigative intellect and real substance.\",\"You thrive in psychology, medicine, surgery, finance, investigative research, crisis management, occult/astrology, strategy, and transformative leadership.\",\"You have exceptional focus and tenacity: once you commit to a mission, you work quietly in the dark until victory is secured.\",\"Your greatest career achievements occur when you use your strategic depth to solve problems others are afraid to touch.\"],\"lessonQuote\":\"Your silence is your strategic advantage\u2014when you move, you move with decisive precision.\"},\"loveRelationships\":{\"title\":\"Love & Relationships\",\"paragraphs\":[\"For you, love is a sacred, all-or-nothing union. Casual connections do not interest your soul.\",\"You demand absolute honesty, emotional transparency, and unbreakable loyalty. In return, you offer fierce devotion that endures through every storm.\"],\"values\":[\"absolute loyalty\",\"emotional depth\",\"unwavering honesty\",\"mutual protection\",\"soul-level intimacy\"],\"questionOrLesson\":\"Your deepest relationship test is learning the courage of vulnerability:\\n\\n\u00ab\\\"Can I lower my armor and let myself be truly seen without fearing that love will be used against me?\\\"\u00bb\\n\\nWhen you dare to trust the right partner, love becomes your most profound vehicle of healing.\"},\"moneySecurity\":{\"title\":\"Money & Material Security\",\"paragraphs\":[\"You have sharp financial instincts and a natural understanding of shared resources, investments, and wealth regeneration.\",\"You keep your financial affairs private and strategic, preferring to build quiet independence rather than ostentatious display.\",\"Your wealth expands when you channel your natural discipline into long-term compounding and transformative ventures.\"],\"quote\":\"\u00ab\\\"Real wealth is self-sufficiency and the wisdom to turn adversity into asset.\\\"\u00bb\"},\"emotionalWorld\":{\"title\":\"Your Emotional World\",\"paragraphs\":[\"Beneath your composed, enigmatic exterior lies an ocean of deep emotional currents.\",\"You process feelings internally, rarely letting the world see your pain until you have fully metabolized it.\",\"Learning to release emotional toxins\u2014forgiving without forgetting\u2014is essential for your vitality and mental lightness.\",\"Your individual birth chart reveals how Mars, Ketu, and your Moon navigate your emotional rebirths.\"]},\"hiddenPotential\":{\"emoji\":\"\u2728\",\"title\":\"Your Hidden Potential\",\"paragraphs\":[\"You have the rare energy of the Phoenix.\",\"No matter what challenges, betrayals, or upheavals you encounter, you possess an uncanny ability to burn down the obsolete and rise stronger, wiser, and more radiant.\",\"When you channel your immense intensity into healing and purposeful creation, you become an unstoppable catalyst for transformation.\"]},\"firstLayerBullets\":[{\"emoji\":\"\u2764\ufe0f\",\"text\":\"Your deep relationship karma and finding genuine soul-aligned trust\"},{\"emoji\":\"\ud83d\udcbc\",\"text\":\"Your career destiny and leveraging your investigative and strategic power\"},{\"emoji\":\"\ud83d\udcb0\",\"text\":\"Your financial transformation cycles and wealth regeneration\"},{\"emoji\":\"\ud83c\udf19\",\"text\":\"Your emotional underworld and releasing subconscious self-protective walls\"},{\"emoji\":\"\ud83d\udd25\",\"text\":\"Mastering your personal power without fear of loss or betrayal\"},{\"emoji\":\"\ud83e\uddff\",\"text\":\"Karmic initiations, ancestral patterns, and occult sensitivities\"},{\"emoji\":\"\u23f3\",\"text\":\"Timing of major evolutionary rebirths and planetary milestones\"}]}",
+    "reading_source_id": "cfd35db8-a621-4ad0-a209-042268802d7b",
+    "status": "completed",
+    "created_at": "2026-10-15 09:00:26.533399+00",
+    "updated_at": "2026-10-15 09:00:25.781+00"
+  },
+  {
     "id": "36f84ae0-4fe2-457d-aa18-3fcc49a7eba7",
     "user_id": "e2c17b1e-de58-4758-8d71-0af11cd4c54e",
     "email": "pragatijain841@gmail.com",
     "date_of_birth": "2003-11-19",
-    "time_of_birth": "17:45:00",
+    "time_of_birth": "01:45:00",
     "place_of_birth": "Aligarh, Koil, Aligarh, Uttar Pradesh, 202001, India",
     "latitude": "27.881541",
     "longitude": "78.069022",
     "timezone": "5.50",
-    "ascendant": "Taurus",
-    "reading_content": "{\"sign\":\"Taurus\",\"sanskritName\":\"Vrishabha\",\"ruler\":\"Venus (Shukra)\",\"element\":\"Earth\",\"quality\":\"Fixed\",\"overview\":\"With Taurus rising, your chart is anchored by Venus, the planet of harmony, beauty, value, and devotion. You embody grounded grace, unwavering loyalty, and an organic connection to material and emotional security.\",\"personalityTraits\":\"You carry a calm, soothing, and reassuring presence that immediately puts others at ease. Methodical and thoughtful, you do not rush your choices; you build your life brick by brick with enduring craftsmanship. You possess refined aesthetic discernment and deeply appreciate sensory harmony, natural beauty, and tranquil environments.\",\"lifePathGuidance\":\"Your life path is one of steady cultivation, building enduring prosperity, and finding authentic self-worth. Cultivating flexibility and allowing room for healthy transformation will help you release resistance to change when life invites you to evolve.\",\"strengths\":[\"Unshakable dependability and steadfast loyalty\",\"Deeply grounded practical intellect and financial prudence\",\"Sophisticated eye for aesthetics, balance, and artistic beauty\",\"Calming emotional presence that anchors those around you\"],\"growthAreas\":[\"Embracing necessary life transitions without excessive attachment to the familiar\",\"Remaining open to alternate viewpoints and agile compromises\",\"Balancing physical comfort with active renewal and mindful movement\"]}",
-    "reading_source_id": "fba0a639-d52c-4ea0-9926-00eec3beefa8",
+    "ascendant": "Leo",
+    "reading_content": "{\"sign\":\"Leo\",\"sanskritName\":\"Simha\",\"ruler\":\"Sun (Surya)\",\"element\":\"Fire\",\"quality\":\"Fixed\",\"glyph\":\"\u264c\",\"iconPath\":\"/zodiac/leo.svg\",\"overview\":\"Rising in Leo, your chart is guided by the Sun, the cosmic source of vitality, sovereignty, and purposeful self-expression. You radiate dignity, generous warmth, and an innate nobility of character.\",\"personalityTraits\":\"You possess a magnetic and honorable presence. You lead naturally through benevolence rather than force, uplifting those around you with authentic encouragement. You take genuine pride in your integrity and desire your endeavors to leave a meaningful, uplifting impact on the world.\",\"lifePathGuidance\":\"Your soul's calling is to shine as a warm, unconditional source of light. True leadership for a Leo Ascendant is realized when your inner confidence is anchored in spiritual purpose rather than external validation.\",\"strengths\":[\"Inspiring natural charisma, confidence, and radiant vitality\",\"Generous, noble heart that champions the well-being of others\",\"Unshakable sense of personal integrity and creative passion\",\"Natural mentor and encouraging protector of your inner circle\"],\"growthAreas\":[\"Accepting constructive feedback with an open, non-defensive mindset\",\"Sharing the spotlight and recognizing the quiet contributions of others\",\"Allowing yourself vulnerability and resting from the burden of always being strong\"],\"coreEnergy\":{\"emoji\":\"\u2600\ufe0f\",\"title\":\"Your Core Energy\",\"paragraphs\":[\"You are naturally charismatic, warm-hearted, dignified and creatively expressive.\",\"Ruled by the Sun, the source of light and vitality, you carry an innate desire to live authentically, create something meaningful and stand tall in your truth.\",\"You have a generous spirit and a natural leadership aura\u2014people instinctively feel your warmth and presence.\"],\"challenge\":\"Your challenge? A sensitive pride. You can feel deeply wounded by disrespect, lack of recognition or being taken for granted, sometimes masking hurt with stubbornness.\",\"quote\":\"\u00ab\\\"True royalty doesn't demand the crown; it leads by lifting others into their own light.\\\"\u00bb\"},\"careerSuccess\":{\"title\":\"Career & Success\",\"paragraphs\":[\"You are not built to remain hidden in the background or work under micro-managing oversight.\",\"You thrive when you have creative autonomy, visibility, leadership authority, or the freedom to spearhead meaningful initiatives.\",\"You excel in entrepreneurship, management, public speaking, arts, creative direction, luxury, politics or any field where vision and heart align.\",\"Your success compounds exponentially when you transition from proving yourself to serving a higher mission.\"],\"lessonQuote\":\"When your ambition is powered by genuine service, your influence becomes timeless.\"},\"loveRelationships\":{\"title\":\"Love & Relationships\",\"paragraphs\":[\"In love, you love with your entire heart\u2014generously, passionately, and with royal devotion.\",\"You need a partner who genuinely admires, respects and celebrates who you are, without competing with your light.\"],\"values\":[\"mutual admiration\",\"unshakable respect\",\"romantic passion\",\"loyalty\",\"playful joy\"],\"questionOrLesson\":\"Your greatest relationship growth comes from opening the private door to your vulnerability:\\n\\n\u00ab\\\"Can I let my partner see my doubts and fears without feeling that my strength is compromised?\\\"\u00bb\\n\\nWhen you allow yourself to be seen in your softness, love becomes your deepest sanctuary.\"},\"moneySecurity\":{\"title\":\"Money & Security\",\"paragraphs\":[\"You enjoy living well and sharing generously with those you love.\",\"Your natural instinct can be to spend on quality, beauty and memorable experiences, but you also have a strong drive to build financial independence.\",\"Your wealth expands sustainably when you align your financial choices with long-term legacy rather than short-term prestige.\"],\"quote\":\"\u00ab\\\"True prosperity is having both the freedom to enjoy life and the stability to sustain it.\\\"\u00bb\"},\"emotionalWorld\":{\"title\":\"Your Emotional World\",\"paragraphs\":[\"You often feel you must stay strong, composed and radiant for everyone around you.\",\"Because of your pride, you rarely show when you are feeling hurt or overlooked.\",\"Giving yourself permission to rest, drop the armor, and be comforted without expectation is vital for your emotional renewal.\",\"Your individual birth chart reveals how your solar vitality and lunar heart balance each other.\"]},\"hiddenPotential\":{\"emoji\":\"\u2728\",\"title\":\"Your Hidden Potential\",\"paragraphs\":[\"You have the rare energy of the sovereign heart.\",\"You can ignite courage in discouraged hearts, inspire teams to achieve the impossible, and lead with unmatched nobility.\",\"When your inner light is anchored in humility and love, your impact reverberates far beyond your immediate sphere.\"]},\"firstLayerBullets\":[{\"emoji\":\"\u2764\ufe0f\",\"text\":\"Your relationship patterns and what your heart truly desires in love\"},{\"emoji\":\"\ud83d\udcbc\",\"text\":\"Your career calling and where your leadership shines brightest\"},{\"emoji\":\"\ud83d\udcb0\",\"text\":\"Your wealth potential and building enduring material legacy\"},{\"emoji\":\"\ud83c\udf19\",\"text\":\"Your emotional inner life and releasing the need to always be strong\"},{\"emoji\":\"\ud83d\udd25\",\"text\":\"How you express creative vision and navigate competitive dynamics\"},{\"emoji\":\"\ud83e\uddff\",\"text\":\"Karmic lessons surrounding ego, dignity, and authentic self-expression\"},{\"emoji\":\"\u23f3\",\"text\":\"Key planetary timeframes when your visibility and opportunities peak\"}]}",
+    "reading_source_id": "a84f2998-46ef-494a-a7d6-fa9e8eeabcd9",
     "status": "completed",
     "created_at": "2026-10-15 05:37:38.932037+00",
-    "updated_at": "2026-10-15 05:37:38.932037+00"
+    "updated_at": "2026-10-17 04:08:16.443+00"
   }
 ]
 ```
 
 ---
 
-### 6. `public.orders` (4 rows)
+### 7. `public.orders` (4 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -928,7 +1017,7 @@ READING DETAILS (public.reading_details)
 
 ---
 
-### 7. `public.profiles` (1 row)
+### 8. `public.profiles` (1 row)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -949,20 +1038,20 @@ READING DETAILS (public.reading_details)
   {
     "id": "f78861fd-a8d4-400b-9680-05ab4b5d4a33",
     "auth_user_id": null,
-    "display_name": "TheAstroKaur",
-    "bio": "{\"tag\":\"THE PERSON BEHIND THE READINGS\",\"heading_prefix\":\"Meet\",\"heading_name\":\"TheAstroKaur\",\"paragraph_1\":\"Graduating from top universities in India and Germany and building a career in IT & Technology, I was trained to think analytically and rely on logic and structured reasoning. Like many people, I believed that success and life's outcomes were entirely within my control, leaving little room for magic.\",\"paragraph_2\":\"Everything changed when I began noticing recurring patterns in my own life\u2014similar challenges, relationships, and turning points that seemed to repeat themselves. Searching for answers led me to Vedic astrology, that completely changed my perspective on life. Not just as a prediction tool, but astrology has helped me for self-awareness and personal growth.\",\"image_url\":\"https://qdnwmfriilknnwqrepuy.supabase.co/storage/v1/object/public/custom_profle_photo/owner/owner_about_1791742310068.webp\"}",
-    "vision": "{\"tag\":\"THE PERSON BEHIND THE READINGS\",\"heading_line_1\":\"There Is More Than One Way\",\"heading_line_2\":\"to See Your Story.\",\"paragraph_1\":\"Through my practice, I hope to bridge the gap between ancient Vedic wisdom and the modern world, making astrology easier to understand and relevant to everyday life. Rather than seeing it as a way to reflect on our experiences, understand ourselves better, and approach life's uncertainties with greater awareness.\",\"paragraph_2\":\"   \"}",
+    "display_name": "Harvinder Kaur",
+    "bio": "{\"tag\":\"Certified Astrologer\",\"heading_prefix\":\"Meet\",\"heading_name\":\"Harvinder Kaur\",\"paragraph_1\":\"Graduating from top universities in India and Germany and building a career in IT & Technology, I was trained to think analytically and rely on logic and structured reasoning. Like many people, I believed that success and life's outcomes were entirely within my control, leaving little room for magic.\",\"paragraph_2\":\"Everything changed when I began noticing recurring patterns in my own life\u2014similar challenges, relationships, and turning points that seemed to repeat themselves. Searching for answers led me to Vedic astrology, that completely changed my perspective on life. Not just as a prediction tool, but astrology has helped me for self-awareness and personal growth.\",\"image_url\":\"https://qdnwmfriilknnwqrepuy.supabase.co/storage/v1/object/public/custom_profle_photo/owner/owner_about_1791742310068.webp\"}",
+    "vision": "{\"tag\":\"The Person behind the Readings\",\"heading_line_1\":\"There Is More Than One Way\",\"heading_line_2\":\"to See Your Story.\",\"paragraph_1\":\"Through my practice, I bridge the gap between ancient Vedic wisdom and the modern world, making astrology accessible, practical, and deeply relevant to everyday life. Rather than viewing astrology as mere fortune-telling, I see it as a powerful tool for self-reflection, helping you understand your unique blueprint and navigate life's uncertainties with clear awareness\",\"paragraph_2\":\"   \"}",
     "specialties": null,
     "is_published": true,
     "created_at": "2026-10-11 18:00:00.253908+00",
-    "updated_at": "2026-10-14 18:54:25.468183+00"
+    "updated_at": "2026-10-15 08:04:54.882472+00"
   }
 ]
 ```
 
 ---
 
-### 8. `public.reading_details` (4 rows)
+### 9. `public.reading_details` (4 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -1079,7 +1168,7 @@ READING DETAILS (public.reading_details)
 
 ---
 
-### 9. `public.services` (6 rows)
+### 10. `public.services` (6 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -1210,7 +1299,7 @@ READING DETAILS (public.reading_details)
 
 ---
 
-### 10. `public.testimonials` (3 rows)
+### 11. `public.testimonials` (3 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -1274,7 +1363,7 @@ READING DETAILS (public.reading_details)
 
 ---
 
-### 11. `public.website_notifications` (0 rows)
+### 12. `public.website_notifications` (0 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -1295,7 +1384,7 @@ READING DETAILS (public.reading_details)
 
 ---
 
-### 12. Storage Buckets & Policies
+### 13. Storage Buckets & Policies
 
 #### Storage Buckets (`storage.buckets`)
 
@@ -1315,7 +1404,7 @@ READING DETAILS (public.reading_details)
 
 ---
 
-## 13. Database Functions, Triggers & Security Policies
+## 14. Database Functions, Triggers & Security Policies
 
 ### 1. Helper Function: `public.is_admin()`
 
@@ -1348,18 +1437,39 @@ Creates the user's `customer_profiles` entry server-side immediately upon user r
 
 Automatically populates `reading_details` with full client and partner snapshots whenever a booking order is created.
 
-### 5. Row Level Security Policies on Public Tables
+### 5. Live Row Level Security Policies on Public Tables (`pg_policies`)
 
-- **`customer_profiles`**: SELECT, INSERT, UPDATE restricted to owner (`auth.uid() = auth_user_id`) or `is_admin()`. Unrestricted admin ALL access.
+| Table Name | Policy Name | Command | Target Role | Security Expression / Condition |
+| :--- | :--- | :--- | :--- | :--- |
+| `public.ascendant_readings` | `Admins full access on ascendant_readings` | `ALL` | `{authenticated}` | `is_admin()` |
+| `public.ascendant_readings` | `Allow public read on ascendant_readings` | `SELECT` | `{anon,authenticated}` | `true` |
+| `public.contact_messages` | `Admin full access on contact_messages` | `ALL` | `{public}` | `(auth.email() = 'theastrokaur@gmail.com'::text)` |
+| `public.contact_messages` | `Public can submit contact messages` | `INSERT` | `{public}` | `true` |
+| `public.customer_profiles` | `Admins full access on customer_profiles` | `ALL` | `{authenticated}` | `is_admin()` |
+| `public.customer_profiles` | `Customer inserts own profile` | `INSERT` | `{authenticated}` | `(auth.uid() = auth_user_id)` |
+| `public.customer_profiles` | `Customer reads own profile` | `SELECT` | `{public}` | `(auth.uid() = auth_user_id)` |
+| `public.customer_profiles` | `Customer updates own profile` | `UPDATE` | `{public}` | `(auth.uid() = auth_user_id)` |
+| `public.free_reading_content` | `Admins manage free reading content` | `ALL` | `{authenticated}` | `is_admin()` |
+| `public.free_reading_content` | `Public reads free reading content` | `SELECT` | `{anon,authenticated}` | `true` |
+| `public.free_reading_requests` | `Admin full access on free_reading_requests` | `ALL` | `{authenticated}` | `is_admin()` |
+| `public.free_reading_requests` | `Public can submit free reading requests` | `INSERT` | `{public}` | `true` |
+| `public.free_readings` | `Admins full access on free_readings` | `ALL` | `{authenticated}` | `is_admin()` |
+| `public.free_readings` | `Customer reads own free reading` | `SELECT` | `{authenticated}` | `((auth.uid() = user_id) OR is_admin())` |
+| `public.orders` | `Admins can manage all orders` | `ALL` | `{authenticated}` | `is_admin()` |
+| `public.orders` | `Anon can create orders via intake` | `INSERT` | `{anon}` | `true` |
+| `public.orders` | `Users can insert their own orders` | `INSERT` | `{authenticated}` | `(auth.uid() = auth_user_id)` |
+| `public.orders` | `Users can view their own orders` | `SELECT` | `{authenticated}` | `(auth.uid() = auth_user_id)` |
+| `public.orders` | `Users can update their own orders` | `UPDATE` | `{authenticated}` | `(auth.uid() = auth_user_id)` |
+| `public.profiles` | `Admin full access on profiles` | `ALL` | `{public}` | `(auth.email() = 'theastrokaur@gmail.com'::text)` |
+| `public.profiles` | `Public can read published profiles` | `SELECT` | `{public}` | `(is_published = true)` |
+| `public.reading_details` | `Admin full access on reading_details` | `ALL` | `{public}` | `(auth.email() = 'theastrokaur@gmail.com'::text)` |
+| `public.reading_details` | `Admins can do everything on reading details` | `ALL` | `{authenticated}` | `is_admin()` |
+| `public.reading_details` | `Customer reads own reading_details` | `SELECT` | `{public}` | `(customer_id = ( SELECT customer_profiles.id  FROM customer_profiles  WHERE (customer_profiles.auth_user_id = auth.uid())))` |
+| `public.reading_details` | `Customers can view own reading details` | `SELECT` | `{authenticated}` | `((EXISTS ( SELECT 1  FROM orders o  WHERE ((o.id = reading_details.order_id) AND (o.auth_user_id = auth.uid())))) OR (EXISTS ( SELECT 1  FROM customer_profiles cp  WHERE ((cp.id = reading_details.customer_id) AND (cp.auth_user_id = auth.uid())))) OR is_admin())` |
+| `public.services` | `Admin full access on services` | `ALL` | `{public}` | `(auth.email() = 'theastrokaur@gmail.com'::text)` |
+| `public.services` | `Public can read active services` | `SELECT` | `{public}` | `(is_active = true)` |
+| `public.testimonials` | `Admin full access on testimonials` | `ALL` | `{authenticated}` | `is_admin()` |
+| `public.testimonials` | `Authenticated users can insert testimonials` | `INSERT` | `{authenticated}` | `(auth.uid() = customer_id)` |
+| `public.testimonials` | `Public can read published testimonials` | `SELECT` | `{public}` | `(is_published = true)` |
+| `public.website_notifications` | `Admin full access on website_notifications` | `ALL` | `{public}` | `(auth.email() = 'theastrokaur@gmail.com'::text)` |
 
-- **`orders`**: SELECT, INSERT, UPDATE restricted to owner (`auth.uid() = auth_user_id`) or `is_admin()`. Anon INSERT allowed for intake.
-
-- **`reading_details`**: SELECT restricted to order/customer owner or `is_admin()`. Admin full access.
-
-- **`services`**: Public read for active services. Admin full access.
-
-- **`testimonials`**: Public read for published testimonials. Authenticated insert. Admin full access.
-
-- **`contact_messages`**: Public insert. Admin full access.
-
-- **`free_reading_requests`**: Public insert. Admin full access.

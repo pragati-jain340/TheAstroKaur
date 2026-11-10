@@ -3,24 +3,7 @@
 import { useRef } from "react";
 import { motion, useInView, useScroll, useTransform } from "motion/react";
 import { COMPACT_MOTION_QUERY, useMediaQuery } from "@/components/ui/use-media-query";
-
-export interface VisionContent {
-  tag: string;
-  heading_line_1: string;
-  heading_line_2: string;
-  paragraph_1: string;
-  paragraph_2: string;
-}
-
-export const DEFAULT_VISION: VisionContent = {
-  tag: "A VISION FOR ASTROLOGY",
-  heading_line_1: "There Is More Than One Way",
-  heading_line_2: "to See Your Story.",
-  paragraph_1:
-    "The same experiences can look different when we understand ourselves a little better. Astrology offers a perspective on the relationships we build, the choices we face, and the paths we take.",
-  paragraph_2:
-    "Through my practice, I hope to bridge the gap between ancient Vedic wisdom and the modern world, making astrology easier to understand and relevant to everyday life. Rather than seeing it as a way to reflect on our experiences, understand ourselves better, and approach life's uncertainties with greater awareness.",
-};
+import { DEFAULT_VISION, type VisionContent } from "@/lib/homeContent";
 
 export default function VisionSection({ initialContent }: { initialContent?: Partial<VisionContent> }) {
   const containerRef = useRef<HTMLElement>(null);

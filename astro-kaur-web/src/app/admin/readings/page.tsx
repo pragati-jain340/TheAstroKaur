@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
@@ -24,7 +24,7 @@ interface UnifiedReadingItem {
   detailUrl: string;
 }
 
-type StatusFilter = "all" | "upcoming" | "in_progress" | "completed" | "cancelled";
+type StatusFilter = "all" | "upcoming" | "in_progress" | "completed" | "cancelled" | "pending_payment" | "payment_review";
 type TypeFilter = "all" | "paid" | "free";
 
 export default function AdminReadingsPage() {
@@ -33,6 +33,7 @@ export default function AdminReadingsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [formatFilter, setFormatFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
   const fetchReadings = async () => {
@@ -64,7 +65,7 @@ export default function AdminReadingsPage() {
           rawId: o.id,
           sourceType: "paid",
           customerName: o.client_name || "Customer",
-          customerEmail: "",
+          customerEmail: (o as OrderRow & { customer_email_snapshot?: string }).customer_email_snapshot || "",
           serviceTitle: o.service_title,
           format: o.format === "voice_call" ? "Voice Call" : "Detailed Text",
           price: `€${Number(o.price_eur).toFixed(2)}`,
@@ -114,6 +115,7 @@ export default function AdminReadingsPage() {
   // Filter and Search logic
   const filteredReadings = useMemo(() => {
     return readings.filter((item) => {
+      if (formatFilter !== "all" && item.format !== formatFilter) return false;
       // Type filter
       if (typeFilter !== "all" && item.sourceType !== typeFilter) {
         return false;
@@ -128,6 +130,8 @@ export default function AdminReadingsPage() {
               item.scheduledAt &&
               new Date(item.scheduledAt) > new Date());
           if (!isUpcoming) return false;
+        } else if (statusFilter === "pending_payment" || statusFilter === "payment_review") {
+          if (item.status !== statusFilter) return false;
         } else if (statusFilter === "in_progress") {
           if (item.status !== "in_progress" && item.status !== "pending") return false;
         } else if (statusFilter === "completed") {
@@ -148,7 +152,7 @@ export default function AdminReadingsPage() {
 
       return true;
     });
-  }, [readings, statusFilter, typeFilter, search]);
+  }, [readings, statusFilter, typeFilter, search, formatFilter]);
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "Not Scheduled";
@@ -241,12 +245,16 @@ export default function AdminReadingsPage() {
           </div>
         </div>
 
+        <label className="block text-xs text-[#0F172A] dark:text-[#FAF8F5]">Reading format<select value={formatFilter} onChange={e=>setFormatFilter(e.target.value)} className="ml-3 rounded-xl p-2 border border-[#E5B842]/30 bg-white dark:bg-[#131F33]"><option value="all">All formats</option><option>Voice Call</option><option>Detailed Text</option></select></label>
+
         {/* Status Filter Tabs */}
         <div className="flex flex-wrap gap-2 pt-2 border-t border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
           {(
             [
               { key: "all", label: "All Readings" },
               { key: "upcoming", label: "Upcoming" },
+              { key: "pending_payment", label: "Pending Payment" },
+              { key: "payment_review", label: "Payment Review" },
               { key: "in_progress", label: "In Progress" },
               { key: "completed", label: "Completed" },
               { key: "cancelled", label: "Cancelled" },

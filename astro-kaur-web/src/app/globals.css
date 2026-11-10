@@ -103,11 +103,6 @@ body > *, main {
   }
 }
 
-.animate-astro-spin {
-  animation: astroWheelSpin 30s linear infinite !important;
-  will-change: transform;
-}
-
 /* Cross-browser scrollbar hiding */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

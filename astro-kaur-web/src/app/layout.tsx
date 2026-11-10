@@ -23,7 +23,6 @@ export const metadata: Metadata = {
 
 import { AuthProvider } from "@/context/AuthContext";
 import AuthModal from "@/components/auth/AuthModal";
-import EditProfileModal from "@/components/auth/EditProfileModal";
 import ServiceBookingModal from "@/components/services/ServiceBookingModal";
 import ContactModal from "@/components/home/ContactModal";
 
@@ -61,7 +60,6 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <AuthModal />
-          <EditProfileModal />
           <ServiceBookingModal />
           <ContactModal />
         </AuthProvider>

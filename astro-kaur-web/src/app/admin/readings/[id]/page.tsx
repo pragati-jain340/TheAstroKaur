@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, use } from "react";
+import { useEffect, useState, use } from "react";
+import BookingAdminActions from "@/components/admin/BookingAdminActions";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 
@@ -17,7 +17,6 @@ export default function AdminReadingDetailPage({
 }) {
   const resolvedParams = use(params);
   const readingId = resolvedParams.id;
-  const router = useRouter();
   const supabase = createClient();
 
   const isFreeReading = readingId.startsWith("free-");
@@ -59,31 +58,17 @@ export default function AdminReadingDetailPage({
             setAdminNotes(data.admin_notes || "");
           }
         } else {
-          // 1. First fetch order
-          const { data: orderData, error: orderErr } = await supabase
-            .from("orders")
-            .select("*")
-            .eq("id", rawId)
-            .single();
-
-          if (orderErr) throw orderErr;
+          const response = await fetch(`/api/admin/bookings/${rawId}`);
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error);
+          const orderData = result.order;
+          const detailData = result.detail;
           setOrder(orderData);
-
-          // 2. Fetch authoritative snapshot from reading_details
-          const { data: detailData, error: detailErr } = await supabase
-            .from("reading_details")
-            .select("*")
-            .eq("order_id", rawId)
-            .maybeSingle();
-
           if (detailData) {
             setReadingDetail(detailData);
             setCurrentStatus(detailData.status || orderData.status);
             setAdminNotes(detailData.admin_notes || "");
-          } else {
-            // Fallback to order status if reading_details row pending
-            setCurrentStatus(orderData.status);
-          }
+          } else setCurrentStatus(orderData.status);
         }
       } catch (err: any) {
         console.error("Error loading reading details:", err);
@@ -108,17 +93,12 @@ export default function AdminReadingDetailPage({
           .eq("id", rawId);
         if (error) throw error;
       } else {
-        // Update both reading_details and orders
-        if (readingDetail?.id) {
-          await supabase
-            .from("reading_details")
-            .update({ status: newStatus as any, updated_at: new Date().toISOString() })
-            .eq("id", readingDetail.id);
-        }
-        await supabase
-          .from("orders")
-          .update({ status: newStatus as any, updated_at: new Date().toISOString() })
-          .eq("id", rawId);
+        const response = await fetch(`/api/admin/bookings/${rawId}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: newStatus === "cancelled" ? "cancel" : newStatus }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error);
       }
 
       setStatusMessage("Reading status updated successfully.");
@@ -142,20 +122,12 @@ export default function AdminReadingDetailPage({
           .eq("id", rawId);
         if (error) throw error;
       } else {
-        if (readingDetail?.id) {
-          const { error } = await supabase
-            .from("reading_details")
-            .update({ admin_notes: adminNotes, updated_at: new Date().toISOString() })
-            .eq("id", readingDetail.id);
-          if (error) throw error;
-        } else {
-          // Update orders notes if reading_details not linked yet
-          const { error } = await supabase
-            .from("orders")
-            .update({ notes: adminNotes, updated_at: new Date().toISOString() })
-            .eq("id", rawId);
-          if (error) throw error;
-        }
+        const response = await fetch(`/api/admin/bookings/${rawId}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "notes", notes: adminNotes }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error);
       }
 
       setStatusMessage("Private admin notes saved.");
@@ -236,6 +208,8 @@ export default function AdminReadingDetailPage({
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200 max-w-5xl mx-auto">
+      {!isFreeReading && <BookingAdminActions id={rawId} />}
+
       {/* ─── Breadcrumb & Header ─── */}
       <div className="border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>

@@ -1,3 +1,4 @@
+import { adminGuard } from "@/lib/booking/server";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import fs from "fs/promises";
@@ -23,6 +24,8 @@ export const dynamic = "force-dynamic";
  * uploads to Supabase Storage with local filesystem backup in public/uploads/
  */
 export async function POST(req: NextRequest) {
+  const denied = await adminGuard();
+  if (denied) return denied;
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;

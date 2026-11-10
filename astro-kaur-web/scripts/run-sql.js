@@ -1,5 +1,3 @@
-const fs = require('fs');
-
 async function runSql(sql) {
   const token = process.env.SUPABASE_ACCESS_TOKEN || '';
   const projectRef = 'qdnwmfriilknnwqrepuy';
@@ -16,7 +14,7 @@ async function runSql(sql) {
   const text = await res.text();
   try {
     return JSON.parse(text);
-  } catch (e) {
+  } catch {
     return { status: res.status, text };
   }
 }

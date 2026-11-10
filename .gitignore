@@ -30,3 +30,4 @@ Thumbs.db
 *.tsbuildinfo
 .vercel
 /.artifacts/
+extra_key_info.md

@@ -118,7 +118,7 @@ export interface Database {
           service_title: string
           format: 'text' | 'voice_call'
           price_eur: number
-          status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
+          status: 'pending' | 'pending_payment' | 'confirmed' | 'completed' | 'cancelled' | 'expired' | 'payment_review'
           scheduled_at: string | null
           stripe_receipt_url: string | null
           client_name: string | null
@@ -147,7 +147,7 @@ export interface Database {
           service_title: string
           format?: 'text' | 'voice_call'
           price_eur?: number
-          status?: 'pending' | 'confirmed' | 'completed' | 'cancelled'
+          status?: 'pending' | 'pending_payment' | 'confirmed' | 'completed' | 'cancelled' | 'expired' | 'payment_review'
           scheduled_at?: string | null
           stripe_receipt_url?: string | null
           client_name?: string | null
@@ -174,7 +174,7 @@ export interface Database {
           service_title?: string
           format?: 'text' | 'voice_call'
           price_eur?: number
-          status?: 'pending' | 'confirmed' | 'completed' | 'cancelled'
+          status?: 'pending' | 'pending_payment' | 'confirmed' | 'completed' | 'cancelled' | 'expired' | 'payment_review'
           scheduled_at?: string | null
           stripe_receipt_url?: string | null
           client_name?: string | null
@@ -257,7 +257,7 @@ export interface Database {
           customer_id: string
           // FK → services.id (nullable — resolved from order service_title)
           service_id: string | null
-          google_calendar_event_id: string
+          google_calendar_event_id: string | null
           status: 'pending' | 'birth_details_received' | 'in_progress' | 'delivered' | 'cancelled'
           admin_notes: string | null
           // Client birth detail snapshot (copied from order at creation)
@@ -280,7 +280,7 @@ export interface Database {
           order_id: string
           customer_id: string
           service_id?: string | null
-          google_calendar_event_id?: string
+          google_calendar_event_id?: string | null
           status?: 'pending' | 'birth_details_received' | 'in_progress' | 'delivered' | 'cancelled'
           admin_notes?: string | null
           client_name?: string | null
@@ -298,7 +298,7 @@ export interface Database {
         }
         Update: {
           order_id?: string
-          google_calendar_event_id?: string
+          google_calendar_event_id?: string | null
           status?: 'pending' | 'birth_details_received' | 'in_progress' | 'delivered' | 'cancelled'
           admin_notes?: string | null
           client_name?: string | null

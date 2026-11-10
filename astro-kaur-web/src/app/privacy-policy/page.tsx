@@ -96,7 +96,7 @@ export default function PrivacyPolicyPage() {
                       When you book a reading, we may collect your selected service, booking date and time, order details, delivery preferences, and information necessary to manage your booking and provide the requested service.
                     </p>
                     <p>
-                      Appointment scheduling and related calendar services may be supported by Google Workspace.
+                      Appointment scheduling and related calendar services may be supported by Google Calendar and Meet.
                     </p>
                   </div>
 
@@ -251,7 +251,7 @@ export default function PrivacyPolicyPage() {
                     <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Stripe:</strong> Payment processing.
                   </li>
                   <li>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Google Workspace:</strong> Appointment scheduling, calendar functionality, and related business communications.
+                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Google Calendar and Meet:</strong> Appointment scheduling, calendar functionality, and related business communications.
                   </li>
                 </ul>
                 <div className="space-y-3">

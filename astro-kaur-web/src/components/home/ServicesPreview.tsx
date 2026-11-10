@@ -1,11 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/context/AuthContext";
 
 export interface ReadingServiceItem {
+  durationMinutes?: number | null;
+  requiresPartnerDetails?: boolean;
+  currency?: string;
+  priceCents?: number;
   id: string;
   slug: string;
   title: string;
@@ -130,7 +134,7 @@ function mapDbServiceToReadingItem(db: any): ReadingServiceItem {
     (s) => s.slug === slug || s.id === db.id || s.title.toLowerCase() === titleLower
   );
 
-  const priceNumber = Math.round((db.price_cents || 0) / 100);
+  const priceNumber = (db.price_cents || 0) / 100;
 
   return {
     id: db.id,
@@ -254,6 +258,10 @@ export default function ServicesPreview() {
       isCall: service.isCall,
       price: service.price,
       description: service.description,
+      durationMinutes: service.durationMinutes,
+      requiresPartnerDetails: service.requiresPartnerDetails,
+      currency: service.currency,
+      priceCents: service.priceCents,
     });
   };
 

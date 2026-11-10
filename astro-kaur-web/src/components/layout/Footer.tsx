@@ -123,7 +123,7 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#cancellation" className="hover:text-[#E5B842] transition-colors">
+                <a href="/cancellation-policy" className="hover:text-[#E5B842] transition-colors">
                   Cancellation &amp; Refund Policy
                 </a>
               </li>

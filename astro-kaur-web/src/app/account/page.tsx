@@ -1,5 +1,7 @@
 "use client";
 
+import GoogleCalendarSettings from "@/components/services/GoogleCalendarSettings";
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -20,7 +22,7 @@ interface Order {
   service_title: string;
   format: "text" | "voice_call";
   price_eur: number;
-  status: "pending" | "confirmed" | "completed" | "cancelled";
+  status: "pending" | "pending_payment" | "confirmed" | "completed" | "cancelled" | "expired" | "payment_review";
   payment_status: "pending" | "paid" | "failed" | "refunded";
   scheduled_at: string | null;
   stripe_receipt_url: string | null;
@@ -1510,7 +1512,7 @@ function AccountContent() {
 
           {/* Tab Content Section */}
           <div className="w-full">
-            {tab === "profile" && <ProfileTab />}
+            {tab === "profile" && <><ProfileTab /><GoogleCalendarSettings /></>}
             {!isAdminUser && tab === "readings" && <ReadingsTab />}
             {!isAdminUser && tab === "receipts" && <ReceiptsTab />}
           </div>

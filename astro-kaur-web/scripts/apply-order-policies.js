@@ -1,5 +1,3 @@
-const fs = require('fs');
-
 async function main() {
   const token = process.env.SUPABASE_ACCESS_TOKEN || '';
   const projectRef = 'qdnwmfriilknnwqrepuy';

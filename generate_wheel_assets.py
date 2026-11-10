@@ -3,9 +3,11 @@ from PIL import Image
 from scipy.ndimage import label
 import base64
 import io
-import os
+from pathlib import Path
 
-img = Image.open('raw_extracted_wheel.png')
+ROOT = Path(__file__).resolve().parent
+PUBLIC = ROOT / 'astro-kaur-web' / 'public'
+img = Image.open(ROOT / 'extra' / 'extracted_wheel.png')
 arr = np.array(img, dtype=np.float32)
 h, w = arr.shape[:2]
 cy, cx = 539.5, 539.5
@@ -65,7 +67,6 @@ arr_light[outer_circles_mask, 1] = 175.0
 arr_light[outer_circles_mask, 2] = 55.0
 
 img_light = Image.fromarray(np.clip(arr_light, 0, 255).astype(np.uint8))
-img_light.save('astro-kaur-web/public/astrology-wheel-light.png')
 
 # ==========================================
 # 2. DARK MODE WHEEL
@@ -98,7 +99,6 @@ arr_dark[outer_circles_mask, 1] = 211.0
 arr_dark[outer_circles_mask, 2] = 122.0
 
 img_dark = Image.fromarray(np.clip(arr_dark, 0, 255).astype(np.uint8))
-img_dark.save('astro-kaur-web/public/astrology-wheel-dark.png')
 
 # Function to create SVG from PNG
 def create_svg(png_img, svg_path):
@@ -112,8 +112,6 @@ def create_svg(png_img, svg_path):
         f.write(svg_content)
     print(f'Wrote {svg_path} ({len(svg_content)} bytes)')
 
-create_svg(img_light, 'astro-kaur-web/public/astrology-wheel-light.svg')
-create_svg(img_light, 'astro-kaur-web/public/astrology-wheel.svg')
-create_svg(img_light, 'astro-kaur-web/public/Rotating Horoscope Wheel.svg')
-create_svg(img_dark, 'astro-kaur-web/public/astrology-wheel-dark.svg')
-print('Successfully generated all wheel SVG & PNG assets!')
+create_svg(img_light, PUBLIC / 'astrology-wheel-light.svg')
+create_svg(img_dark, PUBLIC / 'astrology-wheel-dark.svg')
+print('Successfully generated the light and dark wheel SVG assets!')

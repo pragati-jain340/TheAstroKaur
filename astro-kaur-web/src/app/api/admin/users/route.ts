@@ -1,3 +1,4 @@
+import { adminGuard } from "@/lib/booking/server";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -34,7 +35,9 @@ async function countActiveAdmins(): Promise<number> {
  * GET /api/admin/users
  * Lists all user profiles along with reading counts
  */
-export async function GET(req: NextRequest) {
+export async function GET() {
+  const denied = await adminGuard();
+  if (denied) return denied;
   try {
     const { data: profiles, error: profileErr } = await supabaseAdmin
       .from("customer_profiles")
@@ -79,6 +82,8 @@ export async function GET(req: NextRequest) {
  * Securely creates a new user in auth.users and customer_profiles
  */
 export async function POST(req: NextRequest) {
+  const denied = await adminGuard();
+  if (denied) return denied;
   try {
     const body = await req.json();
     const {
@@ -171,6 +176,8 @@ export async function POST(req: NextRequest) {
  * Updates user profile, role, and account status with Last Admin Protection
  */
 export async function PATCH(req: NextRequest) {
+  const denied = await adminGuard();
+  if (denied) return denied;
   try {
     const body = await req.json();
     const {
@@ -292,6 +299,8 @@ export async function PATCH(req: NextRequest) {
  * Removes a user with Last Admin Protection
  */
 export async function DELETE(req: NextRequest) {
+  const denied = await adminGuard();
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId"); // auth_user_id or profile id
@@ -311,6 +320,12 @@ export async function DELETE(req: NextRequest) {
     const { data: profile } = await query.maybeSingle();
 
     if (profile) {
+      const { count: verifiedOrders, error: retentionError } = await supabaseAdmin
+        .from("orders").select("id", { count: "exact", head: true })
+        .eq("auth_user_id", profile.auth_user_id).not("payment_verified_at", "is", null);
+      if (retentionError || verifiedOrders) {
+        return NextResponse.json({ error: "This account has verified transaction records. Deactivate the account instead of deleting it." }, { status: 409 });
+      }
       // Check last admin protection
       if (profile.role === "admin") {
         const activeAdmins = await countActiveAdmins();

@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import BookingAvailabilityPanel from "@/components/admin/BookingAvailabilityPanel";
 import { Order } from "@/lib/supabase/types";
 
 interface ScheduledOrder extends Order {
@@ -10,9 +11,11 @@ interface ScheduledOrder extends Order {
   google_calendar_event_id?: string | null;
 }
 
+function displayedDate(d: Date) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 export default function AdminCalendarPage() {
   const supabase = useMemo(() => createClient(), []);
 
+  const [ownerZone, setOwnerZone] = useState("Europe/Berlin");
   const [orders, setOrders] = useState<ScheduledOrder[]>([]);
   const [unscheduledOrders, setUnscheduledOrders] = useState<ScheduledOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +23,7 @@ export default function AdminCalendarPage() {
 
   // Calendar View & Navigation
   const [viewMode, setViewMode] = useState<"month" | "week" | "day">("month");
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Berlin" })));
   const [selectedEvent, setSelectedEvent] = useState<ScheduledOrder | null>(null);
 
   // Reschedule / Schedule Modal
@@ -29,7 +32,7 @@ export default function AdminCalendarPage() {
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
 
   // Google Calendar Integration Drawer / Modal
-  const [isGCalModalOpen, setIsGCalModalOpen] = useState(false);
+
 
   // Unscheduled drawer toggle
   const [showUnscheduled, setShowUnscheduled] = useState(false);
@@ -41,6 +44,8 @@ export default function AdminCalendarPage() {
     setLoading(true);
     setError(null);
     try {
+      const configResponse = await fetch("/api/admin/availability");
+      if (configResponse.ok) { const config = await configResponse.json(); setOwnerZone(config.settings.timezone); }
       // 1. Fetch Orders
       const { data: ordersData, error: ordersErr } = await supabase
         .from("orders")
@@ -52,11 +57,11 @@ export default function AdminCalendarPage() {
       // 2. Fetch Customer Profiles for emails
       const { data: profilesData } = await supabase
         .from("customer_profiles")
-        .select("id, email, display_name");
+        .select("auth_user_id, email, display_name");
 
       const profileMap = new Map<string, { email: string; display_name: string | null }>();
-      (profilesData || []).forEach((p: { id: string; email: string; display_name: string | null }) => {
-        profileMap.set(p.id, { email: p.email, display_name: p.display_name });
+      (profilesData || []).forEach((p: { auth_user_id: string; email: string; display_name: string | null }) => {
+        profileMap.set(p.auth_user_id, { email: p.email, display_name: p.display_name });
       });
 
       // 3. Fetch Reading Details for Google Calendar Event IDs
@@ -77,8 +82,8 @@ export default function AdminCalendarPage() {
         google_calendar_event_id: detailsMap.get(o.id) || null,
       }));
 
-      const scheduled = all.filter((o) => !!o.scheduled_at);
-      const unscheduled = all.filter((o) => !o.scheduled_at && o.status !== "cancelled");
+      const scheduled = all.filter((o) => o.format === "voice_call" && !!o.scheduled_at && o.status === "confirmed" && o.payment_status === "paid");
+      const unscheduled = all.filter((o) => o.format === "voice_call" && !o.scheduled_at && o.status !== "cancelled");
 
       setOrders(scheduled);
       setUnscheduledOrders(unscheduled);
@@ -142,14 +147,14 @@ export default function AdminCalendarPage() {
     const map = new Map<string, ScheduledOrder[]>();
     for (const order of orders) {
       if (!order.scheduled_at) continue;
-      const datePart = order.scheduled_at.split("T")[0];
+      const datePart = new Intl.DateTimeFormat("en-CA", { timeZone: ownerZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(order.scheduled_at));
       if (!map.has(datePart)) {
         map.set(datePart, []);
       }
       map.get(datePart)!.push(order);
     }
     return map;
-  }, [orders]);
+  }, [orders, ownerZone]);
 
   // Week View Calculations
   const weekDays = useMemo(() => {
@@ -172,16 +177,12 @@ export default function AdminCalendarPage() {
     setIsSavingSchedule(true);
     try {
       const isoString = new Date(scheduleDatetime).toISOString();
-      const { error: updateErr } = await supabase
-        .from("orders")
-        .update({
-          scheduled_at: isoString,
-          status: schedulingOrder.status === "pending" ? "confirmed" : schedulingOrder.status,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", schedulingOrder.id);
-
-      if (updateErr) throw updateErr;
+      const response = await fetch(`/api/admin/bookings/${schedulingOrder.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reschedule", starts_at: isoString, reason: "Owner scheduling change" }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
 
       setToastMessage("Appointment scheduled successfully!");
       setSchedulingOrder(null);
@@ -247,21 +248,21 @@ export default function AdminCalendarPage() {
             READINGS CALENDAR
           </h1>
           <p className="mt-1 text-sm text-[#0F172A]/60 dark:text-[#FAF8F5]/60">
-            Astrology consultation appointments, scheduled readings, and calendar integration status.
+            Confirmed paid calls and calendar status. Calendar dates use {ownerZone}; time controls use your browser time zone.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
           {/* Google Calendar Status Badge / Action */}
-          <button
-            onClick={() => setIsGCalModalOpen(true)}
+          <a
+            href="/admin/calendar?tab=integrations#booking-settings"
             className="px-3 py-2 rounded-xl text-xs font-medium border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 bg-white dark:bg-[#070D18] text-[#0F172A] dark:text-[#FAF8F5] hover:border-[#E5B842]/40 transition-colors shadow-xs flex items-center gap-2"
           >
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+            <span className="w-2 h-2 rounded-full bg-[#E5B842]"></span>
             <span className="text-[11px] font-semibold text-[#0F172A]/80 dark:text-[#FAF8F5]/80">
-              Google Calendar: Not Connected
+              Calendar settings and status
             </span>
-          </button>
+          </a>
 
           {/* Unscheduled Drawer Toggle */}
           <button
@@ -286,6 +287,8 @@ export default function AdminCalendarPage() {
           </button>
         </div>
       </div>
+
+      <BookingAvailabilityPanel />
 
       {/* Success Toast */}
       {toastMessage && (
@@ -475,7 +478,7 @@ export default function AdminCalendarPage() {
               const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
               const dayEvents = eventsByDate.get(dateStr) || [];
               const isToday =
-                new Date().toISOString().split("T")[0] === dateStr;
+                new Intl.DateTimeFormat("en-CA", { timeZone: ownerZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()) === dateStr;
 
               return (
                 <div
@@ -507,7 +510,7 @@ export default function AdminCalendarPage() {
                     <div className="space-y-1">
                       {dayEvents.slice(0, 3).map((event) => {
                         const timeStr = event.scheduled_at
-                          ? new Date(event.scheduled_at).toLocaleTimeString("en-US", {
+                          ? new Date(event.scheduled_at).toLocaleTimeString("en-US", { timeZone: ownerZone,
                               hour: "numeric",
                               minute: "2-digit",
                             })
@@ -543,8 +546,8 @@ export default function AdminCalendarPage() {
         <div className="calendar-scroll bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl overflow-x-auto shadow-xs" role="region" aria-label="Weekly calendar, scroll horizontally to see all days" tabIndex={0}>
           <div className="grid grid-cols-7 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 text-center bg-[#FAF8F5] dark:bg-[#0D1829]">
             {weekDays.map((d, idx) => {
-              const dateStr = d.toISOString().split("T")[0];
-              const isToday = new Date().toISOString().split("T")[0] === dateStr;
+              const dateStr = displayedDate(d);
+              const isToday = new Intl.DateTimeFormat("en-CA", { timeZone: ownerZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()) === dateStr;
               return (
                 <div key={idx} className={`py-3 ${isToday ? "bg-[#E5B842]/10" : ""}`}>
                   <p className="text-[10px] font-bold tracking-wider text-[#0F172A]/50 dark:text-[#FAF8F5]/50 uppercase">
@@ -560,7 +563,7 @@ export default function AdminCalendarPage() {
 
           <div className="grid grid-cols-7 divide-x divide-[#0F172A]/5 dark:divide-[#FAF8F5]/5 min-h-[420px]">
             {weekDays.map((d, idx) => {
-              const dateStr = d.toISOString().split("T")[0];
+              const dateStr = displayedDate(d);
               const dayEvents = eventsByDate.get(dateStr) || [];
               return (
                 <div key={idx} className="p-2 space-y-2">
@@ -571,7 +574,7 @@ export default function AdminCalendarPage() {
                   ) : (
                     dayEvents.map((event) => {
                       const timeStr = event.scheduled_at
-                        ? new Date(event.scheduled_at).toLocaleTimeString("en-US", {
+                        ? new Date(event.scheduled_at).toLocaleTimeString("en-US", { timeZone: ownerZone,
                             hour: "numeric",
                             minute: "2-digit",
                           })
@@ -618,7 +621,7 @@ export default function AdminCalendarPage() {
           </div>
 
           {(() => {
-            const dateStr = currentDate.toISOString().split("T")[0];
+            const dateStr = displayedDate(currentDate);
             const dayEvents = eventsByDate.get(dateStr) || [];
             if (dayEvents.length === 0) {
               return (
@@ -637,7 +640,7 @@ export default function AdminCalendarPage() {
               <div className="space-y-3">
                 {dayEvents.map((event) => {
                   const timeStr = event.scheduled_at
-                    ? new Date(event.scheduled_at).toLocaleTimeString("en-US", {
+                    ? new Date(event.scheduled_at).toLocaleTimeString("en-US", { timeZone: ownerZone,
                         hour: "numeric",
                         minute: "2-digit",
                       })
@@ -720,7 +723,7 @@ export default function AdminCalendarPage() {
                   <span className="text-[#0F172A]/50 dark:text-[#FAF8F5]/50">Scheduled Date & Time</span>
                   <span className="font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
                     {selectedEvent.scheduled_at
-                      ? new Date(selectedEvent.scheduled_at).toLocaleString("en-US", {
+                      ? new Date(selectedEvent.scheduled_at).toLocaleString("en-US", { timeZone: ownerZone,
                           dateStyle: "medium",
                           timeStyle: "short",
                         })
@@ -854,65 +857,7 @@ export default function AdminCalendarPage() {
         </div>
       )}
 
-      {/* Google Calendar OAuth Configuration Info Drawer */}
-      {isGCalModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-white dark:bg-[#070D18] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 rounded-2xl w-full max-w-lg shadow-2xl p-6 space-y-5 animate-in zoom-in-95">
-            <div className="flex items-start justify-between border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 pb-3">
-              <div>
-                <span className="text-[10px] font-bold tracking-widest text-[#E5B842] uppercase">
-                  Integration Center
-                </span>
-                <h3 className="font-serif text-lg font-semibold text-[#0F172A] dark:text-[#FAF8F5] mt-0.5">
-                  Google Calendar Integration
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsGCalModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-[#0F172A]/5 dark:bg-[#FAF8F5]/5 flex items-center justify-center text-xs hover:bg-[#0F172A]/10"
-              >
-                ✕
-              </button>
-            </div>
 
-            <div className="space-y-3 text-xs leading-relaxed">
-              <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-xl">
-                <p className="font-bold mb-1">Status: OAuth Credentials Required</p>
-                <p>
-                  To sync consultation bookings directly to your personal Google Calendar account, Google OAuth 2.0 API credentials must be configured in your environment.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <p className="font-bold text-[#0F172A] dark:text-[#FAF8F5]">
-                  Required Environment Variables:
-                </p>
-                <div className="p-3 rounded-xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 font-mono text-[11px] space-y-1 text-[#0F172A]/80 dark:text-[#FAF8F5]/80">
-                  <p>GOOGLE_CALENDAR_CLIENT_ID</p>
-                  <p>GOOGLE_CALENDAR_CLIENT_SECRET</p>
-                  <p>GOOGLE_CALENDAR_REDIRECT_URI</p>
-                </div>
-              </div>
-
-              <div className="p-3 bg-emerald-500/5 border border-emerald-500/15 rounded-xl text-emerald-700 dark:text-emerald-400">
-                <p className="font-bold mb-0.5">Local Scheduling Fully Active</p>
-                <p className="text-[11px]">
-                  While Google Calendar is disconnected, the AstroKaur internal calendar is 100% operational. All appointment dates and times are stored and linked with client orders.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
-              <button
-                onClick={() => setIsGCalModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider bg-[#E5B842] text-[#070D18] hover:bg-[#d4a838] transition-colors"
-              >
-                Understood
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

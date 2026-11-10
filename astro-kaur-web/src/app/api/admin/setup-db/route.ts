@@ -1,3 +1,4 @@
+import { adminGuard } from "@/lib/booking/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -132,6 +133,8 @@ const DEFAULT_SERVICES = [
  * Returns which tables currently exist and row counts.
  */
 export async function GET() {
+  const denied = await adminGuard();
+  if (denied) return denied;
   const [profilesCheck, servicesCheck, freeReadingContentCheck] = await Promise.all([
     supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }),
     supabaseAdmin.from("services").select("id", { count: "exact", head: true }),
@@ -165,6 +168,8 @@ export async function GET() {
  * Falls back to seeding only if tables already exist.
  */
 export async function POST() {
+  const denied = await adminGuard();
+  if (denied) return denied;
   const steps: { step: string; status: string; detail?: string }[] = [];
 
   // ── Step 1: Create `profiles` table ──────────────────────────────────────

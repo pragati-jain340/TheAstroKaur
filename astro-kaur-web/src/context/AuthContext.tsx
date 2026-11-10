@@ -3,13 +3,17 @@
 import { uploadUserAvatar } from "@/lib/avatar/imageToWebP";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { User } from "@supabase/supabase-js";
+import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 
 type CustomerProfile = Database["public"]["Tables"]["customer_profiles"]["Row"];
 
 export interface BookingService {
+  durationMinutes?: number | null;
+  requiresPartnerDetails?: boolean;
+  currency?: string;
+  priceCents?: number;
   id: string;
   title: string;
   format: string;
@@ -25,22 +29,14 @@ interface AuthContextType {
   isAdmin: boolean;
   authModalOpen: boolean;
   authModalTab: "signin" | "signup";
-  setAuthModalOpen: (open: boolean) => void;
   setAuthModalTab: (tab: "signin" | "signup") => void;
   openAuthModal: (tab?: "signin" | "signup") => void;
   closeAuthModal: () => void;
-  profileModalOpen: boolean;
-  setProfileModalOpen: (open: boolean) => void;
-  profileModalTab: "profile" | "orders" | "receipts" | "users" | "dashboard";
-  setProfileModalTab: (tab: "profile" | "orders" | "receipts" | "users" | "dashboard") => void;
-  openProfileModal: (tab?: "profile" | "orders" | "receipts" | "users" | "dashboard") => void;
-  closeProfileModal: () => void;
   bookingModalOpen: boolean;
   selectedBookingService: BookingService | null;
   openBookingModal: (service?: BookingService) => void;
   closeBookingModal: () => void;
   contactModalOpen: boolean;
-  setContactModalOpen: (open: boolean) => void;
   openContactModal: () => void;
   closeContactModal: () => void;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -83,8 +79,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<"signin" | "signup">("signin");
-  const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [profileModalTab, setProfileModalTab] = useState<"profile" | "orders" | "receipts" | "users" | "dashboard">("profile");
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [selectedBookingService, setSelectedBookingService] = useState<BookingService | null>(null);
   const [contactModalOpen, setContactModalOpen] = useState(false);
@@ -158,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
+    } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
       if (!mounted) return;
       if (session?.user) {
         setUser(session.user);
@@ -279,17 +273,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const openProfileModal = (tab?: "profile" | "orders" | "receipts" | "users" | "dashboard") => {
-    if (tab) {
-      setProfileModalTab(tab);
-    }
-    setProfileModalOpen(true);
-  };
-
-  const closeProfileModal = () => {
-    setProfileModalOpen(false);
-  };
-
   const updateProfile = async (updates: {
     displayName?: string;
     avatarSeed?: string | null;
@@ -386,22 +369,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin,
         authModalOpen,
         authModalTab,
-        setAuthModalOpen,
         setAuthModalTab,
         openAuthModal,
         closeAuthModal,
-        profileModalOpen,
-        setProfileModalOpen,
-        profileModalTab,
-        setProfileModalTab,
-        openProfileModal,
-        closeProfileModal,
         bookingModalOpen,
         selectedBookingService,
         openBookingModal,
         closeBookingModal,
         contactModalOpen,
-        setContactModalOpen,
         openContactModal,
         closeContactModal,
         signIn,
