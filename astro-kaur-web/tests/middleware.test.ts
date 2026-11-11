@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { NextRequest } from 'next/server'
-import { updateSession } from '../src/lib/supabase/middleware'
+import { proxy as updateSession } from '../src/proxy'
 import { withRequestTimeout } from '../src/lib/requestTimeout'
 
 function request(path: string, session = false) {

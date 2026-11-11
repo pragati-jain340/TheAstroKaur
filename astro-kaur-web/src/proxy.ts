@@ -1,11 +1,11 @@
 ﻿/**
- * Next.js root middleware — refreshes the Supabase session on every request.
+ * Next.js request proxy — refreshes existing Supabase sessions.
  * Required by @supabase/ssr to prevent stale access-token cookies.
  */
 import { type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   return await updateSession(request)
 }
 

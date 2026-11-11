@@ -16,8 +16,9 @@ Configure `astro-kaur-web/.env.local` with credentials for your environment. Kee
 
 - `astro-kaur-web/`: website, API routes, database migrations, and maintenance scripts.
 - `supabase/`: Supabase configuration and the authenticated free-reading Edge Function.
-- `extra/` and `readings_logo/`: original artwork and asset sources.
-- `generate_wheel_assets.py`: regenerates the two active wheel SVGs from `extra/extracted_wheel.png`. Install its dependencies with `python -m pip install pillow numpy scipy`, then run `python generate_wheel_assets.py`.
-- `PROJECT_BRIEF.md`, the homepage specification, and `stitch_minimalist_astrology_website/`: product specifications and design references.
+- `astro-kaur-web/public/`: website images, optimized reading illustrations, wheel SVGs, zodiac icons, and uploaded content.
+- `astro-kaur-web/PRODUCT.md` and `astro-kaur-web/DESIGN.md`: current product and design guidance.
+- `astro-kaur-web/BOOKING_SETUP.md` and `astro-kaur-web/GOOGLE_CALENDAR_SETUP.md`: integration setup and operating instructions.
+- `PROJECT_BRIEF.md` and `BOOKING_IMPLEMENTATION_AUDIT.md`: original business requirements and historical implementation notes; use current source and setup guides for implemented behavior.
 
 Python database maintenance scripts use the standard library. Review scripts and their target environment before running them; some apply database changes.

@@ -1,5 +1,5 @@
 /**
- * Supabase session refresh helper for Next.js Middleware.
+ * Supabase session refresh helper for the Next.js request proxy.
  * Refresh existing sessions without letting Auth outages block public pages.
  * @supabase/ssr requires this pattern — without it, the access-token
  * cookie goes stale and server-side auth calls silently fail.
