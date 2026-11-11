@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendEmail } from "@/lib/email/smtp";
+
+export const runtime = "nodejs";
 
 // Initialize Supabase Admin client to persist enquiries in contact_messages table
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://qdnwmfriilknnwqrepuy.supabase.co",
+  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "https://qdnwmfriilknnwqrepuy.supabase.co",
   process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   {
     auth: {
@@ -167,49 +170,7 @@ export async function POST(req: NextRequest) {
       console.warn("Database storage warning:", dbEx);
     }
 
-    // 5. Verify Resend environment configuration
-    const resendApiKey = process.env.RESEND_API_KEY;
-    let contactEmail = process.env.CONTACT_EMAIL || "jainpragati4566@gmail.com";
-    if (
-      contactEmail.trim().toLowerCase() === "pragatijain841@gmail.com" ||
-      contactEmail.trim().toLowerCase() === "pragatiijain841@gmail.com"
-    ) {
-      // In Resend sandbox mode without verified domain, onboarding@resend.dev requires the account owner address
-      contactEmail = "jainpragati4566@gmail.com";
-    }
-    // Verified sender in Resend: default onboarding@resend.dev; change to hello@theastrokaur.com once custom domain is verified
-    const resendFromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-
-    if (!resendApiKey) {
-      console.error(
-        "[Resend Config Error] RESEND_API_KEY is not defined in environment variables."
-      );
-      return NextResponse.json(
-        {
-          error:
-            "Email service is currently being configured. Your enquiry has been recorded, or you can email us directly.",
-        },
-        { status: 500 }
-      );
-    }
-
-    if (!contactEmail) {
-      console.error(
-        "[Resend Config Error] CONTACT_EMAIL recipient is not defined in environment variables."
-      );
-      return NextResponse.json(
-        {
-          error:
-            "Contact recipient is not properly configured. Please try again shortly.",
-        },
-        { status: 500 }
-      );
-    }
-
-    // Format sender identity
-    const fromAddress = resendFromEmail.includes("<")
-      ? resendFromEmail
-      : `TheAstroKaur <${resendFromEmail}>`;
+    const contactEmail = process.env.CONTACT_EMAIL || process.env.SMTP_USER;
 
     // 6. Build HTML & Plaintext Email Body
     const emailSubject = `New Website Enquiry: ${cleanSubject} — TheAstroKaur`;
@@ -282,7 +243,7 @@ ${escapeHtml(cleanMessage)}
     <!-- Footer -->
     <div style="padding: 20px 30px; background-color: #FAF8F5; text-align: center; border-top: 1px solid rgba(15, 23, 42, 0.08); font-size: 11px; color: #94A3B8;">
       TheAstroKaur · Vedic Astrology Consultation &amp; Life Guidance<br>
-      Automated enquiry dispatch via Resend
+      Sent from the TheAstroKaur contact form
     </div>
   </div>
 </body>
@@ -304,69 +265,33 @@ ${cleanMessage}
 You can reply directly to this email to respond to ${cleanName} (${cleanEmail}).
     `.trim();
 
-    // 7. Send through Resend REST API
-    const resendResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: fromAddress,
-        to: [contactEmail],
-        reply_to: cleanEmail,
+    let messageId: string;
+    try {
+      if (!contactEmail) throw new Error("Contact recipient is not configured.");
+      messageId = await sendEmail({
+        to: contactEmail,
+        replyTo: cleanEmail,
         subject: emailSubject,
         html: emailHtml,
         text: emailText,
-      }),
-    });
-
-    const resendData = await resendResponse.json().catch(() => ({}));
-
-    if (!resendResponse.ok) {
-      console.error("[Resend API Error]", {
-        status: resendResponse.status,
-        statusText: resendResponse.statusText,
-        resendData,
       });
-
-      // If already safely stored in database, return success to the visitor
+    } catch (error) {
+      console.error("Contact email failed:", error instanceof Error ? error.message : "SMTP failure");
       if (dbSaved) {
         return NextResponse.json({
           success: true,
-          message:
-            "Thank you for reaching out! Your enquiry has been received and saved. We'll get back to you as soon as possible.",
+          message: "Thank you for reaching out! Your enquiry has been received and saved. We'll get back to you as soon as possible.",
         });
       }
-
-      // Special handling for Resend onboarding limitation error if db save also failed
-      if (
-        resendData?.message &&
-        typeof resendData.message === "string" &&
-        resendData.message.includes("can only send testing emails to your own email address")
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              "Resend testing mode restriction: While using onboarding@resend.dev, emails can only be delivered to the verified Resend account owner email.",
-          },
-          { status: 403 }
-        );
-      }
-
       return NextResponse.json(
-        {
-          error:
-            "Could not deliver your message at this moment. Please try again or reach out to us directly.",
-        },
-        { status: 502 }
+        { error: "Could not deliver your message at this moment. Please try again or reach out to us directly." },
+        { status: 502 },
       );
     }
 
-    // 8. Confirmed email delivery by Resend
     return NextResponse.json({
       success: true,
-      id: resendData?.id,
+      id: messageId,
       message:
         "Thank you for reaching out! Your enquiry has been submitted successfully. We'll get back to you as soon as possible.",
     });

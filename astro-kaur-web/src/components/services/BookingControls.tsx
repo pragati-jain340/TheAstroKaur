@@ -1,10 +1,10 @@
 "use client";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import type { BookingOrder } from "@/lib/booking/types";
 import SlotPicker, {
-  bookingButton,
-  bookingInput,
   formatAppointment,
   ZoneSelect,
 } from "./SlotPicker";
@@ -73,6 +73,8 @@ export default function BookingControls({ id }: { id: string }) {
     const prompt =
       action === "cancel"
         ? "Cancel this appointment? This releases your time and does not automatically issue a refund."
+        : action === "schedule"
+          ? "Confirm this appointment?"
         : action === "reschedule"
           ? "Confirm this new appointment? This uses your one self-service reschedule."
           : "Submit this withdrawal/refund request for owner review?";
@@ -87,6 +89,7 @@ export default function BookingControls({ id }: { id: string }) {
           body: JSON.stringify({
             action,
             starts_at: start,
+            timezone: zone,
             reason,
             confirmed: true,
           }),
@@ -154,8 +157,8 @@ export default function BookingControls({ id }: { id: string }) {
                 Payment has not yet been verified. Returning from checkout does
                 not confirm your order.
               </p>
-              <button
-                className={bookingButton}
+              <Button
+                size="lg"
                 disabled={
                   working ||
                   Date.parse(order.hold_expires_at || "") <=
@@ -164,7 +167,7 @@ export default function BookingControls({ id }: { id: string }) {
                 onClick={pay}
               >
                 Continue test payment
-              </button>
+              </Button>
             </>
           )}
           {order.status === "payment_review" && order.payment_status === 'paid' && (
@@ -181,6 +184,16 @@ export default function BookingControls({ id }: { id: string }) {
                   ? "The owner will contact you personally by email about timing and send your completed reading directly to you."
                   : "Your reading will be prepared after payment is confirmed."}
             </p>
+          )}
+          {order.format === "voice_call" && order.status === "awaiting_schedule" && order.payment_status === "paid" && order.service_id && (
+            <div className="space-y-4">
+              <p>Payment received. Choose a time below. If no times are available, the owner will contact you to arrange your call.</p>
+              <ZoneSelect value={zone} onChange={setZone} />
+              <SlotPicker serviceId={order.service_id} orderId={id} zone={zone} value={start} onChange={setStart} />
+              <Button disabled={!start || working} size="lg" onClick={() => change("schedule")}>
+                Confirm appointment
+              </Button>
+            </div>
           )}
           {order.format === "text" && (
             <p className="text-sm">
@@ -204,14 +217,10 @@ export default function BookingControls({ id }: { id: string }) {
                   minute consultation
                 </p>
               )}
-              <p className="text-sm">
-                Calendar invitation:{" "}
-                {data.detail?.calendar_invitation_status || "pending"}
-              </p>
               {order.status === "confirmed" &&
                 (data.detail?.meet_url && data.detail.calendar_sync_status === 'synced' ? (
                   <a
-                    className={`inline-block ${bookingButton}`}
+                    className={buttonVariants({ size: "lg" })}
                     href={data.detail.meet_url}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -220,8 +229,9 @@ export default function BookingControls({ id }: { id: string }) {
                   </a>
                 ) : (
                   <p className="text-sm">
-                    Your Meet link is being prepared. Your paid booking remains
-                    confirmed.
+                    {data.detail?.calendar_sync_status === "error"
+                      ? "Your booking is confirmed. The owner will contact you personally with the call details."
+                      : "Your call details are being prepared. Your booking is confirmed."}
                   </p>
                 ))}
               {data.can_reschedule && (
@@ -234,13 +244,13 @@ export default function BookingControls({ id }: { id: string }) {
                     )}{" "}
                     ({order.customer_timezone}).
                   </p>
-                  <button
+                  <Button
                     disabled={working}
-                    className="underline text-sm"
+                    variant="link"
                     onClick={() => setRescheduling((v) => !v)}
                   >
                     Reschedule
-                  </button>
+                  </Button>
                 </>
               )}
               {rescheduling && order.service_id && (
@@ -258,41 +268,41 @@ export default function BookingControls({ id }: { id: string }) {
                       {formatAppointment(start, zone)} ({zone})
                     </p>
                   )}
-                  <button
+                  <Button
                     disabled={!start || working}
-                    className={bookingButton}
+                    size="lg"
                     onClick={() => change("reschedule")}
                   >
                     Confirm reschedule
-                  </button>
+                  </Button>
                 </div>
               )}
               {order.status === "confirmed" &&
                 Date.parse(order.scheduled_at) >
                   Date.parse(data.server_now) && (
-                  <button
-                    className="block text-sm underline"
+                  <Button
+                    variant="link"
                     disabled={working}
                     onClick={() => change("cancel")}
                   >
                     Cancel appointment
-                  </button>
+                  </Button>
                 )}
             </>
           )}
           <div className="flex flex-wrap gap-4 text-sm">
-            <button onClick={openContactModal} className="underline">
+            <Button onClick={openContactModal} variant="link">
               Contact support
-            </button>
-            <button className="underline" onClick={() => setRequest((v) => !v)}>
+            </Button>
+            <Button variant="link" onClick={() => setRequest((v) => !v)}>
               Request withdrawal / refund
-            </button>
-            <button
-              className="underline"
+            </Button>
+            <Button
+              variant="link"
               onClick={() => load(true).catch((err) => setError(err.message))}
             >
               Refresh status
-            </button>
+            </Button>
           </div>
           {request && (
             <div className="space-y-3">
@@ -302,21 +312,21 @@ export default function BookingControls({ id }: { id: string }) {
               </p>
               <label className="block text-sm">
                 Reason
-                <textarea
-                  className={`${bookingInput} mt-1`}
+                <Textarea
+                  className="mt-1"
                   rows={3}
                   maxLength={1000}
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                 />
               </label>
-              <button
+              <Button
                 disabled={working || !reason.trim()}
                 onClick={() => change("withdrawal")}
-                className={bookingButton}
+                size="lg"
               >
                 Submit request
-              </button>
+              </Button>
             </div>
           )}
         </>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function ThemeToggle({ className = "" }: { className?: string }) {
   const [isDark, setIsDark] = useState<boolean>(false);
@@ -36,24 +37,28 @@ export default function ThemeToggle({ className = "" }: { className?: string }) 
   // Prevent hydration mismatch
   if (!mounted) {
     return (
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="icon"
         aria-label="Toggle light and dark mode"
-        className={`w-10 h-10 rounded-full flex items-center justify-center border border-[#E5B842]/30 bg-[#FAF8F5]/80 dark:bg-[#1E293B]/80 text-[#0F172A] dark:text-[#E5B842] transition-colors opacity-70 ${className}`}
+        className={`w-10 h-10 rounded-full border-[#E5B842]/30 bg-[#FAF8F5]/80 dark:bg-[#1E293B]/80 opacity-70 ${className}`}
         disabled
       >
         <div className="w-5 h-5" />
-      </button>
+      </Button>
     );
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
+      size="icon"
       onClick={toggleTheme}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className={`relative w-10 h-10 rounded-full flex items-center justify-center border border-[#E5B842]/35 hover:border-[#E5B842] bg-[#FAF8F5]/80 hover:bg-[#E5B842]/10 dark:bg-[#1E293B]/80 dark:hover:bg-[#E5B842]/20 text-[#0F172A] dark:text-[#E5B842] transition-all duration-300 shadow-sm hover:scale-105 active:scale-95 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E5B842] ${className}`}
+      className={`relative w-10 h-10 rounded-full border-[#E5B842]/35 hover:border-[#E5B842] bg-[#FAF8F5]/80 hover:bg-[#E5B842]/10 dark:bg-[#1E293B]/80 dark:hover:bg-[#E5B842]/20 text-[#0F172A] dark:text-[#E5B842] transition-all duration-300 shadow-sm hover:scale-105 active:scale-95 group ${className}`}
     >
       {/* Sun Icon (shown in Light mode) */}
       <span
@@ -104,6 +109,6 @@ export default function ThemeToggle({ className = "" }: { className?: string }) 
           <path d="M21 5h-4" />
         </svg>
       </span>
-    </button>
+    </Button>
   );
 }

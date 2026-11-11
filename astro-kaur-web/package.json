@@ -12,13 +12,19 @@
     "test:booking": "node --conditions=react-server --import tsx --test tests/*.test.ts",
     "db:booking:check": "python scripts/booking-db.py",
     "db:booking:test": "python scripts/booking-db.py --test",
-    "db:booking:concurrency": "python scripts/booking-concurrency.py"
+    "db:booking:concurrency": "python scripts/booking-concurrency.py",
+    "booking:local": "node scripts/booking-local.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
+    "class-variance-authority": "^0.7.1",
+    "cn": "^0.5.2",
+    "lucide-react": "^1.72.0",
     "motion": "^13.5.0",
     "next": "16.3.7",
+    "nodemailer": "^10.5.0",
+    "radix-ui": "^1.8.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",

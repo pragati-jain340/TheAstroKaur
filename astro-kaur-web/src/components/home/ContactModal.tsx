@@ -1,7 +1,12 @@
 "use client";
+import { NativeSelect } from "@/components/ui/native-select";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 interface ContactFormData {
   name: string;
@@ -27,7 +32,12 @@ const SUBJECT_OPTIONS = [
 ];
 
 export default function ContactModal() {
-  const { contactModalOpen, closeContactModal } = useAuth();
+  const { contactModalOpen } = useAuth();
+  return contactModalOpen ? <ContactForm /> : null;
+}
+
+function ContactForm() {
+  const { closeContactModal } = useAuth();
 
   const [formData, setFormData] = useState<ContactFormData>({
     name: "",
@@ -43,36 +53,6 @@ export default function ContactModal() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const nameInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Focus name input when modal opens
-  useEffect(() => {
-    if (contactModalOpen) {
-      document.body.style.overflow = "hidden";
-      setSubmitError(null);
-      setSubmitSuccess(null);
-      setTimeout(() => {
-        nameInputRef.current?.focus();
-      }, 200);
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [contactModalOpen]);
-
-  // Handle escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && contactModalOpen) {
-        closeContactModal();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [contactModalOpen, closeContactModal]);
-
-  if (!contactModalOpen) return null;
 
   const validate = (): boolean => {
     const errs: FormErrors = {};
@@ -137,7 +117,7 @@ export default function ContactModal() {
         );
       }
 
-      // Success confirmed by backend and Resend
+      // The backend has accepted the enquiry.
       setSubmitSuccess(
         result.message ||
           "Thank you for reaching out! Your enquiry has been submitted successfully. We'll get back to you as soon as possible."
@@ -168,29 +148,8 @@ export default function ContactModal() {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 bg-black/70 backdrop-blur-md animate-in fade-in duration-200"
-      onClick={closeContactModal}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="contact-modal-title"
-    >
-      <div
-        className="relative w-full max-w-xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_25px_60px_rgba(0,0,0,0.35)] text-[#0F172A] dark:text-[#FAF8F5] max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={closeContactModal}
-          aria-label="Close contact enquiry modal"
-          className="absolute top-5 right-5 w-9 h-9 rounded-full bg-[#0F172A]/5 dark:bg-[#FAF8F5]/5 hover:bg-[#E5B842]/15 text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] flex items-center justify-center transition-colors cursor-pointer"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
+    <Dialog open onOpenChange={(open) => { if (!open) closeContactModal(); }}>
+      <DialogContent aria-describedby={undefined} onOpenAutoFocus={(event) => { event.preventDefault(); nameInputRef.current?.focus(); }} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border-[#E5B842]/30 bg-[#FAF8F5] p-6 text-[#0F172A] dark:bg-[#0D1829] dark:text-[#FAF8F5] sm:max-w-xl sm:p-8">
         {/* ── Modal Header matching Screenshot 2 ── */}
         <div className="mb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E5B842]/10 border border-[#E5B842]/25 text-[#6B3448] dark:text-[#E5B842] text-[11px] font-semibold tracking-widest uppercase mb-3">
@@ -198,12 +157,11 @@ export default function ContactModal() {
             WE&apos;RE HERE TO HELP
           </div>
 
-          <h2
-            id="contact-modal-title"
+          <DialogTitle
             className="font-serif text-2xl sm:text-3xl text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight"
           >
             Have a Question?
-          </h2>
+          </DialogTitle>
 
           <p className="text-xs sm:text-sm text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mt-1 font-light leading-relaxed">
             Whether you&apos;re unsure which reading to choose or simply need more information, feel free to reach out.
@@ -275,7 +233,7 @@ export default function ContactModal() {
           {/* Honeypot field */}
           <div className="hidden" aria-hidden="true">
             <label htmlFor="modal-contact-hp">Website</label>
-            <input
+            <Input
               type="text"
               id="modal-contact-hp"
               name="_hp"
@@ -296,7 +254,7 @@ export default function ContactModal() {
               >
                 Full Name <span className="text-[#E5B842]">*</span>
               </label>
-              <input
+              <Input
                 ref={nameInputRef}
                 type="text"
                 id="modal-name"
@@ -325,7 +283,7 @@ export default function ContactModal() {
               >
                 Email Address <span className="text-[#E5B842]">*</span>
               </label>
-              <input
+              <Input
                 type="email"
                 id="modal-email"
                 name="email"
@@ -355,7 +313,7 @@ export default function ContactModal() {
               Subject <span className="text-[#E5B842]">*</span>
             </label>
             <div className="relative">
-              <select
+              <NativeSelect
                 id="modal-subject"
                 name="subject"
                 value={formData.subject}
@@ -372,12 +330,7 @@ export default function ContactModal() {
                     {opt}
                   </option>
                 ))}
-              </select>
-              <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#0F172A]/40 dark:text-[#94A3B8]">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
-              </div>
+              </NativeSelect>
             </div>
           </div>
 
@@ -394,7 +347,7 @@ export default function ContactModal() {
                 {formData.message.length} / 5000
               </span>
             </div>
-            <textarea
+            <Textarea
               id="modal-message"
               name="message"
               rows={4}
@@ -415,7 +368,7 @@ export default function ContactModal() {
 
           {/* Action Buttons & Privacy Reassurance */}
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#0F172A]/8 dark:border-white/10 mt-6">
-            <button
+            <Button
               type="submit"
               disabled={isSubmitting}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3 rounded-full bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] font-bold text-xs tracking-wider uppercase transition-all duration-300 shadow-[0_4px_18px_rgba(229,184,66,0.3)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.5)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
@@ -431,14 +384,14 @@ export default function ContactModal() {
                   <span className="text-sm">→</span>
                 </>
               )}
-            </button>
+            </Button>
 
             <p className="text-[11px] text-[#0F172A]/50 dark:text-[#64748B] text-center sm:text-right font-light">
               🔒 Confidential · Will never be shared.
             </p>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

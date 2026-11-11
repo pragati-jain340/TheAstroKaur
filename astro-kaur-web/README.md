@@ -51,6 +51,6 @@ This runs the canonical `scripts/sync-database-doc.py` implementation. It reads 
 
 ## Booking implementation (19 October 2026)
 
-See [BOOKING_SETUP.md](BOOKING_SETUP.md) for the implemented flows, applied Supabase migrations, Stripe test mode, Google OAuth, Resend, worker scheduling and remaining release configuration. Call booking is disabled until owner setup is complete. Live Stripe keys are rejected.
+See [BOOKING_SETUP.md](BOOKING_SETUP.md) for the implemented flows, applied Supabase migrations, Stripe test mode, Google OAuth, SMTP, worker scheduling and remaining release configuration. Call booking is disabled until owner setup is complete. Live Stripe keys are rejected.
 
 Run `npm run test:booking`, `npm run typecheck` and `npm run build` for code checks. `npm run db:booking:test` runs synthetic database checks in a rollback transaction. The existing repository-wide lint backlog is recorded in the booking audit.

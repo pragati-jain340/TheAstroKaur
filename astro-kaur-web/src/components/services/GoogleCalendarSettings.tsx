@@ -1,6 +1,10 @@
 "use client";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { NativeSelect } from "@/components/ui/native-select";
 import {useEffect,useState} from 'react';
-import {bookingButton,bookingInput,formatAppointment} from './SlotPicker';
+import {
+  formatAppointment} from './SlotPicker';
 interface Calendar{id:string;summary:string;primary?:boolean;accessRole:string;conferenceProperties?:{allowedConferenceSolutionTypes?:string[]}}
 interface State{connection:{account:string;status:string;connected_at:string;last_error:string|null}|null;is_organizer:boolean;selection:{calendar_id:string;busy_calendar_ids:string[]}|null;configuration_error:string|null}
 async function readResponse(response:Response){const result=await response.json();if(!response.ok)throw new Error(result.error || 'Google operation failed.');return result;}
@@ -36,13 +40,13 @@ export default function GoogleCalendarSettings({purpose='account',onConnectionCh
     {state?.configuration_error && <p role="alert" className="text-sm">{state.configuration_error}</p>}
     {state?.connection?.last_error && <p role="alert" className="text-sm">{state.connection.last_error}</p>}
     {error && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{error}</p>}{message && <p role="status" className="text-sm">{message}</p>}
-    <div className="flex flex-wrap items-center gap-4"><a href={`/api/google/connect?purpose=${purpose}`} className={bookingButton}>{connected?'Reconnect Google':'Connect Google Calendar'}</a>{state?.connection && state.connection.status!=='disconnected' && <button className="text-sm underline" disabled={working} onClick={disconnect}>Disconnect</button>}<button className="text-sm underline" disabled={working} onClick={()=>refresh().catch(err=>setError(err.message))}>Refresh connection</button></div>
-    <p className="text-xs opacity-75">Google’s External Testing mode can require reconnection after seven days.</p>
+    <div className="flex flex-wrap items-center gap-4"><a href={`/api/google/connect?purpose=${purpose}`} className={buttonVariants({ size: "lg" })}>{connected?'Reconnect Google':'Connect Google Calendar'}</a>{state?.connection && state.connection.status!=='disconnected' && <Button variant="link" disabled={working} onClick={disconnect}>Disconnect</Button>}{!organizer && <Button variant="link" disabled={working} onClick={()=>refresh().catch(err=>setError(err.message))}>Refresh connection</Button>}</div>
+    {!organizer && <p className="text-xs opacity-75">Google’s External Testing mode can require reconnection after seven days.</p>}
     {connected && <>
       {organizer && !state?.is_organizer && <p className="text-sm">This Google account is connected to your login. Use Reconnect Google here to authorize it as the booking organizer.</p>}
-      <label className="block text-sm">{organizer?'Meet-capable organizer calendar':'Accessible calendars'}<select className={`${bookingInput} mt-1`} value={selected} onChange={e=>{setSelected(e.target.value);setBusy([]);}}><option value="">Select a calendar</option>{chooseable.map(calendar=><option key={calendar.id} value={calendar.id}>{calendar.summary}{calendar.primary?' (primary)':''}</option>)}</select></label>
-      {organizer && state?.is_organizer && <><fieldset className="space-y-2"><legend className="text-sm mb-2">Calendars that block consultation availability</legend>{calendars.map(calendar=><label className="flex items-start gap-2 text-sm" key={calendar.id}><input type="checkbox" className="mt-1" checked={busyIds.includes(calendar.id) || busyIds.includes('primary') && !!calendar.primary} onChange={e=>setBusyIds(current=>e.target.checked?[...new Set([...current.filter(id=>id!=='primary'),calendar.id])]:current.filter(id=>id!==calendar.id && !(id==='primary' && calendar.primary)))}/>{calendar.summary}</label>)}</fieldset><button className={bookingButton} disabled={working || !selected} onClick={save}>Save booking calendars</button></>}
-      <button className="block text-sm underline" disabled={working || !selected} onClick={checkBusy}>Check next three days</button>
+      <label className="block text-sm">{organizer?'Meet-capable organizer calendar':'Accessible calendars'}<NativeSelect className="mt-1" value={selected} onChange={e=>{setSelected(e.target.value);setBusy([]);}}><option value="">Select a calendar</option>{chooseable.map(calendar=><option key={calendar.id} value={calendar.id}>{calendar.summary}{calendar.primary?' (primary)':''}</option>)}</NativeSelect></label>
+      {organizer && state?.is_organizer && <><fieldset className="space-y-2"><legend className="text-sm mb-2">Calendars that block consultation availability</legend>{calendars.map(calendar=><label className="flex items-start gap-2 text-sm" key={calendar.id}><Checkbox className="mt-1" checked={busyIds.includes(calendar.id) || busyIds.includes('primary') && !!calendar.primary} onCheckedChange={checked=>setBusyIds(current=>checked===true?[...new Set([...current.filter(id=>id!=='primary'),calendar.id])]:current.filter(id=>id!==calendar.id && !(id==='primary' && calendar.primary)))}/>{calendar.summary}</label>)}</fieldset><Button size="lg" disabled={working || !selected} onClick={save}>Save booking calendars</Button></>}
+      {!organizer && <Button variant="link" disabled={working || !selected} onClick={checkBusy}>Check next three days</Button>}
       {!!busy.length && <div className="text-sm space-y-2"><p>Busy periods · {zone}</p>{busy.map((range,index)=><p key={index}>{formatAppointment(range.start,zone)} — {formatAppointment(range.end,zone)}</p>)}</div>}
     </>}
   </section>;

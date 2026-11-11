@@ -245,7 +245,7 @@ export default function PrivacyPolicyPage() {
                     <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Supabase:</strong> Customer authentication, database services, and storage for information such as account details, orders, and profile photos.
                   </li>
                   <li>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Resend:</strong> Sending contact-form enquiries and other configured email communications.
+                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Email provider (Gmail SMTP):</strong> Sending contact-form enquiries, booking notifications and account emails.
                   </li>
                   <li>
                     <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Stripe:</strong> Payment processing.

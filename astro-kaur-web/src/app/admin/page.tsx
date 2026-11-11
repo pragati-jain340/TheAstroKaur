@@ -1,390 +1,266 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import type { Database } from "@/lib/supabase/types";
+import { CalendarCheck, Euro, FileText, Video } from "lucide-react";
 
-type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
-type FreeRequestRow = Database["public"]["Tables"]["free_reading_requests"]["Row"];
-type TestimonialRow = Database["public"]["Tables"]["testimonials"]["Row"];
+type BookingItem = {
+  id: string;
+  client_name: string | null;
+  service_title: string;
+  format: "text" | "voice_call";
+  price_eur: number;
+  status: string;
+  payment_status: string;
+  scheduled_at: string | null;
+  created_at: string;
+};
 
-interface DashboardMetrics {
-  totalCustomers: number;
-  revenueThisMonth: number;
-  freeRequests: number;
-  pendingTestimonials: number;
+type OverviewData = {
+  totalEarned: number;
+  totalBookings: number;
+  recentBookings: BookingItem[];
+};
+
+function formatDate(iso: string | null): string {
+  if (!iso) return "—";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(iso));
 }
 
-interface ActivityItem {
-  id: string;
-  category: "New paid booking" | "Free reading request" | "New testimonial" | "Reading completed" | "New customer";
-  name: string;
-  date: string;
-  timestamp: number;
-  linkHref: string;
+function formatScheduled(iso: string | null): string {
+  if (!iso) return "To be scheduled";
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
+
+function getMeetStatus(item: BookingItem): "Upcoming" | "Done" {
+  if (item.status === "completed") {
+    return "Done";
+  }
+  if (item.scheduled_at) {
+    const scheduledTime = new Date(item.scheduled_at).getTime();
+    if (!Number.isNaN(scheduledTime) && scheduledTime <= Date.now()) {
+      return "Done";
+    }
+  }
+  return "Upcoming";
 }
 
 export default function AdminDashboardPage() {
-  const supabase = createClient();
-
+  const supabase = useMemo(() => createClient(), []);
+  const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    totalCustomers: 0,
-    revenueThisMonth: 0,
-    freeRequests: 0,
-    pendingTestimonials: 0,
-  });
-
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-
-  const fetchDashboardData = useCallback(async () => {
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
     try {
-      setError(null);
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth(); // 0-indexed
-
-      // 1. Fetch Total Customers
-      const { count: customerCount, error: customerErr } = await supabase
-        .from("customer_profiles")
-        .select("id", { count: "exact", head: true })
-        .eq("role", "customer");
-
-      if (customerErr) throw customerErr;
-
-      // 2. Fetch Recent Customers for Activity Feed
-      const { data: recentCustomers } = await supabase
-        .from("customer_profiles")
-        .select("id, display_name, email, created_at")
-        .eq("role", "customer")
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      // 3. Fetch Orders
-      const { data: orders, error: ordersErr } = await supabase
+      const { data: orders, count, error: queryError } = await supabase
         .from("orders")
-        .select("*")
+        .select("id,client_name,service_title,format,price_eur,status,payment_status,scheduled_at,created_at", { count: "exact" })
+        .eq("payment_status", "paid")
+        .neq("status", "cancelled")
         .order("created_at", { ascending: false });
 
-      if (ordersErr) throw ordersErr;
+      if (queryError) {
+        throw queryError;
+      }
 
-      // 4. Fetch Free Reading Requests
-      const { data: freeReqs, error: freeErr } = await supabase
-        .from("free_reading_requests")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const paidOrders = (orders || []) as BookingItem[];
+      const totalEarned = paidOrders.reduce((sum, o) => sum + Number(o.price_eur || 0), 0);
+      const totalBookings = count ?? paidOrders.length;
 
-      if (freeErr) throw freeErr;
-
-      // 5. Fetch Testimonials
-      const { data: testimonials, error: testErr } = await supabase
-        .from("testimonials")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (testErr) throw testErr;
-
-      // ─── Calculate Revenue This Month ───
-      const allOrders: OrderRow[] = (orders as OrderRow[]) || [];
-      const paidOrders = allOrders.filter(
-        (o: OrderRow) => o.payment_status === "paid" && o.status !== "cancelled"
-      );
-
-      let revThisMonth = 0;
-      paidOrders.forEach((o: OrderRow) => {
-        const val = Number(o.price_eur) || 0;
-        const orderDate = new Date(o.created_at || now.toISOString());
-        if (orderDate.getFullYear() === currentYear && orderDate.getMonth() === currentMonth) {
-          revThisMonth += val;
-        }
+      setData({
+        totalEarned,
+        totalBookings,
+        recentBookings: paidOrders,
       });
-
-      // Free Requests needing attention (all pending or total intake count)
-      const allFreeReqs: FreeRequestRow[] = (freeReqs as FreeRequestRow[]) || [];
-      const freeCount = allFreeReqs.length;
-
-      // Pending Reviews (not published and consent given or awaiting approval)
-      const allTestimonials: TestimonialRow[] = (testimonials as TestimonialRow[]) || [];
-      const pendingReviewsCount = allTestimonials.filter(
-        (t: TestimonialRow) => !t.is_published
-      ).length;
-
-      setMetrics({
-        totalCustomers: customerCount || 0,
-        revenueThisMonth: revThisMonth,
-        freeRequests: freeCount,
-        pendingTestimonials: pendingReviewsCount,
-      });
-
-      // ─── Build Latest 5 Recent Activities ───
-      const feed: ActivityItem[] = [];
-
-      // A. Paid bookings
-      paidOrders.forEach((o: OrderRow) => {
-        const d = new Date(o.created_at);
-        feed.push({
-          id: `paid-${o.id}`,
-          category: "New paid booking",
-          name: o.client_name || "Customer",
-          date: d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-          timestamp: d.getTime(),
-          linkHref: `/admin/readings/${o.id}`,
-        });
-      });
-
-      // B. Completed readings
-      allOrders
-        .filter((o: OrderRow) => o.status === "completed")
-        .forEach((o: OrderRow) => {
-          const d = new Date(o.updated_at || o.created_at);
-          feed.push({
-            id: `completed-${o.id}`,
-            category: "Reading completed",
-            name: o.client_name || "Customer",
-            date: d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-            timestamp: d.getTime(),
-            linkHref: `/admin/readings/${o.id}`,
-          });
-        });
-
-      // C. Free reading requests
-      allFreeReqs.forEach((fr: FreeRequestRow) => {
-        const d = new Date(fr.created_at);
-        feed.push({
-          id: `free-${fr.id}`,
-          category: "Free reading request",
-          name: fr.full_name || "Requester",
-          date: d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-          timestamp: d.getTime(),
-          linkHref: `/admin/readings`,
-        });
-      });
-
-      // D. Testimonials submitted
-      allTestimonials.forEach((t: TestimonialRow) => {
-        const d = new Date(t.created_at);
-        feed.push({
-          id: `testimonial-${t.id}`,
-          category: "New testimonial",
-          name: t.author_name,
-          date: d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-          timestamp: d.getTime(),
-          linkHref: `/admin/testimonials`,
-        });
-      });
-
-      // E. New registered customers
-      (recentCustomers || []).forEach((c: { id: string; display_name: string | null; email: string; created_at: string }) => {
-        const d = new Date(c.created_at);
-        feed.push({
-          id: `customer-${c.id}`,
-          category: "New customer",
-          name: c.display_name || c.email.split("@")[0],
-          date: d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-          timestamp: d.getTime(),
-          linkHref: `/admin/users/${c.id}`,
-        });
-      });
-
-      // Sort newest first and strictly take top 5
-      feed.sort((a, b) => b.timestamp - a.timestamp);
-      setActivities(feed.slice(0, 5));
-    } catch (err: unknown) {
-      console.error("Error fetching dashboard metrics:", err);
-      const msg =
-        (err as any)?.message ||
-        (err as any)?.details ||
-        (err instanceof Error ? err.message : String(err));
-      setError(msg || "Failed to load dashboard metrics");
+    } catch {
+      setError("Failed to load dashboard bookings. Please try again.");
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, [supabase]);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
-
-  const handleManualRefresh = () => {
-    setRefreshing(true);
-    fetchDashboardData();
-  };
-
-  const getCategoryDotColor = (category: ActivityItem["category"]) => {
-    switch (category) {
-      case "New paid booking":
-        return "text-emerald-500";
-      case "Free reading request":
-        return "text-sky-500";
-      case "New testimonial":
-        return "text-[#E5B842]";
-      case "Reading completed":
-        return "text-purple-500";
-      case "New customer":
-        return "text-indigo-500";
-      default:
-        return "text-[#E5B842]";
-    }
-  };
+    void Promise.resolve().then(load);
+  }, [load]);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-200 max-w-6xl pb-16">
-      {/* ─── Header ─── */}
-      <div className="border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 pb-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <div className="mx-auto max-w-6xl space-y-7 pb-16 text-[#0F172A] dark:text-[#FAF8F5]">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[#0F172A]/10 pb-6 dark:border-white/10">
         <div>
-          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#0F172A] dark:text-[#FAF8F5] tracking-tight uppercase">
-            ADMIN DASHBOARD
-          </h1>
-          <p className="mt-1 text-sm text-[#0F172A]/60 dark:text-[#FAF8F5]/60">
-            Overview of TheAstroKaur
+          <h1 className="font-serif text-3xl sm:text-4xl">Overview</h1>
+          <p className="mt-2 text-sm text-[#46505F] dark:text-[#BCC4D0]">
+            Your earnings, bookings, and recent appointments.
           </p>
         </div>
+        <Button type="button" variant="outline" onClick={() => void load()} disabled={loading}>
+          {loading && data ? "Refreshing…" : "Refresh"}
+        </Button>
+      </header>
 
-        <div>
-          <button
-            type="button"
-            onClick={handleManualRefresh}
-            disabled={refreshing || loading}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[#070D18] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 text-[#0F172A] dark:text-[#FAF8F5] hover:border-[#E5B842]/50 hover:bg-[#E5B842]/5 transition-all shadow-xs disabled:opacity-50 cursor-pointer"
-          >
-            <span className={`text-sm ${refreshing ? "animate-spin" : ""}`}>↻</span>
-            <span>{refreshing ? "Refreshing..." : "Refresh Data"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ─── Error Notification ─── */}
       {error && (
-        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/25 text-red-600 dark:text-red-400 text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span>⚠</span>
-            <span>{error}</span>
-          </div>
-          <button
-            onClick={handleManualRefresh}
-            className="underline font-semibold hover:text-red-700 cursor-pointer"
-          >
-            Retry
-          </button>
+        <div role="alert" className="flex items-center justify-between rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-800 dark:text-red-200">
+          <span>{error}</span>
+          <Button variant="link" size="sm" onClick={() => void load()} className="h-auto p-0 underline">
+            Try again
+          </Button>
         </div>
       )}
 
-      {/* ─── Small Summary Row (4 High-Level Cards) ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: CUSTOMERS */}
-        <Link
-          href="/admin/users"
-          className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-5 hover:border-[#E5B842]/60 hover:shadow-sm transition-all group cursor-pointer"
-        >
-          <span className="text-[10px] font-bold tracking-wider text-[#0F172A]/50 dark:text-[#FAF8F5]/50 uppercase">
-            CUSTOMERS
-          </span>
-          <p className="font-serif text-3xl font-semibold text-[#0F172A] dark:text-[#FAF8F5] mt-2 group-hover:text-[#E5B842] transition-colors">
-            {loading ? "…" : metrics.totalCustomers}
-          </p>
-          <p className="text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mt-1">
-            Active
-          </p>
-        </Link>
-
-        {/* Card 2: REVENUE */}
-        <Link
-          href="/admin/readings"
-          className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-5 hover:border-[#E5B842]/60 hover:shadow-sm transition-all group cursor-pointer"
-        >
-          <span className="text-[10px] font-bold tracking-wider text-[#0F172A]/50 dark:text-[#FAF8F5]/50 uppercase">
-            REVENUE
-          </span>
-          <p className="font-serif text-3xl font-semibold text-[#0F172A] dark:text-[#FAF8F5] mt-2 group-hover:text-[#E5B842] transition-colors">
-            {loading ? "…" : `€${metrics.revenueThisMonth.toFixed(0)}`}
-          </p>
-          <p className="text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mt-1">
-            This month
-          </p>
-        </Link>
-
-        {/* Card 3: FREE REQUESTS */}
-        <Link
-          href="/admin/readings"
-          className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-5 hover:border-[#E5B842]/60 hover:shadow-sm transition-all group cursor-pointer"
-        >
-          <span className="text-[10px] font-bold tracking-wider text-[#0F172A]/50 dark:text-[#FAF8F5]/50 uppercase">
-            FREE REQUESTS
-          </span>
-          <p className="font-serif text-3xl font-semibold text-[#0F172A] dark:text-[#FAF8F5] mt-2 group-hover:text-[#E5B842] transition-colors">
-            {loading ? "…" : metrics.freeRequests}
-          </p>
-          <p className="text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mt-1">
-            Need attention
-          </p>
-        </Link>
-
-        {/* Card 4: PENDING REVIEWS */}
-        <Link
-          href="/admin/testimonials"
-          className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-5 hover:border-[#E5B842]/60 hover:shadow-sm transition-all group cursor-pointer"
-        >
-          <span className="text-[10px] font-bold tracking-wider text-[#0F172A]/50 dark:text-[#FAF8F5]/50 uppercase">
-            PENDING REVIEWS
-          </span>
-          <p className="font-serif text-3xl font-semibold text-[#0F172A] dark:text-[#FAF8F5] mt-2 group-hover:text-[#E5B842] transition-colors">
-            {loading ? "…" : metrics.pendingTestimonials}
-          </p>
-          <p className="text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mt-1">
-            Need approval
-          </p>
-        </Link>
-      </div>
-
-      {/* ─── Recent Activity (Latest 5 items) ─── */}
-      <div className="space-y-4 pt-2">
-        <h2 className="font-serif text-sm font-semibold tracking-wider text-[#0F172A] dark:text-[#FAF8F5] uppercase">
-          RECENT ACTIVITY
-        </h2>
-
-        {loading ? (
-          <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-8 text-center text-xs text-[#0F172A]/40 dark:text-[#FAF8F5]/40">
-            Loading recent activity…
-          </div>
-        ) : activities.length === 0 ? (
-          <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-8 text-center text-xs text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
-            No recent activity recorded yet.
-          </div>
-        ) : (
-          <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl divide-y divide-[#0F172A]/5 dark:divide-[#FAF8F5]/5 overflow-hidden shadow-xs">
-            {activities.map((act) => (
-              <Link
-                key={act.id}
-                href={act.linkHref}
-                className="p-4 sm:px-6 flex items-center justify-between gap-4 hover:bg-[#FAF8F5] dark:hover:bg-[#0D1829] transition-colors group cursor-pointer"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className={`text-sm ${getCategoryDotColor(act.category)} shrink-0`}>
-                    ●
-                  </span>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 min-w-0">
-                    <span className="text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 shrink-0">
-                      {act.category}
-                    </span>
-                    <span className="text-xs font-semibold text-[#0F172A] dark:text-[#FAF8F5] truncate group-hover:text-[#E5B842] transition-colors">
-                      {act.name}
-                    </span>
-                  </div>
+      {loading && !data ? (
+        <p role="status" className="py-10 text-sm text-[#46505F] dark:text-[#BCC4D0]">
+          Loading your dashboard…
+        </p>
+      ) : data && (
+        <>
+          {/* Summary Metric Cards */}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <Card className="border-border bg-card p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-[#46505F] dark:text-[#BCC4D0]">
+                  Total Money Earned
+                </p>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#E5B842]/15 text-[#805b11] dark:text-[#E5B842]">
+                  <Euro className="h-5 w-5" />
                 </div>
+              </div>
+              <p className="mt-3 font-serif text-3xl font-bold tracking-tight text-[#0F172A] dark:text-[#FAF8F5] sm:text-4xl">
+                €{data.totalEarned.toFixed(2)}
+              </p>
+              <p className="mt-1 text-xs text-[#46505F] dark:text-[#BCC4D0]">
+                All-time earnings from paid bookings
+              </p>
+            </Card>
 
-                <div className="text-[11px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40 shrink-0">
-                  {act.date}
+            <Card className="border-border bg-card p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-[#46505F] dark:text-[#BCC4D0]">
+                  Total Bookings
+                </p>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#E5B842]/15 text-[#805b11] dark:text-[#E5B842]">
+                  <CalendarCheck className="h-5 w-5" />
                 </div>
-              </Link>
-            ))}
+              </div>
+              <p className="mt-3 font-serif text-3xl font-bold tracking-tight text-[#0F172A] dark:text-[#FAF8F5] sm:text-4xl">
+                {data.totalBookings}
+              </p>
+              <p className="mt-1 text-xs text-[#46505F] dark:text-[#BCC4D0]">
+                Total confirmed and completed bookings
+              </p>
+            </Card>
           </div>
-        )}
-      </div>
+
+          {/* Recent Bookings List */}
+          <Card className="gap-0 overflow-hidden border-border bg-card shadow-sm">
+            <CardHeader className="border-b border-border px-5 py-5 sm:px-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="font-serif text-2xl font-normal text-[#0F172A] dark:text-[#FAF8F5]">
+                    Recent Bookings
+                  </CardTitle>
+                  <CardDescription className="mt-1 text-xs text-[#46505F] dark:text-[#BCC4D0] sm:text-sm">
+                    All recent bookings with format and meeting status.
+                  </CardDescription>
+                </div>
+                <Link
+                  href="/admin/readings"
+                  className="text-xs font-semibold text-[#805b11] underline underline-offset-4 hover:text-[#573b06] dark:text-[#F2D37B] dark:hover:text-[#FFE7A0] sm:text-sm"
+                >
+                  View all readings →
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {data.recentBookings.length === 0 ? (
+                <div className="p-8 text-center text-sm text-[#46505F] dark:text-[#BCC4D0]">
+                  No bookings found yet.
+                </div>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {data.recentBookings.map((booking) => {
+                    const isMeet = booking.format === "voice_call" || (booking.format as string) === "meet";
+                    const meetStatus = isMeet ? getMeetStatus(booking) : null;
+
+                    return (
+                      <li key={booking.id}>
+                        <Link
+                          href={`/admin/readings/${booking.id}`}
+                          className="group flex flex-col gap-3 p-5 transition-colors hover:bg-[#0F172A]/[0.02] dark:hover:bg-white/[0.03] sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                        >
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-medium text-sm text-[#0F172A] group-hover:underline dark:text-[#FAF8F5]">
+                                {booking.client_name || "Customer"}
+                              </span>
+
+                              {isMeet ? (
+                                <>
+                                  <span className="inline-flex items-center gap-1 rounded-full border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 text-xs font-medium text-purple-700 dark:text-purple-300">
+                                    <Video className="h-3 w-3" />
+                                    Meet
+                                  </span>
+                                  {meetStatus === "Upcoming" ? (
+                                    <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300">
+                                      Upcoming
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+                                      Done
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-800 dark:text-sky-300">
+                                  <FileText className="h-3 w-3" />
+                                  Text
+                                </span>
+                              )}
+                            </div>
+                            <p className="truncate text-xs text-[#46505F] dark:text-[#BCC4D0]">
+                              {booking.service_title}
+                            </p>
+                            <p className="text-[11px] text-[#46505F]/80 dark:text-[#BCC4D0]/80">
+                              {isMeet && booking.scheduled_at
+                                ? `Scheduled: ${formatScheduled(booking.scheduled_at)}`
+                                : isMeet
+                                ? `Booked on ${formatDate(booking.created_at)} (Awaiting schedule)`
+                                : `Booked on ${formatDate(booking.created_at)}`}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-4 sm:justify-end">
+                            <span className="font-serif text-base font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
+                              €{Number(booking.price_eur || 0).toFixed(2)}
+                            </span>
+                            <span aria-hidden="true" className="text-base text-[#805b11] transition-transform group-hover:translate-x-0.5 dark:text-[#E5B842]">
+                              →
+                            </span>
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

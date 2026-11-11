@@ -101,10 +101,20 @@ export async function PATCH(req: NextRequest, context: Context) {
           .eq("order_id", id),
       );
     } else {
-      if (body.action === "reschedule") {
-        const list = await availability(order.service_id!, order.id);
+      if (body.action === "reschedule" || body.action === "schedule") {
+        const list = await availability(order.service_id!, order.id, body.action === "schedule");
         if (!list.slots.some((s) => s.start === body.starts_at))
           throw new BookingError("This replacement time is unavailable.", 409);
+      }
+      if (body.action === "schedule") {
+        check(await db.rpc("booking_schedule_paid", {
+          p_order: id,
+          p_actor: user.id,
+          p_start: body.starts_at,
+          p_admin: true,
+          p_timezone: null,
+        }));
+        return NextResponse.json({ saved: true });
       }
       check(
         await db.rpc("booking_change", {

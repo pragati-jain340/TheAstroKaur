@@ -10,15 +10,24 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 html {
@@ -36,11 +45,6 @@ body {
 /* Let page and grid children shrink to the viewport instead of their text width. */
 body > *, main {
   min-width: 0;
-}
-
-/* Preserve readable day columns inside the calendar's own scroll container. */
-.calendar-scroll > .grid {
-  min-width: 42rem;
 }
 
 @media (max-width: 639px) {
@@ -148,3 +152,22 @@ body > *, main {
   will-change: transform;
 }
 
+
+/* shadcn tokens follow the site's existing light and dark themes. */
+:root {
+  --card: #ffffff; --card-foreground: #0f172a;
+  --muted: #f4efe4; --popover: #ffffff; --popover-foreground: #0f172a;
+  --primary: #805b11; --primary-foreground: #ffffff;
+  --secondary: #f4efe4; --secondary-foreground: #0f172a;
+  --muted-foreground: #46505f; --accent: #f4efe4; --accent-foreground: #0f172a;
+  --destructive: #b91c1c; --border: #d1d5db; --input: #b8bec8; --ring: #805b11;
+}
+.dark {
+  --background: #0f172a; --foreground: #faf8f5;
+  --card: #0d1829; --card-foreground: #faf8f5;
+  --muted: #1e293b; --popover: #0d1829; --popover-foreground: #faf8f5;
+  --primary: #e5b842; --primary-foreground: #0f172a;
+  --secondary: #1e293b; --secondary-foreground: #faf8f5;
+  --muted-foreground: #bcc4d0; --accent: #263349; --accent-foreground: #faf8f5;
+  --destructive: #ef4444; --border: #344154; --input: #526075; --ring: #e5b842;
+}

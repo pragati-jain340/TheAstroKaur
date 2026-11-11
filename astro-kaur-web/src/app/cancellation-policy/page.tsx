@@ -16,14 +16,14 @@ export default function CancellationPolicyPage() {
         </p>
         <h2 className="font-serif text-2xl">Voice consultations</h2>
         <p>
-          Your consultation is confirmed after Stripe verifies payment. The
-          chosen time is temporarily held for five minutes during checkout. A
-          calendar invitation and unique Google Meet link follow confirmation;
-          you can check their status in your account.
+          After Stripe verifies payment, you can choose an available time. If
+          no times are available, the owner will contact you to arrange your
+          consultation. Once a time is booked, a calendar invitation and Google
+          Meet link follow; you can check their status in your account.
         </p>
         <p>
           You may complete one self-service reschedule within 12 hours after the
-          original payment-confirmed booking, ending earlier if your original
+          original confirmed appointment, ending earlier if your original
           consultation starts. The new time must be available and meet the
           normal booking rules. Failed attempts do not use this allowance. After
           that, contact support for help.

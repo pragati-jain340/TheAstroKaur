@@ -8,7 +8,6 @@ import {
   uuid,
 } from "@/lib/booking/server";
 import { validateIntake } from "@/lib/booking/intake";
-import { availability } from "@/lib/booking/availability";
 import { POLICY_VERSION } from "@/lib/booking/types";
 import { stripe } from "@/lib/payments/stripe";
 export async function POST(req: NextRequest) {
@@ -71,23 +70,12 @@ export async function POST(req: NextRequest) {
       body.intake,
       service.requires_partner_details,
     );
-    let start: string | null = null;
-    if (service.format === "voice_call") {
-      const list = await availability(serviceId);
-      start =
-        list.slots.find((slot) => slot.start === body.starts_at)?.start || null;
-      if (!start)
-        throw new BookingError(
-          "This time is no longer available. Please choose another slot.",
-          409,
-        );
-    }
     const order = check(
-      await db.rpc("booking_create_purchase", {
+      await db.rpc("booking_create_payment_first", {
         p_user: user.id,
         p_service: serviceId,
         p_intake: intake,
-        p_start: start,
+        p_start: null,
         p_timezone: body.timezone,
         p_key: key,
         p_policy: POLICY_VERSION,

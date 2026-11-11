@@ -1,4 +1,7 @@
 "use client";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -121,7 +124,15 @@ export default function RisingSignSection() {
         });
 
         if (!res.ok) {
-          const err = await res.json();
+          const body = await res.text();
+          let err: unknown = body || `HTTP ${res.status} ${res.statusText}`;
+          if (body) {
+            try {
+              err = JSON.parse(body);
+            } catch {
+              // Keep the plain-text body for non-JSON error responses.
+            }
+          }
           if (!isCancelled) {
             console.warn("Eligibility check response:", err);
           }
@@ -318,10 +329,21 @@ export default function RisingSignSection() {
         }),
       });
 
-      const data = await res.json();
+      const body = await res.text();
+      let data: { error?: string; reading?: SavedReading; message?: string } = {};
+      if (body) {
+        try {
+          data = JSON.parse(body);
+        } catch {
+          if (res.ok) throw new Error("The reading service returned an invalid response.");
+        }
+      }
 
       if (!res.ok) {
-        setErrorMsg(data.error || "Failed to calculate your Vedic reading. Please try again.");
+        setErrorMsg(
+          data.error ||
+            `Failed to calculate your Vedic reading (HTTP ${res.status}). Please try again.`
+        );
         return;
       }
 
@@ -388,20 +410,23 @@ export default function RisingSignSection() {
               </div>
 
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-                <button
+                <Button
                   type="button"
+                  size="lg"
                   onClick={() => openAuthModal("signin")}
-                  className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#E5B842] hover:bg-[#d6a935] text-[#0F172A] font-semibold text-xs tracking-wider uppercase shadow-md transition-all cursor-pointer"
+                  className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#E5B842] hover:bg-[#d6a935] text-[#0F172A] font-semibold text-xs tracking-wider uppercase shadow-md transition-all cursor-pointer h-auto"
                 >
                   Sign In to Continue ✦
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="outline"
+                  size="lg"
                   onClick={() => openAuthModal("signup")}
-                  className="w-full sm:w-auto px-7 py-3.5 rounded-full border border-[#0F172A]/20 dark:border-[#FAF8F5]/20 text-xs font-semibold tracking-wider uppercase text-[#0F172A] dark:text-[#FAF8F5] hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                  className="w-full sm:w-auto px-7 py-3.5 rounded-full border border-[#0F172A]/20 dark:border-[#FAF8F5]/20 text-xs font-semibold tracking-wider uppercase text-[#0F172A] dark:text-[#FAF8F5] transition-colors cursor-pointer h-auto"
                 >
                   Create New Account
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -433,13 +458,14 @@ export default function RisingSignSection() {
                       </p>
                     </div>
                   </div>
-                  <button
+                  <Button
                     type="button"
+                    size="sm"
                     onClick={() => setAdminTestingMode(true)}
-                    className="shrink-0 px-4 py-2 rounded-full bg-[#E5B842] hover:bg-[#d6a935] text-[#0F172A] font-semibold text-xs tracking-wider uppercase shadow-xs transition-all cursor-pointer"
+                    className="shrink-0 px-4 py-2 rounded-full bg-[#E5B842] hover:bg-[#d6a935] text-[#0F172A] font-semibold text-xs tracking-wider uppercase shadow-xs transition-all cursor-pointer h-auto"
                   >
                     ✦ Calculate Another Chart
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <div className="p-4 rounded-2xl bg-[#E5B842]/10 border border-[#E5B842]/30 text-xs text-[#0F172A]/80 dark:text-[#FAF8F5]/90 flex items-start sm:items-center justify-between gap-3">
@@ -759,13 +785,15 @@ export default function RisingSignSection() {
                       </div>
                     </div>
                     {savedReading && (
-                      <button
+                      <Button
                         type="button"
+                        variant="link"
+                        size="sm"
                         onClick={() => setAdminTestingMode(false)}
-                        className="shrink-0 text-xs font-semibold text-[#6B3448] dark:text-[#E5B842] hover:underline cursor-pointer"
+                        className="shrink-0 text-xs font-semibold text-[#6B3448] dark:text-[#E5B842] p-0 h-auto cursor-pointer"
                       >
                         ← View Last Calculated Reading
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -793,7 +821,7 @@ export default function RisingSignSection() {
                   <label className="block text-xs font-semibold uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                     Date of Birth (DOB) *
                   </label>
-                  <input
+                  <Input
                     id="birth-date-input"
                     type="date"
                     required
@@ -811,7 +839,7 @@ export default function RisingSignSection() {
                   <label className="block text-xs font-semibold uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                     Exact Time of Birth *
                   </label>
-                  <input
+                  <Input
                     id="birth-time-input"
                     type="time"
                     required
@@ -831,7 +859,7 @@ export default function RisingSignSection() {
                   Place of Birth (City & Country) *
                 </label>
                 <div className="relative">
-                  <input
+                  <Input
                     id="birth-place-input"
                     type="text"
                     required
@@ -852,17 +880,18 @@ export default function RisingSignSection() {
                 {showPlaceDropdown && placeSuggestions.length > 0 && (
                   <div className="absolute z-30 left-0 right-0 mt-1 rounded-xl bg-white dark:bg-[#1E293B] border border-[#E5B842]/40 shadow-xl overflow-hidden max-h-56 overflow-y-auto">
                     {placeSuggestions.map((place) => (
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
                         key={place.id}
                         onClick={() => handleSelectPlace(place)}
-                        className="w-full text-left px-4 py-2.5 text-xs hover:bg-[#E5B842]/15 text-[#0F172A] dark:text-[#FAF8F5] transition-colors flex items-center justify-between border-b border-black/5 dark:border-white/5 last:border-0 cursor-pointer"
+                        className="w-full justify-between h-auto px-4 py-2.5 text-xs rounded-none border-b border-border/40 last:border-0 hover:bg-[#E5B842]/15 text-[#0F172A] dark:text-[#FAF8F5]"
                       >
                         <span className="truncate pr-2">{place.displayName}</span>
                         <span className="text-[10px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50 shrink-0">
                           UTC {place.timezone >= 0 ? `+${place.timezone}` : place.timezone}
                         </span>
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}
@@ -884,13 +913,12 @@ export default function RisingSignSection() {
               {/* Checkbox Confirmation & Profile Sync */}
               <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-[#0F172A]/10 dark:border-white/10 space-y-3">
                 <label htmlFor="confirm-birth-details" className="flex items-start gap-3 cursor-pointer">
-                  <input
+                  <Checkbox
                     id="confirm-birth-details"
-                    type="checkbox"
                     required
                     checked={confirmedDetails}
-                    onChange={(e) => setConfirmedDetails(e.target.checked)}
-                    className="mt-0.5 rounded text-[#E5B842] focus:ring-[#E5B842] cursor-pointer"
+                    onCheckedChange={(checked) => setConfirmedDetails(checked === true)}
+                    className="mt-0.5"
                   />
                   <span className="text-xs text-[#0F172A]/80 dark:text-[#FAF8F5]/80 leading-normal">
                     I confirm that the birth date, exact time, and birthplace entered above are accurate for this reading.
@@ -898,12 +926,11 @@ export default function RisingSignSection() {
                 </label>
 
                 <label htmlFor="save-profile-details" className="flex items-start gap-3 cursor-pointer">
-                  <input
+                  <Checkbox
                     id="save-profile-details"
-                    type="checkbox"
                     checked={saveToProfile}
-                    onChange={(e) => setSaveToProfile(e.target.checked)}
-                    className="mt-0.5 rounded text-[#E5B842] focus:ring-[#E5B842] cursor-pointer"
+                    onCheckedChange={(checked) => setSaveToProfile(checked === true)}
+                    className="mt-0.5"
                   />
                   <span className="text-xs text-[#0F172A]/70 dark:text-[#FAF8F5]/70 leading-normal">
                     Save these birth details to my profile for future readings.
@@ -913,11 +940,12 @@ export default function RisingSignSection() {
 
               {/* Submit Button */}
               <div className="pt-2">
-                <button
+                <Button
                   id="calculate-reading-btn"
                   type="submit"
+                  size="lg"
                   disabled={submitting}
-                  className="w-full py-4 rounded-full bg-[#E5B842] hover:bg-[#d6a935] disabled:opacity-60 text-[#0F172A] font-semibold text-xs tracking-wider uppercase shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-full bg-[#E5B842] hover:bg-[#d6a935] disabled:opacity-60 text-[#0F172A] font-semibold text-xs tracking-wider uppercase shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 h-auto"
                 >
                   {submitting ? (
                     <>
@@ -931,7 +959,7 @@ export default function RisingSignSection() {
                         : "Calculate My Vedic Ascendant & Reveal Reading ✦"}
                     </span>
                   )}
-                </button>
+                </Button>
               </div>
             </form>
           )}

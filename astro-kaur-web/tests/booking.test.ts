@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculateSlots } from "../src/lib/booking/slots";
+import { calculateSlots, coversBooking } from "../src/lib/booking/slots";
 import {
   canReschedule,
   rescheduleDeadline,
@@ -22,6 +22,12 @@ const windows = Array.from({ length: 7 }, (_, weekday) => ({
   end_local: "11:00",
   enabled: true,
 }));
+test("editing hours identifies a booked call that no longer fits, including its buffer", () => {
+  const start = "2026-10-20T07:00:00Z", end = "2026-10-20T07:45:00Z";
+  assert.equal(coversBooking(settings, windows, [], start, end), true);
+  assert.equal(coversBooking(settings, windows.map((w) => ({ ...w, end_local: "09:45" })), [], start, end), false);
+  assert.equal(coversBooking(settings, windows, [{ local_date: "2026-10-20", mode: "blocked", start_local: null, end_local: null }], start, end), false);
+});
 test("45 minute calls plus buffer cannot fit a 30 minute gap", () => {
   const slots = calculateSlots(
     settings,

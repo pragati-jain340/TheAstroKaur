@@ -1,13 +1,17 @@
 "use client";
+import { Textarea } from "@/components/ui/textarea";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 import { useEffect, useState, use } from "react";
 import BookingAdminActions from "@/components/admin/BookingAdminActions";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
+import type { BookingOrder } from "@/lib/booking/types";
 
 type ReadingDetailRow = Database["public"]["Tables"]["reading_details"]["Row"];
-type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
 type FreeRequestRow = Database["public"]["Tables"]["free_reading_requests"]["Row"];
 
 export default function AdminReadingDetailPage({
@@ -29,7 +33,10 @@ export default function AdminReadingDetailPage({
 
   // Paid Order & Reading Details
   const [readingDetail, setReadingDetail] = useState<ReadingDetailRow | null>(null);
-  const [order, setOrder] = useState<OrderRow | null>(null);
+  const [order, setOrder] = useState<BookingOrder | null>(null);
+  const [bookingHistory, setBookingHistory] = useState<
+    { id: string; action: string; created_at: string; reason: string | null }[]
+  >([]);
 
   // Free Reading Request
   const [freeRequest, setFreeRequest] = useState<FreeRequestRow | null>(null);
@@ -63,7 +70,8 @@ export default function AdminReadingDetailPage({
           if (!response.ok) throw new Error(result.error);
           const orderData = result.order;
           const detailData = result.detail;
-          setOrder(orderData);
+          setOrder(orderData as BookingOrder);
+          setBookingHistory(result.history || []);
           if (detailData) {
             setReadingDetail(detailData);
             setCurrentStatus(detailData.status || orderData.status);
@@ -208,7 +216,9 @@ export default function AdminReadingDetailPage({
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200 max-w-5xl mx-auto">
-      {!isFreeReading && <BookingAdminActions id={rawId} />}
+      {!isFreeReading && order && (
+        <BookingAdminActions id={rawId} initialOrder={order} history={bookingHistory} />
+      )}
 
       {/* ─── Breadcrumb & Header ─── */}
       <div className="border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -236,11 +246,11 @@ export default function AdminReadingDetailPage({
         </div>
 
         {/* Status Dropdown Controller */}
-        <div className="flex items-center gap-3">
-          <label className="text-xs font-semibold text-[#0F172A]/60 dark:text-[#FAF8F5]/60 uppercase tracking-wider">
+        {isFreeReading && <div className="flex items-center gap-3">
+          <label htmlFor="reading-field-1" className="text-xs font-semibold text-[#0F172A]/60 dark:text-[#FAF8F5]/60 uppercase tracking-wider">
             Status:
           </label>
-          <select
+          <NativeSelect id="reading-field-1"
             value={currentStatus}
             disabled={savingStatus}
             onChange={(e) => handleUpdateStatus(e.target.value)}
@@ -253,8 +263,8 @@ export default function AdminReadingDetailPage({
             <option value="delivered">Delivered</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
+          </NativeSelect>
+        </div>}
       </div>
 
       {/* Status Toast */}
@@ -293,16 +303,16 @@ export default function AdminReadingDetailPage({
           </div>
           <div>
             <p className="text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mb-1">Current Status</p>
-            <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#E5B842]/20 text-[#B8871E] dark:text-[#E5B842] uppercase tracking-wider">
+            <Badge variant="outline" className="bg-[#E5B842]/20 text-[#B8871E] dark:text-[#E5B842] border-[#E5B842]/30 uppercase">
               {currentStatus}
-            </span>
+            </Badge>
           </div>
-          <div>
+          {order?.format === "voice_call" && <div>
             <p className="text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mb-1">Scheduled Date/Time</p>
             <p className="text-sm font-medium text-[#0F172A] dark:text-[#FAF8F5]">
-              {order?.scheduled_at ? formatDate(order.scheduled_at) : "To be scheduled"}
+              {order?.scheduled_at ? formatDate(order.scheduled_at) : "Choose a time"}
             </p>
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -349,9 +359,9 @@ export default function AdminReadingDetailPage({
             <p className="text-[10px] font-bold tracking-widest text-[#E5B842] uppercase">
               3. PARTNER CHART INFORMATION
             </p>
-            <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-[#E5B842]/15 text-[#B8871E] dark:text-[#E5B842]">
+            <Badge variant="secondary" className="uppercase font-bold tracking-widest text-[10px]">
               Synastry / Matchmaking
-            </span>
+            </Badge>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
             <div>
@@ -399,15 +409,16 @@ export default function AdminReadingDetailPage({
           </div>
           <div>
             <p className="text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mb-1">Payment Status</p>
-            <span
-              className={`inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
+            <Badge
+              variant={(order?.payment_status || "unpaid") === "paid" ? "default" : "secondary"}
+              className={`uppercase tracking-wider ${
                 (order?.payment_status || "unpaid") === "paid"
-                  ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
-                  : "bg-amber-500/15 text-amber-800 dark:text-amber-300"
+                  ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-transparent"
+                  : "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-transparent"
               }`}
             >
               {isFreeReading ? "Free Reading" : order?.payment_status || "Pending"}
-            </span>
+            </Badge>
           </div>
           <div>
             <p className="text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mb-1">Receipt / Invoice</p>
@@ -430,15 +441,15 @@ export default function AdminReadingDetailPage({
         </div>
       </div>
 
-      {/* ─── 5. SECTION: APPOINTMENT & GOOGLE CALENDAR ─── */}
-      <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/20 rounded-2xl p-6 sm:p-7 shadow-xs space-y-4">
+      {/* Voice calls only: text readings have no scheduled appointment. */}
+      {order?.format === "voice_call" && <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/20 rounded-2xl p-6 sm:p-7 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-bold tracking-widest text-[#E5B842] uppercase">
             5. APPOINTMENT & CALENDAR SYNCHRONIZATION
           </p>
-          <span className="text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-[#0F172A]/5 dark:bg-[#FAF8F5]/10 text-[#0F172A]/60 dark:text-[#FAF8F5]/60">
+          <Badge variant="secondary" className="uppercase font-bold tracking-widest text-[10px]">
             Scheduling
-          </span>
+          </Badge>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-white/60 dark:bg-[#131F33]/60 border border-[#0F172A]/10 dark:border-[#FAF8F5]/10">
@@ -463,7 +474,7 @@ export default function AdminReadingDetailPage({
             </Link>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* ─── 6. SECTION: PRIVATE ADMIN NOTES ─── */}
       <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/25 rounded-2xl p-6 sm:p-7 shadow-xs space-y-4">
@@ -476,12 +487,12 @@ export default function AdminReadingDetailPage({
               Private working notes for your analysis, planetary observations, and follow-ups.
             </p>
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400">
+          <Badge variant="destructive" className="uppercase tracking-widest text-[10px] bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
             Confidential • Astrologer Only
-          </span>
+          </Badge>
         </div>
 
-        <textarea
+        <Textarea
           rows={5}
           value={adminNotes}
           onChange={(e) => setAdminNotes(e.target.value)}
@@ -494,14 +505,14 @@ export default function AdminReadingDetailPage({
             * Admin notes are stored server-side and are NEVER visible to customers.
           </p>
 
-          <button
+          <Button
             type="button"
             onClick={handleSaveNotes}
             disabled={savingNotes}
-            className="px-6 py-2 rounded-xl text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+            className="rounded-xl px-6 py-2 text-xs font-semibold"
           >
             {savingNotes ? "Saving Notes…" : "Save Admin Notes"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

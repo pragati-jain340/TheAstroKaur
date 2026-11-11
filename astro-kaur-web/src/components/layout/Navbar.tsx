@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import AvatarDisplay from "@/components/avatar/AvatarDisplay";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 const NAV_ITEMS = [
   { label: "About", href: "/#about" },
@@ -172,10 +174,11 @@ export default function Navbar() {
           <div className="relative" ref={dropdownRef}>
             {user ? (
               // Logged-in state: Avatar with Priority (Custom URL -> Celestial Preset -> Initials)
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="relative rounded-full focus:outline-none focus:ring-2 focus:ring-[#E5B842]/50 cursor-pointer"
+                className="relative rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E5B842]/50 cursor-pointer p-0 h-auto hover:bg-transparent"
                 aria-label="User Account Menu"
               >
                 <AvatarDisplay
@@ -185,13 +188,15 @@ export default function Navbar() {
                   size="md"
                   showBorder={true}
                 />
-              </button>
+              </Button>
             ) : (
               // Logged-out state: Person Silhouette Button
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="icon"
                 onClick={() => openAuthModal("signin")}
-                className="w-10 h-10 rounded-full border border-[#0F172A]/15 dark:border-[#FAF8F5]/20 hover:border-[#E5B842] flex items-center justify-center text-[#0F172A]/80 dark:text-[#FAF8F5]/80 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] hover:bg-[#E5B842]/10 transition-all cursor-pointer group"
+                className="w-10 h-10 rounded-full border-[#0F172A]/15 dark:border-[#FAF8F5]/20 hover:border-[#E5B842] hover:bg-[#E5B842]/10 group"
                 title="Sign In / Register"
                 aria-label="Sign In or Register"
               >
@@ -208,7 +213,7 @@ export default function Navbar() {
                     d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
                   />
                 </svg>
-              </button>
+              </Button>
             )}
 
             {/* Logged-In User Dropdown Menu */}
@@ -232,9 +237,9 @@ export default function Navbar() {
                     </p>
                     {isAdmin && (
                       <div className="mt-1">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase bg-[#E5B842] text-[#0F172A] shadow-xs">
+                        <Badge variant="default" className="text-[9px] font-bold tracking-widest uppercase">
                           ADMIN
-                        </span>
+                        </Badge>
                       </div>
                     )}
                   </div>
@@ -243,83 +248,92 @@ export default function Navbar() {
                 {/* Menu Links */}
                 <div className="py-1.5 space-y-0.5">
                   {/* Home Page Link */}
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       setUserDropdownOpen(false);
                       router.push("/");
                     }}
-                    className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/15 transition-colors cursor-pointer group"
+                    className="w-full justify-start gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium h-auto"
                   >
                     <svg className="w-3.5 h-3.5 text-[#E5B842]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
                     </svg>
                     <span>Home Page</span>
-                  </button>
+                  </Button>
 
                   {/* ✦ My Account */}
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       setUserDropdownOpen(false);
                       router.push("/account");
                     }}
-                    className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/15 transition-colors cursor-pointer group"
+                    className="w-full justify-start gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium h-auto group"
                   >
                     <span className="text-[#E5B842] text-sm group-hover:rotate-12 transition-transform">✦</span>
                     <span>My Account</span>
-                  </button>
+                  </Button>
 
                   {/* Admin Dashboard */}
                   {isAdmin && (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => {
                         setUserDropdownOpen(false);
                         router.push("/admin");
                       }}
-                      className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#B8871E] dark:text-[#E5B842] hover:bg-[#E5B842]/15 transition-colors cursor-pointer group"
+                      className="w-full justify-start gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#B8871E] dark:text-[#E5B842] h-auto"
                     >
                       <svg className="w-3.5 h-3.5 text-[#E5B842]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
                       </svg>
                       <span>Admin Dashboard</span>
-                    </button>
+                    </Button>
                   )}
                 </div>
 
                 {/* Sign Out Button */}
                 <div className="pt-1.5 border-t border-[#0F172A]/10 dark:border-[#FAF8F5]/10">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       setUserDropdownOpen(false);
                       signOut();
                     }}
-                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer flex items-center justify-between"
+                    className="w-full justify-between px-3 py-2 rounded-xl text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-500/10 h-auto"
                   >
                     <span>Sign Out</span>
                     <span className="text-sm">→</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
           </div>
 
           {/* Book Reading CTA Button */}
-          <a
-            href="/#readings"
-            className="group relative hidden sm:inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-semibold tracking-wider uppercase text-[#0F172A] bg-gradient-to-r from-[#E5B842] via-[#F3CE6D] to-[#E5B842] bg-[length:200%_auto] hover:bg-right shadow-[0_4px_16px_rgba(229,184,66,0.35)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.55)] transition-all duration-300 active:scale-95 whitespace-nowrap"
-          >
-            <span>Book Reading</span>
-            <span className="text-[#6B3448] font-bold text-xs transition-transform duration-300 group-hover:rotate-45">✦</span>
-          </a>
+          <Button asChild className="group relative hidden sm:inline-flex rounded-full text-xs font-semibold tracking-wider uppercase text-[#0F172A] bg-gradient-to-r from-[#E5B842] via-[#F3CE6D] to-[#E5B842] shadow-[0_4px_16px_rgba(229,184,66,0.35)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.55)]">
+            <a href="/#readings">
+              <span>Book Reading</span>
+              <span className="text-[#6B3448] font-bold text-xs transition-transform duration-300 group-hover:rotate-45">✦</span>
+            </a>
+          </Button>
 
           {/* Mobile Menu Hamburger Toggle */}
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="icon"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="xl:hidden w-10 h-10 flex items-center justify-center rounded-full border border-[#E5B842]/30 text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/10 transition-colors cursor-pointer"
+            className="xl:hidden w-10 h-10 rounded-full border-[#E5B842]/30 text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/10"
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-navigation"
@@ -333,7 +347,7 @@ export default function Navbar() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
             )}
-          </button>
+          </Button>
         </div>
       </div>
 

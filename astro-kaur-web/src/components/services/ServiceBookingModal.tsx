@@ -1,14 +1,13 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, type BookingService } from "@/context/AuthContext";
 import { POLICY_VERSION, type CatalogService } from "@/lib/booking/types";
-import SlotPicker, {
-  bookingButton,
-  bookingInput,
-  formatAppointment,
-  ZoneSelect,
-} from "./SlotPicker";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 type Intake = {
   email: string;
@@ -25,37 +24,56 @@ type Intake = {
   notes: string;
 };
 type Hold = { order_id: string; hold_expires_at: string; server_now: string };
+
+function toCatalogService(s: BookingService): CatalogService {
+  const isCall =
+    s.isCall ||
+    s.format === "voice_call" ||
+    (typeof s.format === "string" && s.format.toLowerCase().includes("call"));
+  return {
+    id: s.id,
+    title: s.title,
+    format: isCall ? "voice_call" : "text",
+    duration_minutes:
+      s.durationMinutes !== undefined && s.durationMinutes !== null
+        ? s.durationMinutes
+        : isCall
+          ? 30
+          : null,
+    price_cents:
+      s.priceCents ??
+      (s.price ? (parseInt(s.price.replace(/[^\d.]/g, ""), 10) || 0) * 100 : 2000),
+    currency: s.currency || "EUR",
+    requires_partner_details: !!s.requiresPartnerDetails,
+  };
+}
+
 export default function ServiceBookingModal() {
   const auth = useAuth();
   if (!auth.bookingModalOpen || !auth.selectedBookingService) return null;
   return (
     <BookingDialog
       key={auth.selectedBookingService.id}
-      serviceId={auth.selectedBookingService.id}
+      selectedService={auth.selectedBookingService}
     />
   );
 }
-function BookingDialog({ serviceId }: { serviceId: string }) {
+function BookingDialog({ selectedService }: { selectedService: BookingService }) {
   const { user, profile, closeBookingModal, openAuthModal } = useAuth();
-  const [service, setService] = useState<CatalogService | null>(null),
-    [error, setError] = useState(""),
-    [working, setWorking] = useState(false);
-  const [step, setStep] = useState<"details" | "time" | "review" | "checkout">(
+  const [service, setService] = useState<CatalogService>(() =>
+    toCatalogService(selectedService),
+  );
+  const [error, setError] = useState("");
+  const [working, setWorking] = useState(false);
+  const [step, setStep] = useState<"details" | "review" | "checkout">(
       "details",
-    ),
-    [start, setStart] = useState("");
-  const [zone, setZone] = useState(
+    );
+  const [zone] = useState(
     () => Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Berlin",
   );
   const [accepted, setAccepted] = useState(false),
-    [hold, setHold] = useState<Hold | null>(null),
-    [seconds, setSeconds] = useState(300);
-  const requestKey = useRef(crypto.randomUUID()),
-    dialog = useRef<HTMLDivElement>(null);
-  const closeRef = useRef(closeBookingModal);
-  useEffect(() => {
-    closeRef.current = closeBookingModal;
-  }, [closeBookingModal]);
+    [hold, setHold] = useState<Hold | null>(null);
+  const requestKey = useRef(crypto.randomUUID());
   const [intake, setIntake] = useState<Intake>(() => ({
     email: profile?.email || user?.email || "",
     client_name: profile?.display_name || "",
@@ -70,73 +88,50 @@ function BookingDialog({ serviceId }: { serviceId: string }) {
     partner_time_uncertain: !!profile?.partner_time_uncertain,
     notes: "",
   }));
+
+  // Sync profile details into intake if profile finishes loading after modal opens
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null,
-      overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    dialog.current?.focus();
-    const key = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeRef.current();
-      if (event.key === "Tab") {
-        const items = dialog.current?.querySelectorAll<HTMLElement>(
-          'button:not(:disabled),input:not(:disabled),select,textarea,a[href],[tabindex="0"]',
-        );
-        if (!items?.length) return;
-        const first = items[0],
-          last = items[items.length - 1];
-        if (
-          event.shiftKey &&
-          (document.activeElement === first ||
-            document.activeElement === dialog.current)
-        ) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    document.addEventListener("keydown", key);
-    return () => {
-      document.body.style.overflow = overflow;
-      document.removeEventListener("keydown", key);
-      previous?.focus();
-    };
-  }, []);
+    if (!profile && !user) return;
+    setIntake((v) => ({
+      ...v,
+      email: v.email || profile?.email || user?.email || "",
+      client_name: v.client_name || profile?.display_name || "",
+      client_dob: v.client_dob || profile?.date_of_birth || "",
+      client_tob: v.client_tob || profile?.time_of_birth || "",
+      client_pob: v.client_pob || profile?.place_of_birth || "",
+      client_time_uncertain: v.client_time_uncertain || !!profile?.time_uncertain,
+      partner_name: v.partner_name || profile?.partner_name || "",
+      partner_dob: v.partner_dob || profile?.partner_date_of_birth || "",
+      partner_tob: v.partner_tob || profile?.partner_time_of_birth || "",
+      partner_pob: v.partner_pob || profile?.partner_place_of_birth || "",
+      partner_time_uncertain: v.partner_time_uncertain || !!profile?.partner_time_uncertain,
+    }));
+  }, [profile, user]);
+
+  // Background refresh to pick up any live database changes without blocking UI
   useEffect(() => {
     let active = true;
     fetch("/api/content")
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) return null;
+        return r.json();
+      })
       .then((data) => {
-        const found = data.services?.find(
-          (s: CatalogService) => s.id === serviceId,
+        if (!active || !Array.isArray(data?.services)) return;
+        const found = data.services.find(
+          (s: CatalogService) => s.id === selectedService.id,
         );
-        if (active) {
-          if (found) setService(found);
-          else
-            setError("Please reload the page and choose an available service.");
+        if (active && found) {
+          setService(found);
         }
       })
-      .catch(() => {
-        if (active) setError("Could not load this service. Please try again.");
+      .catch((err: unknown) => {
+        console.warn("Background service catalog refresh skipped:", err);
       });
     return () => {
       active = false;
     };
-  }, [serviceId]);
-  useEffect(() => {
-    if (!hold) return;
-    const initial =
-        Date.parse(hold.hold_expires_at) - Date.parse(hold.server_now),
-      began = performance.now();
-    const tick = () =>
-      setSeconds(
-        Math.max(0, Math.ceil((initial - (performance.now() - began)) / 1000)),
-      );
-    const timer = setInterval(tick, 1000);
-    return () => clearInterval(timer);
-  }, [hold]);
+  }, [selectedService.id]);
   const field = (
     key: keyof Intake,
     label: string,
@@ -146,8 +141,8 @@ function BookingDialog({ serviceId }: { serviceId: string }) {
     <label className="block text-sm" key={key}>
       {label}
       {required ? " *" : ""}
-      <input
-        className={`${bookingInput} mt-1`}
+      <Input
+        className="mt-1 h-11"
         type={type}
         required={required}
         value={String(intake[key])}
@@ -167,8 +162,8 @@ function BookingDialog({ serviceId }: { serviceId: string }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          service_id: serviceId,
-          starts_at: start || null,
+          service_id: service.id,
+          starts_at: null,
           timezone: zone,
           intake,
           idempotency_key: requestKey.current,
@@ -178,21 +173,11 @@ function BookingDialog({ serviceId }: { serviceId: string }) {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
-      setSeconds(
-        Math.max(
-          0,
-          Math.ceil(
-            (Date.parse(result.hold_expires_at) -
-              Date.parse(result.server_now)) /
-              1000,
-          ),
-        ),
-      );
       setHold(result);
       setStep("checkout");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Unable to reserve this booking.",
+        err instanceof Error ? err.message : "Unable to prepare your order.",
       );
     } finally {
       setWorking(false);
@@ -218,37 +203,19 @@ function BookingDialog({ serviceId }: { serviceId: string }) {
   function next(event: FormEvent) {
     event.preventDefault();
     setError("");
-    setStep(service?.format === "voice_call" ? "time" : "review");
+    setStep("review");
   }
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/65 backdrop-blur-sm p-4"
-      role="presentation"
-    >
-      <div
-        ref={dialog}
-        tabIndex={-1}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="booking-title"
-        className="relative w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl border border-[#E5B842]/40 bg-[#FAF8F5] dark:bg-[#0F172A] text-[#0F172A] dark:text-[#FAF8F5] p-5 sm:p-8 shadow-2xl focus:outline-none"
-      >
-        <button
-          aria-label="Close booking"
-          onClick={closeBookingModal}
-          className="absolute right-4 top-4 p-3 rounded-full hover:bg-[#E5B842]/15"
-        >
-          ✕
-        </button>
+    <Dialog open onOpenChange={(open) => { if (!open) closeBookingModal(); }}>
+      <DialogContent aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border-[#E5B842]/40 bg-[#FAF8F5] p-5 text-[#0F172A] dark:bg-[#0F172A] dark:text-[#FAF8F5] sm:max-w-2xl sm:p-8">
         <p className="text-xs uppercase tracking-widest text-[#6B3448] dark:text-[#E5B842] mb-2">
           Your personal reading
         </p>
-        <h2
-          id="booking-title"
+        <DialogTitle
           className="font-serif text-2xl sm:text-3xl pr-10"
         >
           {service?.title || "Reading details"}
-        </h2>
+        </DialogTitle>
         {service && (
           <p className="my-3">
             {new Intl.NumberFormat("en-IE", {
@@ -264,9 +231,7 @@ function BookingDialog({ serviceId }: { serviceId: string }) {
         <p className="text-xs mb-6 opacity-70">
           {step === "details"
             ? "1 · Reading details"
-            : step === "time"
-              ? "2 · Date and time"
-              : step === "review"
+            : step === "review"
                 ? "Review your order"
                 : "Secure checkout"}{" "}
           · Test payments
@@ -279,18 +244,19 @@ function BookingDialog({ serviceId }: { serviceId: string }) {
             {error}
           </p>
         )}
+        {user && !service && !error && <p role="status" className="text-sm text-muted-foreground">Loading reading details…</p>}
         {!user ? (
           <div className="space-y-4">
             <p>Sign in to book and manage your reading.</p>
-            <button
-              className={bookingButton}
+            <Button
+              size="lg"
               onClick={() => {
                 closeBookingModal();
                 openAuthModal("signin");
               }}
             >
               Sign in
-            </button>
+            </Button>
           </div>
         ) : (
           service && (
@@ -309,13 +275,13 @@ function BookingDialog({ serviceId }: { serviceId: string }) {
                       field("client_tob", "Time of birth", "time")}
                   </div>
                   <label className="flex gap-2 text-sm">
-                    <input
-                      type="checkbox"
+                    <Checkbox
+
                       checked={intake.client_time_uncertain}
-                      onChange={(e) =>
+                      onCheckedChange={(checked) =>
                         setIntake((v) => ({
                           ...v,
-                          client_time_uncertain: e.target.checked,
+                          client_time_uncertain: checked === true,
                         }))
                       }
                     />
@@ -335,13 +301,13 @@ function BookingDialog({ serviceId }: { serviceId: string }) {
                         {field("partner_pob", "Partner birthplace")}
                       </div>
                       <label className="flex gap-2 text-sm">
-                        <input
-                          type="checkbox"
+                        <Checkbox
+
                           checked={intake.partner_time_uncertain}
-                          onChange={(e) =>
+                          onCheckedChange={(checked) =>
                             setIntake((v) => ({
                               ...v,
-                              partner_time_uncertain: e.target.checked,
+                              partner_time_uncertain: checked === true,
                             }))
                           }
                         />
@@ -351,54 +317,24 @@ function BookingDialog({ serviceId }: { serviceId: string }) {
                   )}
                   <label className="block text-sm">
                     Questions or focus areas (optional)
-                    <textarea
+                    <Textarea
                       rows={3}
                       maxLength={3000}
                       value={intake.notes}
                       onChange={(e) =>
                         setIntake((v) => ({ ...v, notes: e.target.value }))
                       }
-                      className={`${bookingInput} mt-1`}
+                      className="mt-1"
                     />
                   </label>
-                  <button className={bookingButton}>Continue →</button>
+                  <Button size="lg">Continue →</Button>
                 </form>
-              )}
-              {step === "time" && (
-                <div className="space-y-5">
-                  <ZoneSelect value={zone} onChange={setZone} />
-                  <SlotPicker
-                    serviceId={serviceId}
-                    zone={zone}
-                    value={start}
-                    onChange={setStart}
-                  />
-                  <div className="flex gap-3">
-                    <button onClick={() => setStep("details")} className="p-3">
-                      Back
-                    </button>
-                    <button
-                      disabled={!start}
-                      className={bookingButton}
-                      onClick={() => setStep("review")}
-                    >
-                      Review booking →
-                    </button>
-                  </div>
-                </div>
               )}
               {step === "review" && (
                 <div className="space-y-5">
                   <p>
                     {intake.client_name} · {intake.email}
                   </p>
-                  {start && (
-                    <p>
-                      {formatAppointment(start, zone)}
-                      <br />
-                      <strong>{zone}</strong>
-                    </p>
-                  )}
                   {service.format === "text" ? (
                     <p className="text-sm">
                       After payment, you will receive an order confirmation. The
@@ -407,20 +343,17 @@ function BookingDialog({ serviceId }: { serviceId: string }) {
                     </p>
                   ) : (
                     <p className="text-sm">
-                      Your time is held for 5 minutes when you continue. One
-                      self-service reschedule is available within 12 hours of
-                      payment-confirmed booking, ending sooner if your original
-                      appointment starts. Voluntary cancellation does not
-                      automatically issue a refund. Mandatory rights remain
-                      available.
+                      After payment, choose an available time. If no times are
+                      available, the owner will contact you to arrange your call.
+                      Your booking includes a Google Meet link.
                     </p>
                   )}
                   <label className="flex items-start gap-3 text-sm">
-                    <input
-                      type="checkbox"
+                    <Checkbox
+
                       className="mt-1"
                       checked={accepted}
-                      onChange={(e) => setAccepted(e.target.checked)}
+                      onCheckedChange={(checked) => setAccepted(checked === true)}
                     />
                     <span>
                       I have reviewed the{" "}
@@ -443,90 +376,32 @@ function BookingDialog({ serviceId }: { serviceId: string }) {
                     </span>
                   </label>
                   <div className="flex gap-3">
-                    <button
-                      className="p-3"
+                    <Button
+                      variant="outline"
                       onClick={() =>
-                        setStep(
-                          service.format === "voice_call" ? "time" : "details",
-                        )
+                        setStep("details")
                       }
                     >
                       Back
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       disabled={!accepted || working}
                       onClick={reserve}
-                      className={bookingButton}
+                      size="lg"
                     >
                       {working ? "Preparing…" : "Continue to payment"}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
               {step === "checkout" && hold && (
                 <div className="space-y-5">
-                  {service.format === "text" ? (
-                    <>
-                      <p className="text-sm">
-                        Continue to Stripe to pay for your written reading. Your
-                        order is confirmed after payment verification.
-                      </p>
-                      <button
-                        className={bookingButton}
-                        disabled={working}
-                        onClick={pay}
-                      >
-                        {working
-                          ? "Opening Stripe…"
-                          : "Pay securely with Stripe"}
-                      </button>
-                    </>
-                  ) : seconds > 0 ? (
-                    <>
-                      <p
-                        role="timer"
-                        aria-live="off"
-                        className="font-serif text-3xl"
-                      >
-                        {Math.floor(seconds / 60)}:
-                        {String(seconds % 60).padStart(2, "0")}
-                      </p>
-                      <p className="text-sm">
-                        Complete test payment before the timer ends. Your order
-                        is confirmed after Stripe verifies payment.
-                      </p>
-                      <button
-                        onClick={pay}
-                        disabled={working}
-                        className={bookingButton}
-                      >
-                        {working
-                          ? "Opening Stripe…"
-                          : "Pay securely with Stripe"}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <p role="alert">
-                        This time is no longer reserved. Please choose another
-                        available slot.
-                      </p>
-                      <button
-                        className={bookingButton}
-                        onClick={() => {
-                          setHold(null);
-                          requestKey.current = crypto.randomUUID();
-                          setStart("");
-                          setAccepted(false);
-                          setStep(
-                            service.format === "voice_call" ? "time" : "review",
-                          );
-                        }}
-                      >
-                        Choose again
-                      </button>
-                    </>
-                  )}
+                  <p className="text-sm">
+                    Continue to Stripe to pay for your reading. Payment is verified before your order is confirmed.
+                  </p>
+                  <Button size="lg" disabled={working} onClick={pay}>
+                    {working ? "Opening Stripe…" : "Pay securely with Stripe"}
+                  </Button>
                   <Link
                     className="block text-sm underline"
                     onClick={closeBookingModal}
@@ -539,7 +414,7 @@ function BookingDialog({ serviceId }: { serviceId: string }) {
             </>
           )
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

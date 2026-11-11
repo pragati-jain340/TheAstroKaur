@@ -1,10 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Button } from "@/components/ui/button";
+import { useEffect, useMemo, useState } from "react";
 import type { Interval } from "@/lib/booking/types";
-export const bookingInput =
-  "w-full rounded-xl border border-[#E5B842]/30 bg-white dark:bg-[#1E293B] p-3 text-sm text-[#0F172A] dark:text-[#FAF8F5] focus:outline-none focus:ring-2 focus:ring-[#E5B842]";
-export const bookingButton =
-  "rounded-full bg-[#E5B842] px-5 py-3 text-sm font-semibold text-[#0F172A] disabled:opacity-50";
 export function formatAppointment(value: string, zone: string) {
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: zone,
@@ -36,27 +34,29 @@ export function ZoneSelect({
   return (
     <label className="block text-sm">
       Time zone
-      <select
+      <NativeSelect
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`${bookingInput} mt-1`}
+        className="mt-1"
       >
         {zones.map((zone) => (
           <option key={zone}>{zone}</option>
         ))}
-      </select>
+      </NativeSelect>
     </label>
   );
 }
 export default function SlotPicker({
   serviceId,
   orderId,
+  admin = false,
   zone,
   value,
   onChange,
 }: {
   serviceId: string;
   orderId?: string;
+  admin?: boolean;
   zone: string;
   value: string;
   onChange: (start: string) => void;
@@ -64,11 +64,12 @@ export default function SlotPicker({
   const [slots, setSlots] = useState<Interval[]>([]),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
-    [refresh, setRefresh] = useState(0);
+    [refresh, setRefresh] = useState(0),
+    [selectedDate, setSelectedDate] = useState("");
   useEffect(() => {
     let active = true;
     fetch(
-      `/api/availability?service=${encodeURIComponent(serviceId)}${orderId ? `&order=${encodeURIComponent(orderId)}` : ""}`,
+      `/api/availability?service=${encodeURIComponent(serviceId)}${orderId ? `&order=${encodeURIComponent(orderId)}` : ""}${admin ? "&admin=1" : ""}`,
       { cache: "no-store" },
     )
       .then(async (response) => {
@@ -94,19 +95,33 @@ export default function SlotPicker({
     return () => {
       active = false;
     };
-  }, [serviceId, orderId, refresh]);
-  const day = (start: string) =>
-    new Intl.DateTimeFormat("en-CA", {
+  }, [serviceId, orderId, refresh, admin]);
+  const groupedSlots = useMemo(() => {
+    const day = new Intl.DateTimeFormat("en-CA", {
       timeZone: zone,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
-    }).format(new Date(start));
-  const dates = [...new Set(slots.map((s) => day(s.start)))];
+    });
+    const time = new Intl.DateTimeFormat("en-GB", {
+      timeZone: zone,
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const groups = new Map<string, { start: string; time: string }[]>();
+    for (const slot of slots) {
+      const instant = new Date(slot.start), date = day.format(instant);
+      if (!groups.has(date)) groups.set(date, []);
+      groups.get(date)!.push({ start: slot.start, time: time.format(instant) });
+    }
+    return groups;
+  }, [slots, zone]);
+  const dates = [...groupedSlots.keys()];
+  const selected = dates.includes(selectedDate) ? selectedDate : "";
   return (
     <div className="space-y-3" aria-live="polite">
       <p className="text-sm opacity-75">
-        Available consultations over the next 3 days. Times shown in {zone}.
+        Available consultations over the next {admin ? 90 : 30} days. Times shown in {zone}.
       </p>
       {loading ? (
         <p>Checking availability…</p>
@@ -119,41 +134,46 @@ export default function SlotPicker({
           No appointments are available right now. Please check again later.
         </p>
       ) : null}
-      {dates.map((date) => (
+      {dates.length > 0 && (
+        <>
+          <label className="block text-sm">
+            Choose a date
+            <NativeSelect className="mt-1" value={selected} onChange={(event) => setSelectedDate(event.target.value)}>
+              <option value="">All available dates</option>
+              {dates.map((date) => <option key={date} value={date}>{date}</option>)}
+            </NativeSelect>
+          </label>
+        </>
+      )}
+      {dates.filter((date) => !selected || date === selected).map((date) => (
         <div key={date} className="space-y-2">
           <h4 className="font-serif text-lg">{date}</h4>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {slots
-              .filter((s) => day(s.start) === date)
-              .map((s) => (
-                <button
+            {groupedSlots.get(date)!.map((s) => (
+                <Button variant="outline" size="lg"
                   key={s.start}
                   type="button"
                   aria-pressed={value === s.start}
                   onClick={() => onChange(s.start)}
                   className={`rounded-xl p-3 border text-sm ${value === s.start ? "bg-[#E5B842] border-[#E5B842] text-[#0F172A]" : "border-[#E5B842]/30 hover:border-[#E5B842]"}`}
                 >
-                  {new Intl.DateTimeFormat("en-GB", {
-                    timeZone: zone,
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }).format(new Date(s.start))}
-                </button>
+                  {s.time}
+                </Button>
               ))}
           </div>
         </div>
       ))}
-      <button
+      <Button variant="link"
         type="button"
-        className="text-sm underline underline-offset-4"
         onClick={() => {
           setLoading(true);
           onChange("");
+          setSelectedDate("");
           setRefresh((n) => n + 1);
         }}
       >
         Refresh availability
-      </button>
+      </Button>
     </div>
   );
 }
