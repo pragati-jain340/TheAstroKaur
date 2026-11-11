@@ -11,6 +11,13 @@ const readingImageAliases = [
 ] as const;
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: [
+    "10.70.44.20",
+    "10.*.*.*",
+    "192.168.*.*",
+    "172.*.*.*",
+    "*.local",
+  ],
   async redirects() {
     return [
       ...readingImageAliases.flatMap(([title, slug]) =>

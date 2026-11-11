@@ -387,8 +387,20 @@ function ProfileTab() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [passwordStep, setPasswordStep] = useState<"form" | "otp">("form");
+  const [passwordOtp, setPasswordOtp] = useState("");
+  const [passwordResendCooldown, setPasswordResendCooldown] = useState(0);
+  const [passwordResending, setPasswordResending] = useState(false);
 
-  const handleChangePassword = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (passwordResendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setPasswordResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [passwordResendCooldown]);
+
+  const handleRequestPasswordOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError(null);
     setPasswordSuccess(null);
@@ -405,25 +417,85 @@ function ProfileTab() {
 
     setPasswordSaving(true);
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
+      const res = await fetch("/api/auth/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purpose: "change_password" }),
       });
-
-      if (error) {
-        setPasswordError(error.message);
-      } else {
-        setPasswordSuccess("Your password has been updated successfully.");
-        setNewPassword("");
-        setConfirmPassword("");
-        setTimeout(() => {
-          setShowPasswordChange(false);
-        }, 2000);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Unable to send verification code.");
       }
+      setPasswordStep("otp");
+      setPasswordResendCooldown(60);
+      setPasswordOtp("");
+      setPasswordSuccess(`A 6-digit verification code was sent to ${profile?.email || user?.email}.`);
+    } catch (err: unknown) {
+      setPasswordError(err instanceof Error ? err.message : "Failed to send verification code.");
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  const handleVerifyPasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!/^\d{6}$/.test(passwordOtp.trim())) {
+      setPasswordError("Please enter the 6-digit verification code.");
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const res = await fetch("/api/auth/otp/verify-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          otp: passwordOtp.trim(),
+          newPassword,
+          purpose: "change_password",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update password.");
+      }
+
+      setPasswordSuccess("Your password has been updated successfully.");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordOtp("");
+      setPasswordStep("form");
+      setTimeout(() => {
+        setShowPasswordChange(false);
+      }, 2000);
     } catch (err: unknown) {
       setPasswordError(err instanceof Error ? err.message : "Failed to update password.");
     } finally {
       setPasswordSaving(false);
+    }
+  };
+
+  const handleResendPasswordOtp = async () => {
+    if (passwordResendCooldown > 0 || passwordResending) return;
+    setPasswordError(null);
+    setPasswordResending(true);
+    try {
+      const res = await fetch("/api/auth/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purpose: "change_password" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unable to resend code.");
+      setPasswordResendCooldown(60);
+      setPasswordSuccess("A new verification code has been sent to your email.");
+    } catch (err: unknown) {
+      setPasswordError(err instanceof Error ? err.message : "Failed to resend code.");
+    } finally {
+      setPasswordResending(false);
     }
   };
 
@@ -988,8 +1060,8 @@ function ProfileTab() {
               Linked Email: <span className="font-medium text-[#0F172A]/80 dark:text-[#FAF8F5]/80">{profile?.email || user?.email}</span>
             </p>
           </div>
-        ) : (
-          <form onSubmit={handleChangePassword} className="pt-5 space-y-4 animate-in fade-in duration-200">
+        ) : passwordStep === "form" ? (
+          <form onSubmit={handleRequestPasswordOtp} className="pt-5 space-y-4 animate-in fade-in duration-200">
             {passwordSuccess && (
               <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2.5">
                 <span className="text-emerald-600 font-bold">✓</span>
@@ -1080,6 +1152,7 @@ function ProfileTab() {
                 variant="ghost"
                 onClick={() => {
                   setShowPasswordChange(false);
+                  setPasswordStep("form");
                   setNewPassword("");
                   setConfirmPassword("");
                   setPasswordError(null);
@@ -1094,7 +1167,82 @@ function ProfileTab() {
                 disabled={passwordSaving || isPasswordMismatch || newPassword.length < 6}
                 className="rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                {passwordSaving ? "Updating Password…" : "Update Password"}
+                {passwordSaving ? "Sending Code…" : "Send Verification Code"}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyPasswordChange} className="pt-5 space-y-4 animate-in fade-in duration-200">
+            {passwordSuccess && (
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2.5">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span className="font-medium">{passwordSuccess}</span>
+              </div>
+            )}
+
+            {passwordError && (
+              <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 text-xs flex items-center gap-2.5">
+                <span className="text-red-500 font-bold">✕</span>
+                <span>{passwordError}</span>
+              </div>
+            )}
+
+            <div className="rounded-xl bg-[#E5B842]/10 border border-[#E5B842]/30 p-3.5 text-xs text-[#0F172A] dark:text-[#FAF8F5]">
+              <p className="font-medium">Verification Code Sent</p>
+              <p className="mt-0.5 text-[#0F172A]/70 dark:text-[#FAF8F5]/70">
+                Enter the 6-digit verification code sent to <strong>{profile?.email || user?.email}</strong> to confirm your new password.
+              </p>
+            </div>
+
+            <div className="max-w-xs">
+              <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
+                6-Digit Code
+              </label>
+              <Input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                autoFocus
+                required
+                value={passwordOtp}
+                onChange={(e) => setPasswordOtp(e.target.value.replace(/\D/g, ""))}
+                placeholder="123456"
+                className="w-full text-center font-mono text-xl tracking-[0.3em] font-bold py-2 rounded-xl bg-white dark:bg-[#1E293B] border border-[#E5B842]/60 focus:border-[#E5B842]"
+              />
+              <div className="flex justify-end mt-1">
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  disabled={passwordResendCooldown > 0 || passwordResending}
+                  onClick={handleResendPasswordOtp}
+                  className="h-auto p-0 text-[11px] text-[#6B3448] dark:text-[#E5B842] disabled:opacity-50"
+                >
+                  {passwordResendCooldown > 0 ? `Resend in ${passwordResendCooldown}s` : "Resend code"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setPasswordStep("form");
+                  setPasswordError(null);
+                  setPasswordSuccess(null);
+                }}
+                disabled={passwordSaving}
+                className="cursor-pointer"
+              >
+                ← Back to Edit
+              </Button>
+              <Button
+                type="submit"
+                disabled={passwordSaving || passwordOtp.trim().length !== 6}
+                className="rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {passwordSaving ? "Updating Password…" : "Confirm & Update Password"}
               </Button>
             </div>
           </form>
