@@ -12,7 +12,7 @@
 
 ## 1. Deploy the matching code
 
-Deploy `astro-kaur-web/` to the existing Vercel project using the normal repository workflow. Keep existing Supabase and Resend variables. The new server clients use `SUPABASE_SECRET_KEY`; do not replace it with a public key. No deployment or environment values were published by this task.
+Deploy `astro-kaur-web/` to the existing Vercel project using the normal repository workflow. Keep existing Supabase variables and configure the SMTP settings below. The new server clients use `SUPABASE_SECRET_KEY`; do not replace it with a public key. No deployment or environment values were published by this task.
 
 The example variable names are in `BOOKING_ENV.example`. Add real values only to `.env.local` and Vercel's environment settings. Redeploy after changing Vercel variables. Do not paste secrets into chat or commit them.
 
@@ -30,13 +30,25 @@ Required new variables:
 
 Generate each random secret locally, without reusing a Supabase or Stripe key. For example, `node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('base64'))"`. Save the output directly in the relevant secret settings and keep it private.
 
-Optional email overrides:
+### SMTP email setup
 
-- `BOOKING_FROM_EMAIL`: verified Resend sender; otherwise existing `RESEND_FROM_EMAIL` is used.
-- `BOOKING_OWNER_EMAIL`: owner notification recipient; otherwise existing `CONTACT_EMAIL` is used.
-- `BOOKING_REPLY_TO`: support/booking mailbox that can receive replies.
+Contact enquiries and all booking notifications share the Nodemailer SMTP transport. Set these server-only variables in `.env.local` and the deployed environment, then restart/redeploy:
 
-The Zoho reading mailbox is a manual workflow and needs no OAuth/API integration here. Use your actual purchased domain; do not configure the literal placeholder `reading@domain.com`. Existing Resend credentials were preserved; sender verification and external delivery were not tested.
+- `SMTP_HOST`: SMTP server hostname, e.g. `smtp.gmail.com`.
+- `SMTP_PORT`: `465` for implicit TLS, or `587` for required STARTTLS.
+- `SMTP_USER`, `SMTP_PASS`: mailbox login and SMTP/app password.
+- `SMTP_FROM`: sender identity permitted by that mailbox; defaults to TheAstroKaur with `SMTP_USER`.
+- `CONTACT_EMAIL`: contact-form recipient; defaults to `SMTP_USER`.
+- `BOOKING_OWNER_EMAIL`: optional booking-owner recipient; defaults to `CONTACT_EMAIL`, then `SMTP_USER`.
+- `BOOKING_REPLY_TO`: optional support mailbox for customer replies.
+
+For Gmail, enable two-step verification and use an app password. No custom sending domain is required when sending as the authenticated Gmail mailbox. Configure the same host, port and credentials under Supabase Authentication → Email → SMTP for sign-in/account emails; changing app environment variables alone does not configure hosted Auth. See [Nodemailer SMTP configuration](https://nodemailer.com/smtp) and [Supabase custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
+
+Booking jobs retain their original contents and recipient; the SMTP sender always comes from current configuration. The worker atomically records an attempt before contacting SMTP. Explicit rejections clear that marker and retry with backoff. A lost connection or a crash after sending retains the marker and stops for review, since SMTP cannot guarantee exactly-once delivery. A stable Message-ID helps find the message in the sender's Sent folder; it does not guarantee deduplication. Admin Retry refuses jobs with an unresolved attempt. Confirm their delivery status before clearing the marker or contacting the customer manually.
+
+The Zoho reading mailbox remains a manual workflow and needs no OAuth/API integration here.
+
+When switching an existing installation to SMTP, stop the worker, deploy the new code, run `migrations/20261111_smtp_recover_rejected_emails.sql`, then restart the worker. It requeues only unsent messages with a recorded HTTP 403 rejection, preserving their original payloads. Other ambiguous attempts remain held for review.
 
 ## 2. Stripe test setup
 
@@ -82,11 +94,11 @@ Use Supabase Cron plus `pg_net` to call the deployed Vercel endpoint. This avoid
 
 Then run `migrations/booking_worker_cron_setup.sql` through the Supabase SQL editor. This setup file was **not** executed: it needs the deployed URL and private worker token first. Keep Vercel deployment protection compatible with this server-to-server endpoint; an authorization redirect/HTML response means the worker is not running. Do not include a protection-bypass token in a public URL.
 
-Verify cron invocations and their HTTP outcomes in the database dashboard. The worker processes bounded batches, retains unknown payment locks, claims jobs with expiring leases and retries providers. Calendar identity and email provider idempotency protect retries after lost responses. Email payloads freeze on the first attempt. Retries stop before the provider's idempotency window can be exceeded; older ambiguous sends require owner review. Failed jobs and retry controls appear in the existing admin calendar's Operations tab.
+Verify cron invocations and their HTTP outcomes in the database dashboard. The worker processes bounded batches, retains unknown payment locks, claims jobs with expiring leases and retries providers. Calendar identity protects calendar retries. SMTP payloads freeze on the first attempt; explicit email rejections can retry, while uncertain sends stop for owner review to avoid duplicates. Failed jobs and retry controls appear in the existing admin calendar's Operations tab.
 
 Checkout requires a worker heartbeat from the past two minutes. A missing or stopped schedule therefore blocks new purchases instead of accepting orders whose payment timeout/emails cannot be serviced. The latest heartbeat appears in the Integrations tab.
 
-The worker also queues hourly reconciliation for future paid calls. Externally deleted events produce an admin alert; they do not cancel the paid order. [Resend documents its idempotency window](https://resend.com/docs/dashboard/emails/idempotency-keys).
+The worker also queues hourly reconciliation for future paid calls. Externally deleted events produce an admin alert; they do not cancel the paid order.
 
 ## 5. Owner setup and operating checks
 
@@ -105,7 +117,7 @@ The worker also queues hourly reconciliation for future paid calls. Externally d
 - A concurrent PostgreSQL test with two competing reservations: one accepted and one rejected; synthetic fixtures cleaned up.
 - HTTP smoke/security checks: public pages load, old/new admin routes reject anonymous access, unsigned webhooks reject and the worker rejects missing credentials.
 
-The existing repository had 108 lint errors and 15 warnings before this work; the complete repository's current result is recorded in the implementation audit. No usable browser surface was available in this session, so interactive mobile/light/dark QA is still required. Stripe checkout, Google authorization/Meet invitations, live Resend delivery and the scheduled deployed worker remain unverified until their configuration is completed.
+The existing repository had 108 lint errors and 15 warnings before this work; the complete repository's current result is recorded in the implementation audit. No usable browser surface was available in this session, so interactive mobile/light/dark QA is still required. Stripe checkout, Google authorization/Meet invitations, deployed SMTP delivery and the scheduled deployed worker remain unverified until their configuration is completed.
 
 ## Database maintenance and release limitations
 

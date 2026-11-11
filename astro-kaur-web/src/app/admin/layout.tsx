@@ -4,7 +4,6 @@ import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import AdminSidebar from "@/components/admin/AdminSidebar";
-import SubpageBackground from "@/components/layout/SubpageBackground";
 
 export default function AdminLayout({
   children,
@@ -25,10 +24,7 @@ export default function AdminLayout({
   if (loading) {
     return (
       <div className="min-h-screen bg-[#FFFDF9] dark:bg-[#0F172A] flex flex-col items-center justify-center">
-        <div className="text-3xl text-[#E5B842] animate-pulse font-serif">✦</div>
-        <p className="mt-3 text-xs tracking-wider uppercase text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
-          Verifying administrative credentials…
-        </p>
+        <p role="status" className="text-sm text-[#46505F] dark:text-[#BCC4D0]">Checking admin access…</p>
       </div>
     );
   }
@@ -51,18 +47,11 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFDF9] dark:bg-[#0F172A] flex flex-col lg:flex-row relative selection:bg-[#E5B842]/30 selection:text-[#0F172A]">
-      <SubpageBackground />
-
-      {/* Persistent Sidebar */}
+    <div className="min-h-screen bg-[#FFFDF9] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#FAF8F5] selection:bg-[#E5B842]/30 selection:text-[#0F172A]">
       <AdminSidebar />
-
-      {/* Main Workspace Canvas (Offset by sidebar width on desktop) */}
-      <div className="flex-1 min-w-0 lg:pl-64 flex flex-col min-h-screen relative z-10">
-        <main className="flex-1 p-5 sm:p-8 lg:p-10 max-w-7xl w-full mx-auto">
-          {children}
-        </main>
-      </div>
+      <main className="mx-auto min-h-[calc(100vh-116px)] w-full max-w-[1440px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
+        {children}
+      </main>
     </div>
   );
 }

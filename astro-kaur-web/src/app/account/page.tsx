@@ -12,6 +12,11 @@ import SubpageBackground from "@/components/layout/SubpageBackground";
 import AvatarDisplay from "@/components/avatar/AvatarDisplay";
 import AvatarPickerModal from "@/components/avatar/AvatarPickerModal";
 import ReviewModal from "@/components/reviews/ReviewModal";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { isUpcomingVoiceCall } from "@/lib/booking/display";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,7 +27,7 @@ interface Order {
   service_title: string;
   format: "text" | "voice_call";
   price_eur: number;
-  status: "pending" | "pending_payment" | "confirmed" | "completed" | "cancelled" | "expired" | "payment_review";
+  status: "pending" | "pending_payment" | "awaiting_schedule" | "confirmed" | "completed" | "cancelled" | "expired" | "payment_review";
   payment_status: "pending" | "paid" | "failed" | "refunded";
   scheduled_at: string | null;
   stripe_receipt_url: string | null;
@@ -74,7 +79,8 @@ function ReadingCard({ order, onReviewSubmitted }: { order: Order; onReviewSubmi
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"write" | "edit" | "view">("write");
 
-  const isUpcoming = order.status === "confirmed" || order.status === "pending";
+  const isUpcoming = isUpcomingVoiceCall(order);
+  const needsCallTime = order.format === "voice_call" && order.payment_status === "paid" && order.status === "awaiting_schedule";
   const isCompleted = order.status === "completed";
   const hasReview = !!order.review_rating;
 
@@ -98,7 +104,11 @@ function ReadingCard({ order, onReviewSubmitted }: { order: Order; onReviewSubmi
 
             {/* Status & Date */}
             <div className="mt-4">
-              {isUpcoming ? (
+              {order.format === "text" && order.payment_status === "paid" && !isCompleted && !["cancelled", "expired"].includes(order.status) ? (
+                <p className="text-sm font-medium text-[#46505F] dark:text-[#BCC4D0]">The owner will contact you</p>
+              ) : needsCallTime ? (
+                <p className="text-sm font-medium text-[#805b11] dark:text-[#F2D37B]">Paid · choose a time</p>
+              ) : isUpcoming ? (
                 <div>
                   <p className="text-[10px] font-bold tracking-widest text-[#E5B842] uppercase">
                     UPCOMING
@@ -111,11 +121,15 @@ function ReadingCard({ order, onReviewSubmitted }: { order: Order; onReviewSubmi
                 </div>
               ) : isCompleted ? (
                 <p className="text-xs font-medium tracking-wide text-[#0F172A]/70 dark:text-[#FAF8F5]/70 uppercase">
-                  COMPLETED · {formatDate(order.created_at)}
+                  {order.format === "text" ? "READING DELIVERED" : `COMPLETED · ${formatDate(order.scheduled_at || order.created_at)}`}
+                </p>
+              ) : order.format === "voice_call" && order.scheduled_at ? (
+                <p className="text-sm font-medium text-[#46505F] dark:text-[#BCC4D0]">
+                  Call · {formatDate(order.scheduled_at)} · {formatTime(order.scheduled_at)}
                 </p>
               ) : (
                 <p className="text-xs font-medium tracking-wide text-[#0F172A]/60 dark:text-[#FAF8F5]/60 uppercase">
-                  {order.status} · {formatDate(order.created_at)}
+                  {order.status === "awaiting_schedule" ? "PAID · CHOOSE A TIME" : order.status.replaceAll("_", " ")}
                 </p>
               )}
             </div>
@@ -132,52 +146,59 @@ function ReadingCard({ order, onReviewSubmitted }: { order: Order; onReviewSubmi
 
             {/* Actions */}
             <div className="mt-4 pt-3 border-t border-[#0F172A]/6 dark:border-[#FAF8F5]/6 flex flex-wrap items-center justify-between gap-3">
-              <button
+              <Button
+                variant="link"
+                size="sm"
                 onClick={() => router.push(`/account/readings/${order.id}`)}
-                className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-[#0F172A] dark:text-[#FAF8F5] hover:text-[#E5B842] transition-colors cursor-pointer group"
+                className="inline-flex items-center gap-1.5 p-0 h-auto text-xs sm:text-sm font-medium text-[#0F172A] dark:text-[#FAF8F5] hover:text-[#E5B842] transition-colors cursor-pointer group"
               >
-                <span>View Details</span>
+                <span>{needsCallTime ? "Choose a time" : "View Details"}</span>
                 <span className="text-[#E5B842] transition-transform duration-200 group-hover:translate-x-1">→</span>
-              </button>
+              </Button>
 
               {/* Review Action based on status */}
               {isCompleted && !hasReview && (
-                <button
+                <Button
                   type="button"
+                  size="sm"
                   onClick={() => {
                     setModalMode("write");
                     setReviewModalOpen(true);
                   }}
-                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-full text-xs font-semibold bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] shadow-sm cursor-pointer"
                 >
                   <span className="text-xs">✦</span>
                   <span>Write a Review</span>
-                </button>
+                </Button>
               )}
 
               {isCompleted && hasReview && (
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="link"
+                    size="sm"
                     onClick={() => {
                       setModalMode("view");
                       setReviewModalOpen(true);
                     }}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 hover:text-[#E5B842] transition-colors cursor-pointer"
+                    className="p-0 h-auto text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 hover:text-[#E5B842] cursor-pointer"
                   >
                     <span>View Review</span>
-                  </button>
+                  </Button>
                   <span className="text-[#0F172A]/20 dark:text-[#FAF8F5]/20">·</span>
-                  <button
+                  <Button
                     type="button"
+                    variant="link"
+                    size="sm"
                     onClick={() => {
                       setModalMode("edit");
                       setReviewModalOpen(true);
                     }}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#E5B842] hover:text-[#d8ab34] transition-colors cursor-pointer"
+                    className="p-0 h-auto text-xs font-semibold text-[#E5B842] hover:text-[#d8ab34] cursor-pointer"
                   >
                     <span>Edit Review</span>
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -200,16 +221,18 @@ function ReadingCard({ order, onReviewSubmitted }: { order: Order; onReviewSubmi
                       </span>
                     ))}
                   </div>
-                  <button
+                  <Button
                     type="button"
+                    variant="link"
+                    size="sm"
                     onClick={() => {
                       setModalMode("edit");
                       setReviewModalOpen(true);
                     }}
-                    className="text-[11px] font-semibold text-[#E5B842] hover:underline cursor-pointer"
+                    className="p-0 h-auto text-[11px] font-semibold text-[#E5B842] hover:underline cursor-pointer"
                   >
                     Edit
-                  </button>
+                  </Button>
                 </div>
                 {order.review_text && (
                   <p
@@ -460,23 +483,24 @@ function ProfileTab() {
         </div>
 
         {!isEditing && (
-          <button
+          <Button
             onClick={handleStartEdit}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-sm cursor-pointer whitespace-nowrap self-start sm:self-end"
+            className="inline-flex items-center gap-2 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-sm cursor-pointer whitespace-nowrap self-start sm:self-end"
           >
             <span>Edit Profile</span>
             <span>→</span>
-          </button>
+          </Button>
         )}
       </div>
 
       {/* ─── Profile Avatar Area ─── */}
       <div className="p-5 sm:p-6 rounded-2xl md:rounded-3xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
         <div className="flex min-w-0 items-center gap-4 sm:gap-5">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setAvatarModalOpen(true)}
-            className="group relative cursor-pointer focus:outline-none rounded-full"
+            className="group relative cursor-pointer focus:outline-none rounded-full p-0 h-auto hover:bg-transparent"
             title="Click to change avatar"
           >
             <AvatarDisplay
@@ -489,7 +513,7 @@ function ProfileTab() {
             <span className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-semibold">
               Change
             </span>
-          </button>
+          </Button>
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-serif break-words text-lg sm:text-xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
@@ -504,13 +528,15 @@ function ProfileTab() {
           </div>
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => setAvatarModalOpen(true)}
-          className="px-4 py-2 rounded-full text-xs font-semibold border border-[#E5B842] text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/15 transition-colors cursor-pointer shrink-0 shadow-2xs"
+          className="rounded-full text-xs font-semibold border border-[#E5B842] text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/15 cursor-pointer shrink-0"
         >
           Change Avatar
-        </button>
+        </Button>
       </div>
 
       {/* Success Banner (Auto disappears after 5s) */}
@@ -520,14 +546,16 @@ function ProfileTab() {
             <span className="text-base text-emerald-600 font-bold">✓</span>
             <span className="font-medium">{successMsg}</span>
           </div>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => setSuccessMsg(null)}
-            className="text-emerald-700/60 hover:text-emerald-900 dark:text-emerald-300/60 dark:hover:text-emerald-100 p-1 text-xs cursor-pointer"
+            className="h-6 w-6 p-0 text-xs text-emerald-700/60 hover:text-emerald-900 dark:text-emerald-300/60 dark:hover:text-emerald-100"
             aria-label="Dismiss notification"
           >
             ✕
-          </button>
+          </Button>
         </div>
       )}
 
@@ -538,14 +566,16 @@ function ProfileTab() {
             <span className="text-base font-bold">✕</span>
             <span>{errorMsg}</span>
           </div>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => setErrorMsg(null)}
-            className="text-red-700/60 hover:text-red-900 dark:text-red-300/60 dark:hover:text-red-100 p-1 text-xs cursor-pointer"
+            className="h-6 w-6 p-0 text-xs text-red-700/60 hover:text-red-900 dark:text-red-300/60 dark:hover:text-red-100"
             aria-label="Dismiss notification"
           >
             ✕
-          </button>
+          </Button>
         </div>
       )}
 
@@ -560,10 +590,10 @@ function ProfileTab() {
                 PERSONAL INFORMATION
               </p>
               <div>
-                <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
+                <label htmlFor="account-field-1" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
                   Full Name
                 </label>
-                <input
+                <Input id="account-field-1"
                   type="text"
                   required
                   value={displayName}
@@ -573,10 +603,10 @@ function ProfileTab() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
+                <label htmlFor="account-field-2" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
                   Email Address
                 </label>
-                <input
+                <Input id="account-field-2"
                   type="email"
                   disabled
                   value={profile?.email || user?.email || ""}
@@ -608,10 +638,10 @@ function ProfileTab() {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
+                  <label htmlFor="account-field-3" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
                     Date of Birth
                   </label>
-                  <input
+                  <Input id="account-field-3"
                     type="date"
                     value={dateOfBirth}
                     onChange={(e) => setDateOfBirth(e.target.value)}
@@ -619,10 +649,10 @@ function ProfileTab() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
+                  <label htmlFor="account-field-4" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
                     Time of Birth
                   </label>
-                  <input
+                  <Input id="account-field-4"
                     type="time"
                     disabled={timeUncertain}
                     value={timeOfBirth}
@@ -634,21 +664,20 @@ function ProfileTab() {
 
               <div>
                 <label className="flex items-center gap-2 text-xs text-[#0F172A]/70 dark:text-[#FAF8F5]/70 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={timeUncertain}
-                    onChange={(e) => setTimeUncertain(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#E5B842] focus:ring-[#E5B842]"
+                    onCheckedChange={(checked) => setTimeUncertain(checked === true)}
+                    
                   />
                   <span>Birth time is uncertain / approximate</span>
                 </label>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
+                <label htmlFor="account-field-5" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
                   Place of Birth
                 </label>
-                <input
+                <Input id="account-field-5"
                   type="text"
                   value={placeOfBirth}
                   onChange={(e) => setPlaceOfBirth(e.target.value)}
@@ -678,10 +707,10 @@ function ProfileTab() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                 <div>
-                  <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
+                  <label htmlFor="account-field-6" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
                     Partner Full Name
                   </label>
-                  <input
+                  <Input id="account-field-6"
                     type="text"
                     value={partnerName}
                     onChange={(e) => setPartnerName(e.target.value)}
@@ -690,10 +719,10 @@ function ProfileTab() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
+                  <label htmlFor="account-field-7" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
                     Partner Place of Birth
                   </label>
-                  <input
+                  <Input id="account-field-7"
                     type="text"
                     value={partnerPlaceOfBirth}
                     onChange={(e) => setPartnerPlaceOfBirth(e.target.value)}
@@ -705,10 +734,10 @@ function ProfileTab() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
+                  <label htmlFor="account-field-8" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
                     Partner Date of Birth
                   </label>
-                  <input
+                  <Input id="account-field-8"
                     type="date"
                     value={partnerDateOfBirth}
                     onChange={(e) => setPartnerDateOfBirth(e.target.value)}
@@ -716,10 +745,10 @@ function ProfileTab() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
+                  <label htmlFor="account-field-9" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5 uppercase tracking-wider">
                     Partner Time of Birth
                   </label>
-                  <input
+                  <Input id="account-field-9"
                     type="time"
                     disabled={partnerTimeUncertain}
                     value={partnerTimeOfBirth}
@@ -731,11 +760,10 @@ function ProfileTab() {
 
               <div>
                 <label className="flex items-center gap-2 text-xs text-[#0F172A]/70 dark:text-[#FAF8F5]/70 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={partnerTimeUncertain}
-                    onChange={(e) => setPartnerTimeUncertain(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#E5B842] focus:ring-[#E5B842]"
+                    onCheckedChange={(checked) => setPartnerTimeUncertain(checked === true)}
+                    
                   />
                   <span>Partner birth time is uncertain / approximate</span>
                 </label>
@@ -745,21 +773,22 @@ function ProfileTab() {
 
           {/* Form Actions */}
           <div className="flex items-center justify-end gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={handleCancelEdit}
               disabled={saving}
-              className="px-6 py-2.5 rounded-full text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 hover:bg-[#0F172A]/5 dark:hover:bg-[#FAF8F5]/5 transition-colors cursor-pointer"
+              className="cursor-pointer"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={saving}
-              className="px-8 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-sm disabled:opacity-60 cursor-pointer"
+              className="rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-sm disabled:opacity-60 cursor-pointer"
             >
               {saving ? "Saving Changes…" : "Save Changes"}
-            </button>
+            </Button>
           </div>
         </form>
       ) : (
@@ -896,13 +925,13 @@ function ProfileTab() {
                   Save your partner's birth information for faster relationship and matchmaking bookings.
                 </p>
                 <div className="mt-4">
-                  <button
+                  <Button
                     onClick={handleStartEdit}
-                    className="inline-flex items-center gap-2 px-6 py-2 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-sm cursor-pointer"
+                    className="rounded-full px-6 py-2 text-xs font-semibold"
                   >
                     <span>Add Partner Details</span>
                     <span>+</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -931,17 +960,19 @@ function ProfileTab() {
           </div>
 
           {!showPasswordChange && (
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => {
                 setShowPasswordChange(true);
                 setPasswordError(null);
                 setPasswordSuccess(null);
               }}
-              className="px-4 py-2 rounded-full text-xs font-semibold border border-[#E5B842] text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/15 transition-colors cursor-pointer shrink-0 shadow-2xs self-start sm:self-center"
+              className="rounded-full text-xs font-semibold border border-[#E5B842] text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/15 shrink-0 shadow-2xs self-start sm:self-center"
             >
               Change Password
-            </button>
+            </Button>
           )}
         </div>
 
@@ -979,7 +1010,7 @@ function ProfileTab() {
                   New Password
                 </label>
                 <div className="relative">
-                  <input
+                  <Input
                     type={showPasswordText ? "text" : "password"}
                     required
                     minLength={6}
@@ -988,13 +1019,15 @@ function ProfileTab() {
                     placeholder="At least 6 characters"
                     className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1E293B] border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 text-[#0F172A] dark:text-[#FAF8F5] text-sm focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40 pr-12"
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setShowPasswordText(!showPasswordText)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0F172A]/40 dark:text-[#FAF8F5]/40 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] text-xs font-medium cursor-pointer"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 px-2 text-[#0F172A]/40 dark:text-[#FAF8F5]/40 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] text-xs font-medium"
                   >
                     {showPasswordText ? "Hide" : "Show"}
-                  </button>
+                  </Button>
                 </div>
                 {newPassword.length > 0 && newPassword.length < 6 && (
                   <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5 flex items-center gap-1 animate-in fade-in duration-150">
@@ -1009,7 +1042,7 @@ function ProfileTab() {
                   Confirm New Password
                 </label>
                 <div className="relative">
-                  <input
+                  <Input
                     type={showPasswordText ? "text" : "password"}
                     required
                     minLength={6}
@@ -1042,8 +1075,9 @@ function ProfileTab() {
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   setShowPasswordChange(false);
                   setNewPassword("");
@@ -1051,17 +1085,17 @@ function ProfileTab() {
                   setPasswordError(null);
                 }}
                 disabled={passwordSaving}
-                className="px-5 py-2 rounded-full text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 hover:bg-[#0F172A]/5 dark:hover:bg-[#FAF8F5]/5 transition-colors cursor-pointer"
+                className="cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 disabled={passwordSaving || isPasswordMismatch || newPassword.length < 6}
-                className="px-6 py-2 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {passwordSaving ? "Updating Password…" : "Update Password"}
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -1115,7 +1149,7 @@ function ReadingsTab() {
   }, [fetchOrders]);
 
   const filtered = orders.filter((o) => {
-    if (filter === "upcoming") return o.status === "confirmed" || o.status === "pending";
+    if (filter === "upcoming") return isUpcomingVoiceCall(o) || (o.format === "voice_call" && o.payment_status === "paid" && o.status === "awaiting_schedule");
     if (filter === "completed") return o.status === "completed";
     return true;
   });
@@ -1146,10 +1180,11 @@ function ReadingsTab() {
         {FILTERS.map((f) => {
           const active = filter === f.key;
           return (
-            <button
+            <Button
               key={f.key}
+              variant="ghost"
               onClick={() => setFilter(f.key)}
-              className={`pb-3 text-sm font-medium transition-all relative cursor-pointer ${
+              className={`h-auto rounded-none px-1 pb-3 text-sm font-medium transition-all relative hover:bg-transparent ${
                 active
                   ? "text-[#0F172A] dark:text-[#FAF8F5] font-semibold"
                   : "text-[#0F172A]/50 dark:text-[#FAF8F5]/50 hover:text-[#0F172A] dark:hover:text-[#FAF8F5]"
@@ -1159,7 +1194,7 @@ function ReadingsTab() {
               {active && (
                 <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#E5B842] rounded-full" />
               )}
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -1181,19 +1216,32 @@ function ReadingsTab() {
               ? "Your astrology readings will appear here once you book your first reading."
               : `You have no ${filter} readings at this time.`}
           </p>
-          <button
+          <Button
             onClick={() => router.push("/#readings")}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] shadow-sm transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] shadow-sm transition-all cursor-pointer h-auto py-3 px-6"
           >
             <span>Explore My Readings</span>
             <span>→</span>
-          </button>
+          </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filtered.map((order) => (
-            <ReadingCard key={order.id} order={order} onReviewSubmitted={fetchOrders} />
-          ))}
+        <div className="space-y-8">
+          {[
+            { format: "text", title: "Text Readings" },
+            { format: "voice_call", title: "Voice Call Readings" },
+          ].map(({ format, title }) => {
+            const readings = filtered.filter((order) => order.format === format);
+            return readings.length > 0 && (
+              <section key={format} className="space-y-4">
+                <h3 className="font-serif text-2xl text-[#0F172A] dark:text-[#FAF8F5]">{title}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {readings.map((order) => (
+                    <ReadingCard key={order.id} order={order} onReviewSubmitted={fetchOrders} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
     </div>
@@ -1210,22 +1258,15 @@ function ReceiptModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-5 sm:p-8 md:p-10 shadow-2xl relative">
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 text-[#0F172A]/40 dark:text-[#FAF8F5]/40 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] text-lg cursor-pointer"
-        >
-          ✕
-        </button>
-
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border-[#E5B842]/30 bg-[#FAF8F5] p-5 text-[#0F172A] dark:bg-[#0D1829] dark:text-[#FAF8F5] sm:max-w-md sm:p-8">
         <div className="text-center mb-6">
           <p className="text-[11px] font-bold tracking-widest text-[#E5B842] uppercase">
             THEASTROKAUR
           </p>
-          <h3 className="font-serif text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5] mt-1">
+          <DialogTitle className="font-serif text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5] mt-1">
             PAYMENT RECEIPT
-          </h3>
+          </DialogTitle>
         </div>
 
         <div className="border-t border-dashed border-[#0F172A]/15 dark:border-[#FAF8F5]/15 my-6" />
@@ -1267,31 +1308,34 @@ function ReceiptModal({
 
         <div className="mt-6 flex flex-col gap-2.5">
           {order.stripe_receipt_url ? (
-            <a
-              href={order.stripe_receipt_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full text-center py-2.5 rounded-xl text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-colors"
-            >
-              Download Receipt
-            </a>
+            <Button asChild className="w-full rounded-xl text-xs font-semibold">
+              <a
+                href={order.stripe_receipt_url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Download Receipt
+              </a>
+            </Button>
           ) : (
-            <button
+            <Button
+              variant="outline"
               onClick={() => window.print()}
               className="w-full text-center py-2.5 rounded-xl text-xs font-semibold border border-[#E5B842]/50 text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/10 transition-colors cursor-pointer"
             >
               Print Receipt
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant="ghost"
             onClick={onClose}
             className="w-full text-center py-2 text-xs font-medium text-[#0F172A]/40 dark:text-[#FAF8F5]/40 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] transition-colors cursor-pointer"
           >
             Close
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1349,13 +1393,13 @@ function ReceiptsTab() {
           <p className="text-sm text-[#0F172A]/50 dark:text-[#FAF8F5]/50 max-w-sm mx-auto mb-6">
             Your payment history will appear here after your first booking.
           </p>
-          <button
+          <Button
             onClick={() => router.push("/#readings")}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-colors cursor-pointer"
+            className="rounded-full px-6 py-3 text-xs font-semibold"
           >
             <span>Explore My Readings</span>
             <span>→</span>
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1386,13 +1430,14 @@ function ReceiptsTab() {
               </div>
 
               <div className="mt-6 pt-3 border-t border-[#0F172A]/6 dark:border-[#FAF8F5]/6 flex justify-end">
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => setActiveReceipt(order)}
-                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-[#0F172A] dark:text-[#FAF8F5] hover:text-[#E5B842] transition-colors cursor-pointer"
+                  className="h-auto p-0 inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium hover:text-[#E5B842] hover:bg-transparent"
                 >
                   <span>View Receipt</span>
                   <span className="text-[#E5B842]">→</span>
-                </button>
+                </Button>
               </div>
             </div>
           ))}
@@ -1488,13 +1533,14 @@ function AccountContent() {
               {TABS.map((t) => {
                 const active = tab === t.key;
                 return (
-                  <button
+                  <Button
                     key={t.key}
+                    variant="ghost"
                     onClick={() => {
                       setTab(t.key);
                       router.replace(`/account?tab=${t.key}`);
                     }}
-                    className={`shrink-0 whitespace-nowrap py-3.5 text-sm sm:text-[15px] tracking-wide transition-all relative cursor-pointer select-none ${
+                    className={`h-auto rounded-none shrink-0 whitespace-nowrap px-1 py-3.5 text-sm sm:text-[15px] tracking-wide transition-all relative hover:bg-transparent ${
                       active
                         ? "text-[#0F172A] dark:text-[#FAF8F5] font-semibold"
                         : "text-[#0F172A]/50 dark:text-[#FAF8F5]/50 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] font-normal"
@@ -1504,7 +1550,7 @@ function AccountContent() {
                     {active && (
                       <span className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-[#E5B842] rounded-full" />
                     )}
-                  </button>
+                  </Button>
                 );
               })}
             </div>

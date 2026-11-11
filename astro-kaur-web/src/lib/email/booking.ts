@@ -1,6 +1,7 @@
 import "server-only";
 import { BookingError, check, database, siteUrl } from "@/lib/booking/server";
 import type { BookingOrder, Job } from "@/lib/booking/types";
+import { EmailDeliveryUncertain, sendEmail } from "./smtp";
 
 const escape = (v: string) =>
   v.replace(
@@ -20,21 +21,18 @@ export async function sendBookingEmail(order: BookingOrder, job: Job) {
       .single(),
   );
   if (!details) throw new Error("Reading snapshot is missing.");
-  const isOwner = job.kind === "owner" || job.kind === "request";
+  const isOwner = ["owner", "request", "schedule_owner"].includes(job.kind);
   if (
-    !isOwner &&
     order.format === "voice_call" &&
-    ["customer", "rescheduled", "reminder"].includes(job.kind) &&
+    ["customer", "owner", "rescheduled", "reminder"].includes(job.kind) &&
+    order.status === "confirmed" &&
+    details.calendar_sync_status !== "error" &&
     (!details.meet_url ||
       details.calendar_sync_status !== "synced" ||
       details.calendar_synced_version !== order.booking_version)
   )
     throw new BookingError("Waiting for the Google Meet link.", 503);
-  const key = process.env.RESEND_API_KEY,
-    from = process.env.BOOKING_FROM_EMAIL || process.env.RESEND_FROM_EMAIL;
-  const owner = process.env.BOOKING_OWNER_EMAIL || process.env.CONTACT_EMAIL;
-  if (!key || !from || (isOwner && !owner))
-    throw new Error("Booking email configuration is missing.");
+  const owner = process.env.BOOKING_OWNER_EMAIL || process.env.CONTACT_EMAIL || process.env.SMTP_USER;
   const recipient = isOwner ? owner : order.customer_email_snapshot;
   if (!recipient) throw new Error("Booking email recipient is missing.");
   const subjects: Record<string, string> = {
@@ -47,6 +45,8 @@ export async function sendBookingEmail(order: BookingOrder, job: Job) {
     cancelled: "Your booking has been cancelled",
     rescheduled: "Your consultation has been rescheduled",
     request: "A customer withdrawal/refund request needs review",
+    schedule_owner: "A paid voice reading needs scheduling",
+    availability_customer: "Times are available for your voice reading",
   };
   const subject = subjects[job.kind] || "Your TheAstroKaur order";
   const parts = [
@@ -58,6 +58,10 @@ export async function sendBookingEmail(order: BookingOrder, job: Job) {
     parts.push(
       "<p>Your payment has been received. The owner will personally contact you by email to discuss when to expect your reading, then email the completed reading to you.</p>",
     );
+  if (job.kind === "schedule_owner")
+    parts.push("<p>Please contact the customer to arrange a call if no suitable time is available.</p>");
+  if (job.kind === "availability_customer")
+    parts.push("<p>Available times have been added. Open your booking to choose one.</p>");
   if (
     order.format === "voice_call" &&
     order.scheduled_at &&
@@ -69,10 +73,14 @@ export async function sendBookingEmail(order: BookingOrder, job: Job) {
       timeStyle: "short",
     }).format(new Date(order.scheduled_at));
     parts.push(`<p>${escape(time)} (${escape(order.customer_timezone)})</p>`);
-    if (details.meet_url && !isOwner)
+    if (details.meet_url && details.calendar_sync_status === "synced" && details.calendar_synced_version === order.booking_version)
       parts.push(
         `<p><a href="${escape(details.meet_url)}">Join your Google Meet consultation</a></p>`,
       );
+    else if (details.calendar_sync_status === "error")
+      parts.push(isOwner
+        ? "<p>Google Calendar is disconnected, unavailable, or reports a conflict. Contact this customer promptly to share the call details and check your calendar.</p>"
+        : "<p>The owner will contact you personally to share the call details.</p>");
   }
   if (job.kind === "cancelled")
     parts.push(
@@ -87,7 +95,6 @@ export async function sendBookingEmail(order: BookingOrder, job: Job) {
       `<p><a href="${siteUrl()}/account/readings/${order.id}">View your order and booking details</a></p>`,
     );
   const payload = {
-    from,
     to: [recipient],
     ...(process.env.BOOKING_REPLY_TO
       ? { reply_to: process.env.BOOKING_REPLY_TO }
@@ -95,13 +102,12 @@ export async function sendBookingEmail(order: BookingOrder, job: Job) {
     subject,
     html: `<div style="background:#FAF8F5;color:#0F172A;padding:32px;max-width:600px;font-family:Arial,sans-serif;border-top:4px solid #E5B842">${parts.join("")}<p>With warmth,<br>TheAstroKaur</p></div>`,
   };
-  // Freeze the first attempted message so provider idempotency sees an identical body.
+  // Keep the original contents and recipient across retries.
   check(
     await db
       .from("booking_jobs")
       .update({
         email_payload: payload,
-        email_started_at: new Date().toISOString(),
       })
       .eq("id", job.id)
       .is("email_payload", null),
@@ -113,19 +119,26 @@ export async function sendBookingEmail(order: BookingOrder, job: Job) {
       .eq("id", job.id)
       .single(),
   );
-  if (!frozen) throw new Error("Email job is missing.");
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-      "Idempotency-Key": `booking/${job.id}`,
-    },
-    body: JSON.stringify(frozen.email_payload),
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!response.ok)
-    throw new Error(`Email provider returned ${response.status}.`);
-  const result = (await response.json()) as { id: string };
-  return result.id;
+  if (!frozen?.email_payload) throw new Error("Email job is missing.");
+  // ponytail: SMTP has no idempotency; uncertain sends require manual review instead of automatic retries.
+  const claimed = check(await db.from("booking_jobs")
+    .update({ email_started_at: new Date().toISOString() })
+    .eq("id", job.id).eq("lease_token", job.lease_token)
+    .is("email_started_at", null).select("id").maybeSingle());
+  if (!claimed)
+    throw new EmailDeliveryUncertain("An earlier SMTP attempt needs review in the sender's Sent folder before retrying.");
+  try {
+    return await sendEmail({
+      to: frozen.email_payload.to[0],
+      subject: frozen.email_payload.subject,
+      html: frozen.email_payload.html,
+      replyTo: frozen.email_payload.reply_to,
+      messageId: `<booking-${job.id}@${process.env.SMTP_USER!.split("@")[1]}>`,
+    });
+  } catch (error) {
+    if (!(error instanceof EmailDeliveryUncertain))
+      check(await db.from("booking_jobs").update({ email_started_at: null })
+        .eq("id", job.id).eq("lease_token", job.lease_token));
+    throw error;
+  }
 }

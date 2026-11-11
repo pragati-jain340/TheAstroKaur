@@ -1,5 +1,5 @@
 # Add these to .env.local and Vercel; do not commit real values.
-# Keep the existing Supabase and Resend variables already configured.
+# Keep the existing Supabase variables already configured.
 NEXT_PUBLIC_SITE_URL=https://your-vercel-site.example
 STRIPE_SECRET_KEY=sk_test_replace_me
 STRIPE_WEBHOOK_SECRET=whsec_replace_me
@@ -12,7 +12,14 @@ GOOGLE_REDIRECT_URI=https://your-vercel-site.example/api/google/callback
 GOOGLE_TOKEN_ENCRYPTION_KEY=
 # Generate a separate random value with at least 32 characters.
 BOOKING_WORKER_SECRET=
-# Optional overrides; existing Resend sender and CONTACT_EMAIL are reused otherwise.
-BOOKING_FROM_EMAIL=
+# SMTP credentials belong only in server environments. For Gmail, use an app password.
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=your-account@gmail.com
+SMTP_PASS=
+SMTP_FROM="TheAstroKaur <your-account@gmail.com>"
+# Enquiry recipient; defaults to SMTP_USER if omitted.
+CONTACT_EMAIL=
+# Optional booking reply address and owner notification recipient.
 BOOKING_REPLY_TO=
 BOOKING_OWNER_EMAIL=

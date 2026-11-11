@@ -1,5 +1,11 @@
 "use client";
+import { NativeSelect } from "@/components/ui/native-select";
 
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 
@@ -147,13 +153,13 @@ export default function AdminUsersPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
+          <Button
             type="button"
             onClick={() => setAddModalOpen(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-xs cursor-pointer"
+            className="rounded-full px-5 py-2.5 text-xs font-semibold"
           >
             <span>+ Add User</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -162,7 +168,7 @@ export default function AdminUsersPage() {
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           {/* Search box */}
           <div className="relative flex-1">
-            <input
+            <Input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -175,7 +181,7 @@ export default function AdminUsersPage() {
           </div>
 
           {/* Role Filter Pills */}
-          <div className="inline-flex p-1 rounded-xl bg-white dark:bg-[#131F33] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 self-start md:self-auto">
+          <div className="inline-flex gap-1 p-1 rounded-xl bg-white dark:bg-[#131F33] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 self-start md:self-auto">
             {(
               [
                 { key: "all", label: "All Roles" },
@@ -183,17 +189,15 @@ export default function AdminUsersPage() {
                 { key: "admin", label: "Admins" },
               ] as { key: RoleFilter; label: string }[]
             ).map((rf) => (
-              <button
+              <Button
                 key={rf.key}
+                size="sm"
+                variant={roleFilter === rf.key ? "default" : "ghost"}
                 onClick={() => setRoleFilter(rf.key)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                  roleFilter === rf.key
-                    ? "bg-[#E5B842] text-[#0F172A] font-semibold shadow-xs"
-                    : "text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#0F172A] dark:hover:text-[#FAF8F5]"
-                }`}
+                className="h-7 text-xs font-medium"
               >
                 {rf.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -208,17 +212,15 @@ export default function AdminUsersPage() {
               { key: "deactivated", label: "Deactivated" },
             ] as { key: StatusFilter; label: string }[]
           ).map((sf) => (
-            <button
+            <Button
               key={sf.key}
+              size="sm"
+              variant={statusFilter === sf.key ? "default" : "outline"}
               onClick={() => setStatusFilter(sf.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer capitalize ${
-                statusFilter === sf.key
-                  ? "bg-[#0F172A] dark:bg-[#FAF8F5] text-[#FAF8F5] dark:text-[#0F172A] font-semibold shadow-xs"
-                  : "bg-white/60 dark:bg-[#131F33]/60 text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:bg-white dark:hover:bg-[#131F33] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10"
-              }`}
+              className="h-7 text-xs capitalize"
             >
               {sf.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -234,134 +236,113 @@ export default function AdminUsersPage() {
           <p className="font-serif text-base text-[#0F172A] dark:text-[#FAF8F5]">
             No users match the selected filters
           </p>
-          <button
+          <Button
+            variant="link"
+            size="sm"
             onClick={() => {
               setSearch("");
               setRoleFilter("all");
               setStatusFilter("all");
             }}
-            className="text-xs font-semibold text-[#E5B842] underline cursor-pointer"
+            className="text-xs font-semibold text-[#E5B842] underline"
           >
             Clear Filters
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/20 rounded-2xl shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#0F172A]/5 dark:bg-[#FAF8F5]/5 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 text-[10px] font-bold uppercase tracking-wider text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
-                <tr>
-                  <th className="py-3.5 px-5">Name & Email</th>
-                  <th className="py-3.5 px-4">Role</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-center">Readings</th>
-                  <th className="py-3.5 px-4">Total Paid</th>
-                  <th className="py-3.5 px-4">Joined Date</th>
-                  <th className="py-3.5 px-5 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#0F172A]/6 dark:divide-[#FAF8F5]/6">
+            <Table className="w-full text-left text-xs">
+              <TableHeader className="bg-[#0F172A]/5 dark:bg-[#FAF8F5]/5 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 text-[10px] font-bold uppercase tracking-wider text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
+                <TableRow>
+                  <TableHead className="py-3.5 px-5">Name & Email</TableHead>
+                  <TableHead className="py-3.5 px-4">Role</TableHead>
+                  <TableHead className="py-3.5 px-4">Status</TableHead>
+                  <TableHead className="py-3.5 px-4 text-center">Readings</TableHead>
+                  <TableHead className="py-3.5 px-4">Total Paid</TableHead>
+                  <TableHead className="py-3.5 px-4">Joined Date</TableHead>
+                  <TableHead className="py-3.5 px-5 text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-[#0F172A]/6 dark:divide-[#FAF8F5]/6">
                 {filteredUsers.map((u) => {
                   const isSuspended = u.account_status === "suspended";
                   const isDeactivated = u.account_status === "deactivated";
 
                   return (
-                    <tr
+                    <TableRow
                       key={u.id}
                       className="hover:bg-[#E5B842]/5 transition-colors group"
                     >
                       {/* Name & Email */}
-                      <td className="py-4 px-5">
+                      <TableCell className="py-4 px-5">
                         <div className="font-semibold text-xs text-[#0F172A] dark:text-[#FAF8F5]">
                           {u.display_name || "—"}
                         </div>
                         <div className="text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
                           {u.email}
                         </div>
-                      </td>
+                      </TableCell>
 
                       {/* Role */}
-                      <td className="py-4 px-4">
-                        {u.role === "admin" ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-[#E5B842] text-[#0F172A] shadow-xs">
-                            ADMIN
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium tracking-wide uppercase bg-[#0F172A]/5 dark:bg-[#FAF8F5]/10 text-[#0F172A]/60 dark:text-[#FAF8F5]/60">
-                            Customer
-                          </span>
-                        )}
-                      </td>
+                      <TableCell className="py-4 px-4">
+                        <Badge variant={u.role === "admin" ? "default" : "secondary"}>
+                          {u.role === "admin" ? "ADMIN" : "Customer"}
+                        </Badge>
+                      </TableCell>
 
                       {/* Account Status */}
-                      <td className="py-4 px-4">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+                      <TableCell className="py-4 px-4">
+                        <Badge
+                          variant={isDeactivated ? "destructive" : isSuspended ? "secondary" : "default"}
+                          className={
                             isDeactivated
-                              ? "bg-rose-500/15 text-rose-700 dark:text-rose-300"
+                              ? ""
                               : isSuspended
-                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                              : "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
-                          }`}
+                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-transparent"
+                              : "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-transparent"
+                          }
                         >
                           {u.account_status || "active"}
-                        </span>
-                      </td>
+                        </Badge>
+                      </TableCell>
 
                       {/* Readings Count */}
-                      <td className="py-4 px-4 text-center font-medium text-xs text-[#0F172A] dark:text-[#FAF8F5]">
+                      <TableCell className="py-4 px-4 text-center font-medium text-xs text-[#0F172A] dark:text-[#FAF8F5]">
                         {u.readings_count}
-                      </td>
+                      </TableCell>
 
                       {/* Total Paid */}
-                      <td className="py-4 px-4 font-semibold text-xs text-[#0F172A] dark:text-[#FAF8F5]">
+                      <TableCell className="py-4 px-4 font-semibold text-xs text-[#0F172A] dark:text-[#FAF8F5]">
                         {u.total_spent > 0 ? `€${u.total_spent.toFixed(2)}` : "€0.00"}
-                      </td>
+                      </TableCell>
 
                       {/* Joined Date */}
-                      <td className="py-4 px-4 text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
+                      <TableCell className="py-4 px-4 text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
                         {formatDate(u.created_at)}
-                      </td>
+                      </TableCell>
 
                       {/* Action */}
-                      <td className="py-4 px-5 text-right">
-                        <Link
-                          href={`/admin/users/${u.id}`}
-                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold border border-[#E5B842]/40 text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842] hover:text-[#0F172A] transition-all inline-block"
-                        >
-                          View User →
-                        </Link>
-                      </td>
-                    </tr>
+                      <TableCell className="py-4 px-5 text-right">
+                        <Button asChild variant="outline" size="sm" className="border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-[#0F172A]">
+                          <Link href={`/admin/users/${u.id}`}>
+                            View User →
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
       )}
 
       {/* ─── ADD USER DRAWER / MODAL ─── */}
-      {addModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
-          <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
-              <div>
-                <p className="text-[10px] font-bold tracking-widest text-[#E5B842] uppercase">
-                  ADMIN ACTION
-                </p>
-                <h3 className="font-serif text-xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
-                  Create New User
-                </h3>
-              </div>
-              <button
-                onClick={() => setAddModalOpen(false)}
-                className="p-1 rounded-full text-[#0F172A]/50 dark:text-[#FAF8F5]/50 hover:bg-[#0F172A]/5 dark:hover:bg-[#FAF8F5]/5 cursor-pointer text-lg leading-none"
-              >
-                ✕
-              </button>
-            </div>
-
+      <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
+        <DialogContent aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] space-y-5 overflow-y-auto rounded-2xl border-[#E5B842]/30 bg-[#FAF8F5] p-6 text-[#0F172A] dark:bg-[#0D1829] dark:text-[#FAF8F5] sm:max-w-md sm:p-8">
+          <DialogTitle className="border-b border-[#0F172A]/10 pb-3 pr-8 font-serif text-xl dark:border-white/10">Create New User</DialogTitle>
             {createError && (
               <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/25 text-red-600 dark:text-red-400 text-xs">
                 {createError}
@@ -376,10 +357,10 @@ export default function AdminUsersPage() {
 
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                <label htmlFor="users-field-1" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                   Full Name
                 </label>
-                <input
+                <Input id="users-field-1"
                   type="text"
                   required
                   value={createName}
@@ -390,10 +371,10 @@ export default function AdminUsersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                <label htmlFor="users-field-2" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                   Email Address
                 </label>
-                <input
+                <Input id="users-field-2"
                   type="email"
                   required
                   value={createEmail}
@@ -404,17 +385,17 @@ export default function AdminUsersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                <label htmlFor="users-field-3" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                   Assigned Role
                 </label>
-                <select
+                <NativeSelect id="users-field-3"
                   value={createRole}
                   onChange={(e) => setCreateRole(e.target.value as any)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#131F33] border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 text-xs text-[#0F172A] dark:text-[#FAF8F5] focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40 cursor-pointer"
                 >
                   <option value="customer">Customer (Default)</option>
                   <option value="admin">Administrator</option>
-                </select>
+                </NativeSelect>
                 {createRole === "admin" && (
                   <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
                     ⚠ Warning: Administrators have full operational access to business analytics, orders, and user records.
@@ -423,10 +404,10 @@ export default function AdminUsersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                <label htmlFor="users-field-4" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                   Password <span className="font-normal text-[#0F172A]/40 dark:text-[#FAF8F5]/40">(Optional — leave blank to auto-generate)</span>
                 </label>
-                <input
+                <Input id="users-field-4"
                   type="password"
                   value={createPassword}
                   onChange={(e) => setCreatePassword(e.target.value)}
@@ -436,26 +417,27 @@ export default function AdminUsersPage() {
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setAddModalOpen(false)}
                   disabled={creating}
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:bg-[#0F172A]/5 dark:hover:bg-[#FAF8F5]/5 cursor-pointer"
+                  className="rounded-xl text-xs font-medium"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={creating}
                   className="px-6 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-xs disabled:opacity-50 cursor-pointer"
                 >
                   {creating ? "Creating User…" : "Create User"}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

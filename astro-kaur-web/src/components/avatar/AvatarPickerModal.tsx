@@ -2,6 +2,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import AvatarDisplay from "@/components/avatar/AvatarDisplay";
 import { CELESTIAL_AVATARS } from "@/lib/avatar/celestialAvatars";
 import {
@@ -175,32 +177,9 @@ export default function AvatarPickerModal({
   const hasAnyAvatar = Boolean(selectedUrl || selectedSeed);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-md animate-in fade-in duration-200"
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-3xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/35 shadow-2xl p-5 sm:p-7 text-[#0F172A] dark:text-[#FAF8F5] space-y-6 animate-in zoom-in-95 duration-150"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 pb-3">
-          <div>
-            <span className="text-[10px] font-bold tracking-widest text-[#E5B842] uppercase">
-              PROFILE PHOTO
-            </span>
-            <h3 className="font-serif text-lg font-semibold tracking-tight text-[#0F172A] dark:text-[#FAF8F5]">
-              Choose Your Avatar
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-[#0F172A]/5 dark:bg-[#FAF8F5]/5 hover:bg-[#0F172A]/10 text-xs flex items-center justify-center transition-colors cursor-pointer"
-          >
-            ✕
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] space-y-6 overflow-y-auto rounded-2xl border-[#E5B842]/35 bg-[#FAF8F5] p-5 text-[#0F172A] dark:bg-[#0D1829] dark:text-[#FAF8F5] sm:max-w-md sm:p-7">
+        <DialogTitle className="border-b border-[#0F172A]/10 pb-3 pr-8 font-serif text-xl dark:border-white/10">Choose Your Avatar</DialogTitle>
 
         {/* Error notification */}
         {errorMessage && (
@@ -248,15 +227,16 @@ export default function AvatarPickerModal({
             className="hidden"
           />
 
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => fileInputRef.current?.click()}
             disabled={processingImage || saving}
-            className="w-full py-2.5 px-4 rounded-xl border border-dashed border-[#E5B842]/60 hover:border-[#E5B842] hover:bg-[#E5B842]/5 transition-all text-xs font-semibold text-[#0F172A] dark:text-[#FAF8F5] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="w-full py-2.5 px-4 rounded-xl border border-dashed border-[#E5B842]/60 hover:border-[#E5B842] hover:bg-[#E5B842]/5 text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <span>📷</span>
             <span>{processingImage ? "Optimizing photo..." : "Upload Photo (PNG, JPG, JPEG)"}</span>
-          </button>
+          </Button>
           <p className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40 text-center">
             Automatically center-cropped and optimized for fast display.
           </p>
@@ -272,14 +252,13 @@ export default function AvatarPickerModal({
             {CELESTIAL_AVATARS.map((av) => {
               const active = selectedSeed?.toLowerCase() === av.id.toLowerCase();
               return (
-                <button
+                <Button
                   key={av.id}
                   type="button"
+                  variant={active ? "secondary" : "outline"}
                   onClick={() => handleSelectCelestial(av.id)}
-                  className={`py-2 rounded-xl border flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${
-                    active
-                      ? "border-[#E5B842] bg-[#E5B842]/20 scale-105 shadow-xs"
-                      : "border-[#0F172A]/10 dark:border-[#FAF8F5]/10 hover:border-[#E5B842]/50 hover:bg-[#E5B842]/5"
+                  className={`h-auto py-2 rounded-xl flex flex-col items-center justify-center gap-0.5 ${
+                    active ? "border-[#E5B842] bg-[#E5B842]/20 scale-105 shadow-xs" : ""
                   }`}
                   title={`${av.label} — ${av.meaning}`}
                 >
@@ -287,7 +266,7 @@ export default function AvatarPickerModal({
                   <span className="text-[9px] font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 truncate max-w-[48px]">
                     {av.label}
                   </span>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -296,38 +275,43 @@ export default function AvatarPickerModal({
         {/* Actions Footer */}
         <div className="pt-3 border-t border-[#0F172A]/8 dark:border-[#FAF8F5]/8 flex items-center justify-between gap-3">
           {hasAnyAvatar ? (
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={handleRemoveAvatar}
               disabled={saving}
-              className="px-3 py-2 rounded-xl text-xs font-medium text-red-600 hover:bg-red-500/10 border border-red-500/20 transition-colors cursor-pointer"
+              className="text-xs text-destructive hover:bg-destructive/10 border-destructive/20 cursor-pointer"
             >
               Remove Avatar
-            </button>
+            </Button>
           ) : (
             <div />
           )}
 
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={onClose}
               disabled={saving}
-              className="px-3.5 py-2 rounded-xl text-xs font-medium border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 hover:bg-[#0F172A]/5 transition-colors cursor-pointer"
+              className="cursor-pointer"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="sm"
               onClick={handleSave}
               disabled={saving || processingImage}
               className="px-5 py-2 rounded-xl text-xs font-semibold tracking-wider uppercase bg-[#E5B842] text-[#070D18] hover:bg-[#d4a838] transition-all shadow-sm disabled:opacity-50 cursor-pointer"
             >
               {saving ? "Saving..." : "Save Avatar"}
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

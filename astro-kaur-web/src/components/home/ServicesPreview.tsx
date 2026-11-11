@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import type { Database } from "@/lib/supabase/types";
 import { useAuth } from "@/context/AuthContext";
 
 export interface ReadingServiceItem {
@@ -24,13 +27,17 @@ export interface ReadingServiceItem {
 
 const STATIC_SERVICES: ReadingServiceItem[] = [
   {
-    id: "matchmaking-call",
+    id: "8435b534-dc09-48a3-811e-3a466a3d6ed4",
     slug: "matchmaking-reading",
     title: "Matchmaking Reading",
     format: "Voice call · 45 mins",
     isCall: true,
     price: "€60",
     priceNumber: 60,
+    priceCents: 6000,
+    currency: "EUR",
+    durationMinutes: 45,
+    requiresPartnerDetails: true,
     description:
       "Explore compatibility between two birth charts, relationship strengths, recurring challenges, and conscious ways to strengthen bonds.",
     highlights: [
@@ -39,13 +46,17 @@ const STATIC_SERVICES: ReadingServiceItem[] = [
     ],
   },
   {
-    id: "future-partner-text",
+    id: "893e3907-476c-43da-b59c-13ee39b807cd",
     slug: "future-partner",
     title: "Future Partner Reading",
     format: "Text-based reading",
     isCall: false,
     price: "€20",
     priceNumber: 20,
+    priceCents: 2000,
+    currency: "EUR",
+    durationMinutes: null,
+    requiresPartnerDetails: false,
     description:
       "Explore the qualities of your future partner, possible circumstances or places where you may meet, and potential marriage timelines.",
     highlights: [
@@ -54,13 +65,17 @@ const STATIC_SERVICES: ReadingServiceItem[] = [
     ],
   },
   {
-    id: "career-money-text",
+    id: "928ea98f-8b60-49b0-8452-909ace47804c",
     slug: "career-money-reading",
     title: "Career & Money Reading",
     format: "Text-based reading",
     isCall: false,
     price: "€20",
     priceNumber: 20,
+    priceCents: 2000,
+    currency: "EUR",
+    durationMinutes: null,
+    requiresPartnerDetails: false,
     description:
       "Explore suitable professions, possible promotion timelines, and themes related to money flow and financial growth.",
     highlights: [
@@ -69,13 +84,17 @@ const STATIC_SERVICES: ReadingServiceItem[] = [
     ],
   },
   {
-    id: "career-guidance-call",
+    id: "2945fc9c-d8b0-4919-9c67-f703baef9983",
     slug: "career-money-guidance",
     title: "Career & Money Guidance",
     format: "Voice call · 30 mins",
     isCall: true,
     price: "€40",
     priceNumber: 40,
+    priceCents: 4000,
+    currency: "EUR",
+    durationMinutes: 30,
+    requiresPartnerDetails: false,
     description:
       "Explore suitable professions, promotions, financial growth, and potential strategic career transitions through an interactive 1-on-1 dialogue.",
     highlights: [
@@ -84,13 +103,17 @@ const STATIC_SERVICES: ReadingServiceItem[] = [
     ],
   },
   {
-    id: "relationship-karma-call",
+    id: "5efed3e1-c7fb-4cf5-bc85-201c05606d66",
     slug: "relationship-karma",
     title: "Relationship Karma",
     format: "Voice call · 30 mins",
     isCall: true,
     price: "€40",
     priceNumber: 40,
+    priceCents: 4000,
+    currency: "EUR",
+    durationMinutes: 30,
+    requiresPartnerDetails: false,
     description:
       "Explore relationship patterns, lessons, marriage, attracting a partner, and possible circumstances in which you may meet.",
     highlights: [
@@ -99,13 +122,17 @@ const STATIC_SERVICES: ReadingServiceItem[] = [
     ],
   },
   {
-    id: "extensive-chart-call",
+    id: "50aacc9a-67c2-4c65-a263-53c6de9c2c11",
     slug: "extensive-chart",
     title: "Extensive Birth Chart Reading",
     format: "Voice call · 45 mins",
     isCall: true,
     price: "€60",
     priceNumber: 60,
+    priceCents: 6000,
+    currency: "EUR",
+    durationMinutes: 45,
+    requiresPartnerDetails: false,
     description:
       "Explore life path, purpose, karmic lessons, planetary dashas, and deep emotional patterns through an extensive analysis.",
     highlights: [
@@ -115,7 +142,7 @@ const STATIC_SERVICES: ReadingServiceItem[] = [
   },
 ];
 
-function mapDbServiceToReadingItem(db: any): ReadingServiceItem {
+function mapDbServiceToReadingItem(db: Database["public"]["Tables"]["services"]["Row"]): ReadingServiceItem {
   const isCall = db.format === "voice_call";
   const format = isCall
     ? `Voice call${db.duration_minutes ? ` · ${db.duration_minutes} mins` : ""}`
@@ -144,6 +171,10 @@ function mapDbServiceToReadingItem(db: any): ReadingServiceItem {
     isCall,
     price: `€${priceNumber}`,
     priceNumber,
+    priceCents: db.price_cents,
+    currency: db.currency || "EUR",
+    durationMinutes: db.duration_minutes,
+    requiresPartnerDetails: !!db.requires_partner_details,
     description: db.description || staticMatch?.description || "",
     image_url: db.image_url || null,
     highlights: staticMatch?.highlights || [
@@ -228,39 +259,18 @@ export default function ServicesPreview() {
       .catch(() => {});
   }, []);
 
-  // Keyboard shortcut (Escape) & body scroll lock
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setSelectedService(null);
-      }
-    };
-
-    if (selectedService) {
-      window.addEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "";
-    };
-  }, [selectedService]);
-
   const handleBook = (service: ReadingServiceItem) => {
     setSelectedService(null);
     openBookingModal?.({
       id: service.id,
       title: service.title,
-      format: service.format,
+      format: service.isCall ? "voice_call" : "text",
       isCall: service.isCall,
       price: service.price,
       description: service.description,
       durationMinutes: service.durationMinutes,
       requiresPartnerDetails: service.requiresPartnerDetails,
-      currency: service.currency,
+      currency: service.currency || "EUR",
       priceCents: service.priceCents,
     });
   };
@@ -417,51 +427,9 @@ export default function ServicesPreview() {
         </motion.a>
       </div>
 
-      {/* ── App Store Style Modal Expanded View ── */}
-      <AnimatePresence>
-        {selectedService && (
-          <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-3.5 sm:p-6 overflow-y-auto"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="expanded-reading-title"
-          >
-            {/* Backdrop Blur */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => setSelectedService(null)}
-              className="fixed inset-0 bg-black/75 backdrop-blur-md cursor-pointer"
-            />
-
-            {/* Expanded Modal Card (Spacious, Elegant & Focused) */}
-            <motion.div
-              layoutId={`reading-card-${selectedService.id}`}
-              transition={CARD_TRANSITION}
-              onClick={(e) => e.stopPropagation()}
-              className="relative z-10 w-full max-w-md sm:max-w-[500px] bg-[#FFFDF9] dark:bg-[#0D1829] border border-[#E5B842]/35 rounded-3xl p-6 sm:p-7 sm:px-8 shadow-[0_25px_60px_rgba(0,0,0,0.55)] text-[#0F172A] dark:text-[#FAF8F5] max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar my-auto"
-            >
-              {/* Top Tag & Close Button */}
-              <div className="flex items-center justify-between gap-3 mb-1.5">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase bg-[#E5B842]/15 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/30">
-                  <span className="text-[#E5B842] text-xs">✦</span>
-                  READING DETAILS
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedService(null)}
-                  className="w-8 h-8 rounded-full border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-black/5 dark:bg-white/5 hover:bg-[#E5B842]/20 flex items-center justify-center text-[#0F172A]/70 dark:text-[#FAF8F5]/70 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] transition-colors cursor-pointer"
-                  aria-label="Close reading details"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
+      {selectedService && (
+        <Dialog open onOpenChange={(open) => { if (!open) setSelectedService(null); }}>
+          <DialogContent aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border-[#E5B842]/35 bg-[#FFFDF9] p-6 text-[#0F172A] dark:bg-[#0D1829] dark:text-[#FAF8F5] sm:max-w-lg sm:p-8">
               {/* Prominent Celestial Artwork */}
               <motion.div
                 layoutId={`reading-img-${selectedService.id}`}
@@ -508,12 +476,11 @@ export default function ServicesPreview() {
               >
                 {/* Title & Format Badge */}
                 <div className="text-center mb-3">
-                  <h2
-                    id="expanded-reading-title"
+                  <DialogTitle
                     className="font-serif text-2xl sm:text-[1.7rem] font-normal text-[#0F172A] dark:text-[#FAF8F5] tracking-tight mb-2"
                   >
                     {selectedService.title}
-                  </h2>
+                  </DialogTitle>
 
                   <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-medium text-[#6B3448] dark:text-[#E5B842] bg-[#E5B842]/10 border border-[#E5B842]/25">
                     {selectedService.isCall ? (
@@ -545,20 +512,19 @@ export default function ServicesPreview() {
                     </p>
                   </div>
 
-                  <button
+                  <Button size="lg"
                     type="button"
                     onClick={() => handleBook(selectedService)}
                     className="inline-flex items-center justify-center gap-2 px-7 sm:px-8 py-3 rounded-full bg-gradient-to-r from-[#B87936] via-[#E5B842] to-[#B87936] bg-[length:200%_auto] hover:bg-right text-[#070D18] font-bold text-xs sm:text-sm tracking-wider uppercase transition-all duration-300 shadow-[0_4px_16px_rgba(229,184,66,0.35)] hover:shadow-[0_6px_22px_rgba(229,184,66,0.55)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                   >
                     <span>Book This Reading</span>
                     <span>→</span>
-                  </button>
+                  </Button>
                 </div>
               </motion.div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          </DialogContent>
+        </Dialog>
+      )}
     </section>
   );
 }

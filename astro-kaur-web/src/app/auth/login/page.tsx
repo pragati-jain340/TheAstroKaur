@@ -5,6 +5,10 @@
  */
 'use client'
 
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import SubpageBackground from '@/components/layout/SubpageBackground'
@@ -44,56 +48,59 @@ export default function LoginPage() {
   return (
     <main className="relative flex min-h-screen items-center justify-center bg-[#FAF8F5] dark:bg-[#0F172A] px-4 selection:bg-[#E5B842]/30 selection:text-[#0F172A]">
       <SubpageBackground />
-      <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white/95 dark:bg-[#131F33]/95 backdrop-blur-md p-8 shadow-xl border border-[#E5B842]/20">
-        <h1 className="mb-2 text-2xl font-semibold text-[#263D35]">
-          Sign in to TheAstroKaur
-        </h1>
-        <p className="mb-6 text-sm text-gray-500">
-          Enter your email and we'"'"'ll send you a magic link — no password needed.
-        </p>
-
-        {status === 'sent' ? (
-          <div className="rounded-lg bg-[#263D35]/10 p-4 text-center text-[#263D35]">
-            <p className="font-medium">Check your inbox ✉️</p>
-            <p className="mt-1 text-sm text-gray-600">
-              A sign-in link has been sent to <strong>{email}</strong>.
-            </p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="email"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-[#C6A66B] focus:outline-none focus:ring-2 focus:ring-[#C6A66B]/30"
-              />
+      <Card className="relative z-10 w-full max-w-sm rounded-2xl bg-white/95 dark:bg-[#131F33]/95 backdrop-blur-md p-6 sm:p-8 shadow-xl border border-[#E5B842]/20">
+        <CardHeader className="p-0 pb-6">
+          <CardTitle className="text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
+            Sign in to TheAstroKaur
+          </CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">
+            Enter your email and we&apos;ll send you a magic link — no password needed.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {status === 'sent' ? (
+            <div className="rounded-lg bg-[#E5B842]/10 border border-[#E5B842]/30 p-4 text-center text-[#0F172A] dark:text-[#FAF8F5]">
+              <p className="font-medium">Check your inbox ✉️</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                A sign-in link has been sent to <strong>{email}</strong>.
+              </p>
             </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="email"
+                  className="mb-1 block text-sm font-medium text-foreground"
+                >
+                  Email address
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full"
+                />
+              </div>
 
-            {status === 'error' && (
-              <p className="text-sm text-red-600">{errorMsg}</p>
-            )}
+              {status === 'error' && (
+                <p role="alert" className="text-sm text-destructive">{errorMsg}</p>
+              )}
 
-            <button
-              type="submit"
-              disabled={status === 'loading'}
-              className="w-full rounded-lg bg-[#263D35] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#263D35]/90 disabled:opacity-60"
-            >
-              {status === 'loading' ? 'Sending…' : 'Send magic link'}
-            </button>
-          </form>
-        )}
-      </div>
+              <Button
+                type="submit"
+                disabled={status === 'loading'}
+                className="w-full"
+              >
+                {status === 'loading' ? 'Sending…' : 'Send magic link'}
+              </Button>
+            </form>
+          )}
+        </CardContent>
+      </Card>
     </main>
   )
 }

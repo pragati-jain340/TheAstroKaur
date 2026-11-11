@@ -2,8 +2,10 @@ import "server-only";
 import { check, database, loadOrder } from "./server";
 import type { BookingOrder, Job } from "./types";
 import { reconcileCheckout } from "@/lib/payments/stripe";
-import { syncEvent } from "@/lib/google/calendar";
+import { freeBusy, syncEvent } from "@/lib/google/calendar";
 import { sendBookingEmail } from "@/lib/email/booking";
+import { EmailDeliveryUncertain } from "@/lib/email/smtp";
+import { availability } from "@/lib/booking/availability";
 
 export async function runWorker() {
   const db = database(),
@@ -42,7 +44,9 @@ export async function runWorker() {
       const order = await loadOrder(job.order_id);
       const stale = job.version !== order.booking_version;
       const skip =
-        (stale && !["owner", "request"].includes(job.kind)) ||
+        (stale && !["owner", "request", "schedule_owner"].includes(job.kind)) ||
+        (job.kind === "schedule_owner" && order.status !== "awaiting_schedule") ||
+        (job.kind === "availability_customer" && (order.status !== "awaiting_schedule" || !!order.availability_notified_at)) ||
         (job.kind === "reminder" &&
           (order.status !== "confirmed" ||
             Date.parse(order.scheduled_at || "") <= Date.now())) ||
@@ -58,19 +62,27 @@ export async function runWorker() {
         );
         continue;
       }
-      if (
-        job.kind !== "calendar" &&
-        job.attempts > 1 &&
-        job.email_started_at &&
-        Date.now() - Date.parse(job.email_started_at) > 23 * 3600000
-      )
-        throw new Error(
-          "Email retry window exceeded; owner review required to avoid duplicates.",
-        );
+      if (job.kind === "availability_customer" && order.service_id) {
+        const available = await availability(order.service_id, order.id);
+        if (available.slots.length === 0) {
+          check(await db.from("booking_jobs").update({ status: "skipped", lease_until: null }).eq("id", job.id).eq("lease_token", job.lease_token));
+          continue;
+        }
+      }
       let providerId: string | null = null;
       if (job.kind === "calendar") {
-        if (order.format === "voice_call") await syncEvent(order);
+        if (order.format === "voice_call") {
+          if (order.status === "confirmed" && order.scheduled_at && order.scheduled_end_at) {
+            const details = check(await db.from("reading_details").select("google_calendar_event_id").eq("order_id", order.id).maybeSingle());
+            const conflicts = await freeBusy(order.scheduled_at, order.scheduled_end_at, details?.google_calendar_event_id);
+            if (conflicts.length) throw new Error("Google Calendar reports a conflict for this call.");
+          }
+          await syncEvent(order);
+        }
       } else providerId = await sendBookingEmail(order, job);
+      if (job.kind === "availability_customer") {
+        check(await db.from("orders").update({ availability_notified_at: new Date().toISOString() }).eq("id", order.id).eq("status", "awaiting_schedule"));
+      }
       check(
         await db
           .from("booking_jobs")
@@ -89,11 +101,7 @@ export async function runWorker() {
       const message =
         error instanceof Error ? error.message : "Provider operation failed.";
       const exhausted =
-        job.attempts >= 20 ||
-        (job.kind !== "calendar" &&
-          job.attempts > 1 &&
-          !!job.email_started_at &&
-          Date.now() - Date.parse(job.email_started_at) > 23 * 3600000);
+        job.attempts >= 20 || error instanceof EmailDeliveryUncertain;
       check(
         await db
           .from("booking_jobs")
@@ -110,10 +118,17 @@ export async function runWorker() {
           .eq("lease_token", job.lease_token),
       );
       if (job.kind === "calendar") {
-        await db
-          .from("reading_details")
-          .update({ calendar_sync_status: "error" })
-          .eq("order_id", job.order_id);
+        const current = await loadOrder(job.order_id);
+        if (current.booking_version === job.version && current.status === "confirmed") {
+          check(await db.from("reading_details").update({ calendar_sync_status: "error" }).eq("order_id", job.order_id));
+          // The existing owner job shares this key, so retries cannot send duplicate warnings.
+          check(await db.from("booking_jobs").upsert({
+            order_id: job.order_id,
+            kind: "owner",
+            version: job.version,
+            dedupe_key: `${job.order_id}:owner:${job.version}`,
+          }, { onConflict: "dedupe_key", ignoreDuplicates: true }));
+        }
         await db
           .from("google_calendar_connections")
           .update({ last_error: message, status: "error" })

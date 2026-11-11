@@ -9,13 +9,17 @@ import Footer from "@/components/layout/Footer";
 import SubpageBackground from "@/components/layout/SubpageBackground";
 import BookingControls from "@/components/services/BookingControls";
 import ReviewModal from "@/components/reviews/ReviewModal";
+import { isUpcomingVoiceCall } from "@/lib/booking/display";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 interface OrderDetail {
   id: string;
   service_title: string;
   format: "text" | "voice_call";
   price_eur: number;
-  status: "pending" | "pending_payment" | "confirmed" | "completed" | "cancelled" | "expired" | "payment_review";
+  status: "pending" | "pending_payment" | "awaiting_schedule" | "confirmed" | "completed" | "cancelled" | "expired" | "payment_review";
   payment_status: "pending" | "paid" | "failed" | "refunded";
   scheduled_at: string | null;
   stripe_receipt_url: string | null;
@@ -89,14 +93,16 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function ReadingSectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/20 rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-sm">
-      <p className="text-[10px] font-bold tracking-widest uppercase text-[#0F172A]/40 dark:text-[#FAF8F5]/40 mb-6">
-        {title}
-      </p>
-      <div className="space-y-6">{children}</div>
-    </div>
+    <Card className="rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-sm">
+      <CardHeader className="p-0 pb-6">
+        <CardTitle className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0 space-y-6">{children}</CardContent>
+    </Card>
   );
 }
 
@@ -104,17 +110,12 @@ function StatusBadge({ status }: { status: string }) {
   const isUpcoming = status === "confirmed" || status === "pending";
   const isCompleted = status === "completed";
   return (
-    <span
-      className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase ${
-        isCompleted
-          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
-          : isUpcoming
-          ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-          : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-      }`}
+    <Badge
+      variant={isCompleted ? "default" : isUpcoming ? "secondary" : "destructive"}
+      className="text-[10px] font-bold tracking-widest uppercase"
     >
       {status}
-    </span>
+    </Badge>
   );
 }
 
@@ -134,7 +135,7 @@ function BirthDetailsCard({
   uncertain: boolean;
 }) {
   return (
-    <Card title={title}>
+    <ReadingSectionCard title={title}>
       {name && (
         <div>
           <p className="text-xs text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mb-1">Name</p>
@@ -152,7 +153,7 @@ function BirthDetailsCard({
         <span className="font-semibold text-[#E5B842]">{uncertain ? "☐" : "☑"}</span>
         <span>{uncertain ? "Birth time is approximate" : "Birth time is accurate"}</span>
       </div>
-    </Card>
+    </ReadingSectionCard>
   );
 }
 
@@ -231,12 +232,12 @@ export default function ReadingDetailPage() {
             <p className="text-sm text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mt-2">
               This reading could not be loaded or may belong to another account.
             </p>
-            <button
+            <Button
               onClick={() => router.push("/account?tab=readings")}
-              className="mt-6 inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-colors cursor-pointer"
+              className="mt-6 rounded-full px-6 py-2.5 text-xs font-semibold"
             >
               ← Back to My Readings
-            </button>
+            </Button>
           </div>
         </main>
         <Footer />
@@ -244,8 +245,20 @@ export default function ReadingDetailPage() {
     );
   }
 
-  const isUpcoming = order.status === "confirmed" || order.status === "pending";
+  const isUpcoming = isUpcomingVoiceCall(order);
+  const needsCallTime = order.format === "voice_call" && order.payment_status === "paid" && order.status === "awaiting_schedule";
   const isCompleted = order.status === "completed";
+  const statusMessage = isCompleted
+    ? order.format === "text" ? "Reading delivered" : `Completed · ${formatDate(order.scheduled_at || order.created_at)}`
+    : order.format === "text" && order.payment_status === "paid" && !["cancelled", "expired"].includes(order.status)
+      ? "The owner will contact you"
+      : needsCallTime
+        ? "Paid · choose a time"
+        : isUpcoming
+          ? `Upcoming · ${formatDate(order.scheduled_at)} · ${formatTime(order.scheduled_at)}`
+          : order.format === "voice_call" && order.scheduled_at
+            ? `Call · ${formatDate(order.scheduled_at)} · ${formatTime(order.scheduled_at)}`
+            : order.status.replaceAll("_", " ");
 
   // Sourced birth details (prioritizing stable snapshot from reading_details, fallback to order)
   const clientName = snapshot?.client_name ?? order.client_name;
@@ -269,20 +282,24 @@ export default function ReadingDetailPage() {
         <div className="max-w-2xl mx-auto px-5">
           {/* Back Navigation & Home Link */}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => router.push("/account?tab=readings")}
-              className="inline-flex items-center gap-2 text-sm text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#E5B842] transition-colors cursor-pointer group"
+              className="h-auto p-0 inline-flex items-center gap-2 text-sm text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#E5B842] hover:bg-transparent group"
             >
               <span className="transition-transform duration-200 group-hover:-translate-x-1">←</span>
               <span>Back to My Readings</span>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => router.push("/")}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#0F172A]/50 dark:text-[#FAF8F5]/50 hover:text-[#E5B842] transition-colors cursor-pointer"
+              className="h-auto p-0 inline-flex items-center gap-1.5 text-xs font-medium text-[#0F172A]/50 dark:text-[#FAF8F5]/50 hover:text-[#E5B842] hover:bg-transparent"
             >
               <span>Home Page</span>
               <span>→</span>
-            </button>
+            </Button>
           </div>
 
           {/* Heading */}
@@ -290,18 +307,12 @@ export default function ReadingDetailPage() {
             <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#0F172A] dark:text-[#FAF8F5] uppercase tracking-wide">
               {order.service_title}
             </h1>
-            <p className="mt-2 text-sm text-[#0F172A]/60 dark:text-[#FAF8F5]/60 font-medium">
-              {isCompleted
-                ? `Completed · ${formatDate(order.created_at)}`
-                : isUpcoming && order.scheduled_at
-                ? `Upcoming · ${formatDate(order.scheduled_at)} · ${formatTime(order.scheduled_at)}`
-                : `${order.status} · ${formatDate(order.created_at)}`}
-            </p>
+            <p className="mt-2 text-sm text-[#46505F] dark:text-[#BCC4D0] font-medium">{statusMessage}</p>
           </div>
 
           <div className="space-y-8">
             {/* Section A — Reading / Booking Overview */}
-            <Card title="READING DETAILS">
+            <ReadingSectionCard title="READING DETAILS">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <Row label="Service" value={order.service_title} />
                 <Row
@@ -312,12 +323,9 @@ export default function ReadingDetailPage() {
                   <p className="text-xs text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mb-1">Status</p>
                   <StatusBadge status={order.status} />
                 </div>
-                <Row
-                  label="Date"
-                  value={
-                    order.scheduled_at ? formatDate(order.scheduled_at) : formatDate(order.created_at)
-                  }
-                />
+                {order.format === "voice_call" && order.scheduled_at && <Row label="Call time" value={`${formatDate(order.scheduled_at)} · ${formatTime(order.scheduled_at)}`} />}
+                {order.format === "voice_call" && !order.scheduled_at && needsCallTime && <Row label="Next step" value="Choose a time" />}
+                {order.format === "text" && order.payment_status === "paid" && !isCompleted && !["cancelled", "expired"].includes(order.status) && <Row label="Next step" value="The owner will contact you" />}
                 <Row label="Price" value={formatPrice(order.price_eur)} />
                 <div>
                   <p className="text-xs text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mb-1">Payment</p>
@@ -326,7 +334,7 @@ export default function ReadingDetailPage() {
                   </span>
                 </div>
               </div>
-            </Card>
+            </ReadingSectionCard>
 
             {/* Section B — Birth Details */}
             {(clientDob || clientName || clientPob) && (
@@ -356,7 +364,7 @@ export default function ReadingDetailPage() {
 
             {/* Review Section for Completed Reading */}
             {isCompleted && (
-              <Card title="YOUR REVIEW">
+              <ReadingSectionCard title="YOUR REVIEW">
                 {order.review_rating ? (
                   <>
                     <div className="flex items-center justify-between">
@@ -374,16 +382,18 @@ export default function ReadingDetailPage() {
                           </span>
                         ))}
                       </div>
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => {
                           setReviewModalMode("edit");
                           setReviewModalOpen(true);
                         }}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#E5B842] hover:text-[#d8ab34] transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#E5B842] hover:text-[#d8ab34] cursor-pointer"
                       >
                         <span>✎ Edit Review</span>
-                      </button>
+                      </Button>
                     </div>
                     {order.review_text && (
                       <p className="text-sm italic text-[#0F172A]/70 dark:text-[#FAF8F5]/70 leading-relaxed">
@@ -404,30 +414,32 @@ export default function ReadingDetailPage() {
                         How was your consultation? Your reflection helps others on their journey.
                       </p>
                     </div>
-                    <button
+                    <Button
                       type="button"
+                      size="sm"
                       onClick={() => {
                         setReviewModalMode("write");
                         setReviewModalOpen(true);
                       }}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+                      className="inline-flex items-center gap-2 rounded-full text-xs font-semibold bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] shadow-sm cursor-pointer shrink-0"
                     >
                       <span>✦ Write a Review</span>
-                    </button>
+                    </Button>
                   </div>
                 )}
-              </Card>
+              </ReadingSectionCard>
             )}
 
             {/* Quick Link to Receipt */}
             {order.payment_status === "paid" && (
               <div className="pt-2 flex justify-end">
-                <button
+                <Button
+                  variant="link"
                   onClick={() => router.push("/account?tab=receipts")}
-                  className="text-xs font-semibold text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#E5B842] transition-colors cursor-pointer"
+                  className="text-xs font-semibold cursor-pointer"
                 >
                   View Payment Receipt →
-                </button>
+                </Button>
               </div>
             )}
           </div>

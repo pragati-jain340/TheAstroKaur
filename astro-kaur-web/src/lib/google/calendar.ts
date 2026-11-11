@@ -3,12 +3,29 @@ import { BookingError, check, database, siteUrl } from "@/lib/booking/server";
 import type { BookingOrder, Connection, Interval } from "@/lib/booking/types";
 import { googleRequest, userConnection } from "./accounts";
 
-export async function googleConnection(): Promise<Connection | null> {
+let cachedGoogleConnection: { connection: Connection | null; expiresAt: number } | null = null;
+
+export function clearGoogleConnectionCache() {
+  cachedGoogleConnection = null;
+}
+
+export async function googleConnection(force = false): Promise<Connection | null> {
+  if (!force && cachedGoogleConnection && Date.now() < cachedGoogleConnection.expiresAt) {
+    return cachedGoogleConnection.connection;
+  }
   const row = check(await database().from("google_calendar_connections").select("*").eq("id",true).maybeSingle());
-  if(!row?.auth_user_id) return null;
+  if(!row?.auth_user_id) {
+    cachedGoogleConnection = { connection: null, expiresAt: Date.now() + 30_000 };
+    return null;
+  }
   const account = await userConnection(row.auth_user_id);
-  if(!account) return null;
-  return {...row, encrypted_refresh_token: account.encrypted_refresh_token || "", status: account.status === "connected" ? row.status : account.status, last_error: account.last_error || row.last_error } as Connection;
+  if(!account) {
+    cachedGoogleConnection = { connection: null, expiresAt: Date.now() + 30_000 };
+    return null;
+  }
+  const connection = {...row, encrypted_refresh_token: account.encrypted_refresh_token || "", status: account.status === "connected" ? row.status : account.status, last_error: account.last_error || row.last_error } as Connection;
+  cachedGoogleConnection = { connection, expiresAt: Date.now() + 30_000 };
+  return connection;
 }
 async function access() {
   const connection = await googleConnection();
@@ -18,47 +35,52 @@ async function access() {
 async function request(path:string,userId:string,options:RequestInit={}) {
   return googleRequest(userId,path,options);
 }
+
+interface CachedFreeBusy {
+  expiresAt: number;
+  ranges: Interval[];
+}
+
+const freeBusyCache = new Map<string, CachedFreeBusy>();
+const freeBusyInFlight = new Map<string, Promise<Interval[]>>();
+
+export function clearFreeBusyCache() {
+  freeBusyCache.clear();
+  freeBusyInFlight.clear();
+  cachedGoogleConnection = null;
+}
+
 export async function freeBusy(
   start: string,
   end: string,
   excludeEventId?: string | null,
 ): Promise<Interval[]> {
   const { connection, userId } = await access();
-  const response = await request("freeBusy", userId, {
-    method: "POST",
-    body: JSON.stringify({
-      timeMin: start,
-      timeMax: end,
-      items: connection.busy_calendar_ids.map((id) => ({ id })),
-    }),
-  });
-  if (!response.ok)
-    throw new BookingError(
-      "Calendar availability cannot be checked right now. Please try again shortly.",
-      503,
-    );
-  const data = (await response.json()) as {
-    calendars: Record<string, { busy: Interval[]; errors?: unknown[] }>;
-  };
-  const ranges: Interval[] = [];
-  for (const id of connection.busy_calendar_ids) {
-    const calendar = data.calendars[id];
-    if (!calendar || calendar.errors?.length)
+
+  // If excluding an event (reschedule), don't use the simple cache.
+  if (excludeEventId) {
+    const response = await request("freeBusy", userId, {
+      method: "POST",
+      body: JSON.stringify({
+        timeMin: start,
+        timeMax: end,
+        items: connection.busy_calendar_ids.map((id) => ({ id })),
+      }),
+    });
+    if (!response.ok)
       throw new BookingError(
-        "A conflict calendar is unavailable. Please try again shortly.",
+        "Calendar availability cannot be checked right now. Please try again shortly.",
         503,
       );
-    ranges.push(...calendar.busy);
-  }
-  // FreeBusy cannot exclude the current appointment during a reschedule. Use a precise
-  // event listing for the organizer calendar, retaining every other external event.
-  if (excludeEventId) {
+    const data = (await response.json()) as {
+      calendars: Record<string, { busy: Interval[]; errors?: unknown[] }>;
+    };
     const organizer = connection.calendar_id;
     const withoutOrganizer: Interval[] = [];
     for (const id of connection.busy_calendar_ids.filter(
       (id) => id !== organizer,
     ))
-      withoutOrganizer.push(...data.calendars[id].busy);
+      withoutOrganizer.push(...(data.calendars[id]?.busy || []));
     let pageToken: string | undefined;
     do {
       const query = new URLSearchParams({
@@ -93,7 +115,6 @@ export async function freeBusy(
           event.status !== "cancelled" &&
           event.transparency !== "transparent"
         ) {
-          // All-day busy events are conservatively represented by their full UTC dates.
           withoutOrganizer.push({
             start: event.start.dateTime || `${event.start.date}T00:00:00+14:00`,
             end: event.end.dateTime || `${event.end.date}T00:00:00-12:00`,
@@ -103,15 +124,77 @@ export async function freeBusy(
     } while (pageToken);
     return withoutOrganizer;
   }
-  await database()
-    .from("google_calendar_connections")
-    .update({
-      status: "connected",
-      last_success_at: new Date().toISOString(),
-      last_error: null,
-    })
-    .eq("id", true).eq("auth_user_id", connection.auth_user_id);
-  return ranges;
+
+  // Bucket times to 1-minute window to coalesce near-identical concurrent or rapid requests
+  const bucketStart = Math.floor(Date.parse(start) / 60000) * 60000;
+  const bucketEnd = Math.floor(Date.parse(end) / 60000) * 60000;
+  const cacheKey = `${userId}:${connection.busy_calendar_ids.slice().sort().join(",")}:${bucketStart}:${bucketEnd}`;
+
+  const cached = freeBusyCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.ranges;
+  }
+
+  const inFlight = freeBusyInFlight.get(cacheKey);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const execute = async (): Promise<Interval[]> => {
+    const response = await request("freeBusy", userId, {
+      method: "POST",
+      body: JSON.stringify({
+        timeMin: start,
+        timeMax: end,
+        items: connection.busy_calendar_ids.map((id) => ({ id })),
+      }),
+    });
+    if (!response.ok)
+      throw new BookingError(
+        "Calendar availability cannot be checked right now. Please try again shortly.",
+        503,
+      );
+    const data = (await response.json()) as {
+      calendars: Record<string, { busy: Interval[]; errors?: unknown[] }>;
+    };
+    const ranges: Interval[] = [];
+    for (const id of connection.busy_calendar_ids) {
+      const calendar = data.calendars[id];
+      if (!calendar || calendar.errors?.length)
+        throw new BookingError(
+          "A conflict calendar is unavailable. Please try again shortly.",
+          503,
+        );
+      ranges.push(...calendar.busy);
+    }
+    const shouldUpdate =
+      connection.status !== "connected" ||
+      connection.last_error !== null ||
+      !connection.last_success_at ||
+      Date.now() - Date.parse(connection.last_success_at) > 15 * 60 * 1000;
+    if (shouldUpdate) {
+      void database()
+        .from("google_calendar_connections")
+        .update({
+          status: "connected",
+          last_success_at: new Date().toISOString(),
+          last_error: null,
+        })
+        .eq("id", true)
+        .eq("auth_user_id", connection.auth_user_id);
+    }
+    freeBusyCache.set(cacheKey, {
+      expiresAt: Date.now() + 60_000,
+      ranges,
+    });
+    return ranges;
+  };
+
+  const task = execute().finally(() => {
+    freeBusyInFlight.delete(cacheKey);
+  });
+  freeBusyInFlight.set(cacheKey, task);
+  return task;
 }
 export async function syncEvent(order: BookingOrder) {
   const db = database(),
@@ -146,6 +229,7 @@ export async function syncEvent(order: BookingOrder) {
         p_invitation: "cancelled",
       }),
     );
+    clearFreeBusyCache();
     return;
   }
   const body = {
@@ -240,6 +324,7 @@ export async function syncEvent(order: BookingOrder) {
       p_invitation: "sent",
     }),
   );
+  clearFreeBusyCache();
   if (!meet) throw new Error("Google Meet generation is pending.");
   await db
     .from("google_calendar_connections")

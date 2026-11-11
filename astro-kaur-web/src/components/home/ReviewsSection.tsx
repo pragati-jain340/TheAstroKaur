@@ -1,7 +1,10 @@
 "use client";
 
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { useEffect, useState, useRef } from "react";
 import { useInView } from "motion/react";
+import type { Testimonial } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
 import { useMediaQuery } from "@/components/ui/use-media-query";
 
@@ -154,7 +157,7 @@ export default function ReviewsSection() {
 
         if (!testimonials || testimonials.length === 0) return;
 
-        const liveList: ReviewItem[] = testimonials.map((t: any) => ({
+        const liveList: ReviewItem[] = testimonials.map((t: Testimonial) => ({
           id: t.id,
           author_name: t.author_name || "Seeker",
           avatar_url: null,
@@ -173,25 +176,6 @@ export default function ReviewsSection() {
 
     fetchLiveReviews();
   }, []);
-
-  // Keyboard shortcut (Escape) to close modal
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setActiveModalReview(null);
-      }
-    }
-    if (activeModalReview) {
-      window.addEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "";
-    };
-  }, [activeModalReview]);
 
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -281,26 +265,30 @@ export default function ReviewsSection() {
 
           {/* Carousel Arrow Buttons */}
           <div className="flex items-center gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="icon"
               onClick={() => scroll("left")}
               aria-label="Scroll reviews left"
-              className="w-11 h-11 rounded-full border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 bg-white/70 dark:bg-[#1E293B]/70 hover:bg-[#E5B842]/15 text-[#0F172A] dark:text-[#FAF8F5] flex items-center justify-center transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+              className="h-11 w-11 rounded-full border-[#0F172A]/10 dark:border-[#FAF8F5]/10 bg-white/70 dark:bg-[#1E293B]/70 hover:bg-[#E5B842]/15 text-[#0F172A] dark:text-[#FAF8F5] shadow-sm hover:scale-105 active:scale-95"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
               </svg>
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
+              size="icon"
               onClick={() => scroll("right")}
               aria-label="Scroll reviews right"
-              className="w-11 h-11 rounded-full border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 bg-white/70 dark:bg-[#1E293B]/70 hover:bg-[#E5B842]/15 text-[#0F172A] dark:text-[#FAF8F5] flex items-center justify-center transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+              className="h-11 w-11 rounded-full border-[#0F172A]/10 dark:border-[#FAF8F5]/10 bg-white/70 dark:bg-[#1E293B]/70 hover:bg-[#E5B842]/15 text-[#0F172A] dark:text-[#FAF8F5] shadow-sm hover:scale-105 active:scale-95"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
               </svg>
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -352,31 +340,9 @@ export default function ReviewsSection() {
         </div>
       </div>
 
-      {/* ── Option A: Centered Modal Overlay (Read More) ── */}
       {activeModalReview && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
-          onClick={() => setActiveModalReview(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-review-author"
-        >
-          <div
-            className="relative w-full max-w-lg bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/35 rounded-3xl p-6 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.45)] text-[#0F172A] dark:text-[#FAF8F5] max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={() => setActiveModalReview(null)}
-              aria-label="Close review modal"
-              className="absolute top-5 right-5 w-8 h-8 rounded-full border border-[#0F172A]/10 dark:border-[#FAF8F5]/15 bg-black/5 dark:bg-white/5 hover:bg-[#E5B842]/20 flex items-center justify-center text-[#0F172A]/70 dark:text-[#FAF8F5]/70 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] transition-colors cursor-pointer"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
+        <Dialog open onOpenChange={(open) => { if (!open) setActiveModalReview(null); }}>
+          <DialogContent aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border-[#E5B842]/35 bg-[#FAF8F5] p-6 text-[#0F172A] dark:bg-[#0D1829] dark:text-[#FAF8F5] sm:max-w-lg sm:p-8">
             {/* Customer Header in Modal */}
             <div className="flex items-center gap-4 pr-10 mb-6">
               {/* Profile Image / Initial */}
@@ -396,9 +362,9 @@ export default function ReviewsSection() {
 
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 id="modal-review-author" className="font-serif text-lg font-medium">
+                  <DialogTitle className="font-serif text-lg font-medium">
                     {activeModalReview.author_name}
-                  </h3>
+                  </DialogTitle>
                   <span className="text-[10px] tracking-wider uppercase font-semibold text-[#6B3448] dark:text-[#E5B842] px-2 py-0.5 rounded-full bg-[#E5B842]/10 border border-[#E5B842]/25">
                     Verified Seeker
                   </span>
@@ -433,16 +399,16 @@ export default function ReviewsSection() {
 
             {/* Modal Bottom Close Action */}
             <div className="mt-8 flex justify-end">
-              <button
+              <Button variant="outline"
                 type="button"
                 onClick={() => setActiveModalReview(null)}
                 className="px-6 py-2.5 rounded-full border border-[#0F172A]/20 dark:border-[#FAF8F5]/20 hover:border-[#E5B842] text-xs font-semibold tracking-wider uppercase text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/10 transition-colors cursor-pointer"
               >
                 Close
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
     </section>
   );
@@ -512,15 +478,17 @@ function ReviewCard({
 
       {/* Read More Trigger Link */}
       <div className="pt-4 mt-2">
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="sm"
           tabIndex={isDuplicate ? -1 : 0}
           onClick={onOpenModal}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8B4254] dark:text-[#E5B842] hover:text-[#B8871E] transition-colors cursor-pointer group/link"
+          className="h-auto p-0 inline-flex items-center gap-1.5 text-xs font-semibold text-[#8B4254] dark:text-[#E5B842] hover:text-[#B8871E] group/link"
         >
           <span>Read more</span>
           <span className="transition-transform group-hover/link:translate-x-1">→</span>
-        </button>
+        </Button>
       </div>
     </div>
   );

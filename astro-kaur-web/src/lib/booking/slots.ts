@@ -5,8 +5,8 @@ import type {
   Settings,
 } from "./types";
 
-export function zonedParts(instant: number, zone: string) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
+export function zonedParts(instant: number, zone: string, formatter?: Intl.DateTimeFormat) {
+  const parts = (formatter || new Intl.DateTimeFormat("en-CA", {
     timeZone: zone,
     year: "numeric",
     month: "2-digit",
@@ -14,7 +14,7 @@ export function zonedParts(instant: number, zone: string) {
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
-  }).formatToParts(instant);
+  })).formatToParts(instant);
   const v = Object.fromEntries(parts.map((p) => [p.type, p.value]));
   const date = `${v.year}-${v.month}-${v.day}`;
   return {
@@ -36,6 +36,16 @@ export function overlaps(a: number, b: number, c: number, d: number) {
   return a < d && b > c;
 }
 
+export function coversBooking(settings: Settings, windows: AvailabilityWindow[], overrides: AvailabilityOverride[], startAt: string, endAt: string): boolean {
+  const start = zonedParts(Date.parse(startAt), settings.timezone);
+  const end = zonedParts(Date.parse(endAt) + settings.buffer_minutes * 60000, settings.timezone);
+  if (start.date !== end.date) return false;
+  const day = overrides.filter((entry) => entry.local_date === start.date);
+  const open = windows.some((entry) => entry.enabled !== false && entry.weekday === start.weekday && start.minute >= minute(entry.start_local) && end.minute <= minute(entry.end_local)) || day.some((entry) => entry.mode === "extra_open" && entry.start_local && entry.end_local && start.minute >= minute(entry.start_local) && end.minute <= minute(entry.end_local));
+  const blocked = day.some((entry) => entry.mode === "blocked" && (!entry.start_local || !entry.end_local || overlaps(start.minute, end.minute, minute(entry.start_local), minute(entry.end_local))));
+  return Boolean(open && !blocked);
+}
+
 // Iterate real UTC instants rather than constructing local dates. This skips nonexistent
 // spring times. Only the first occurrence of an ambiguous autumn wall time is offered.
 export function calculateSlots(
@@ -49,22 +59,34 @@ export function calculateSlots(
   if (!settings.booking_enabled || ![30, 45].includes(duration)) return [];
   const result: Interval[] = [],
     seen = new Set<string>();
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: settings.timezone,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  });
   const wallLimit =
-    zonedParts(now, settings.timezone).wall +
+    zonedParts(now, settings.timezone, formatter).wall +
     settings.advance_window_days * 86400000;
-  const first =
+  let first =
     Math.ceil((now + settings.min_notice_minutes * 60000) / 60000) * 60000;
+  const stepMinutes = settings.slot_step_minutes || 15;
+  const pFirst = zonedParts(first, settings.timezone, formatter);
+  const rem = pFirst.minute % stepMinutes;
+  if (rem !== 0) {
+    first += (stepMinutes - rem) * 60000;
+  }
   const last = now + (settings.advance_window_days + 1) * 86400000;
+  const step = stepMinutes * 60000;
   const ranges = busy.map((b) => [Date.parse(b.start), Date.parse(b.end)]);
-  for (let start = first; start <= last; start += 60000) {
-    const p = zonedParts(start, settings.timezone);
-    if (p.wall > wallLimit || p.minute % settings.slot_step_minutes) continue;
+  for (let start = first; start <= last; start += step) {
+    const p = zonedParts(start, settings.timezone, formatter);
+    if (p.wall > wallLimit || p.minute % stepMinutes) continue;
     const key = `${p.date}:${p.minute}`;
     if (seen.has(key)) continue;
     seen.add(key);
     const end = start + duration * 60000,
       blocked = end + settings.buffer_minutes * 60000;
-    const q = zonedParts(blocked, settings.timezone);
+    const q = zonedParts(blocked, settings.timezone, formatter);
     if (
       q.date !== p.date ||
       q.wall - p.wall !== (duration + settings.buffer_minutes) * 60000

@@ -3,6 +3,11 @@
 import React, { useState, useRef } from "react";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CELESTIAL_AVATARS } from "@/lib/avatar/celestialAvatars";
 import { validateImageFile, convertImageToWebP } from "@/lib/avatar/imageToWebP";
 
@@ -139,28 +144,8 @@ export default function AuthModal() {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-md animate-in fade-in duration-200"
-      onClick={closeAuthModal}
-    >
-      {/* Modal Container */}
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/35 shadow-2xl p-6 sm:p-8 text-[#0F172A] dark:text-[#FAF8F5] scrollbar-thin scrollbar-thumb-[#E5B842]/20"
-      >
-        {/* Subtle Ambient Background Glow */}
-        <div className="absolute -top-20 -right-20 w-52 h-52 bg-[#E5B842]/15 rounded-full blur-[80px] pointer-events-none" />
-        <div className="absolute -bottom-20 -left-20 w-52 h-52 bg-[#6B3448]/15 dark:bg-[#1E3A8A]/25 rounded-full blur-[80px] pointer-events-none" />
-
-        {/* Close Button */}
-        <button
-          onClick={closeAuthModal}
-          className="absolute top-5 right-5 w-8 h-8 rounded-full border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 flex items-center justify-center text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] hover:bg-[#E5B842]/10 transition-colors cursor-pointer"
-          aria-label="Close modal"
-        >
-          ✕
-        </button>
-
+    <Dialog open onOpenChange={(open) => { if (!open) closeAuthModal(); }}>
+      <DialogContent aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border-[#E5B842]/35 bg-[#FAF8F5] p-6 text-[#0F172A] dark:bg-[#0D1829] dark:text-[#FAF8F5] sm:max-w-md sm:p-8">
         {/* Brand Emblem Logo Header */}
         <div className="flex flex-col items-center text-center mb-5">
           <div className="relative w-14 h-14 mb-2">
@@ -179,46 +164,19 @@ export default function AuthModal() {
               className="object-contain hidden dark:block"
             />
           </div>
-          <h3 className="font-serif text-2xl font-medium tracking-tight">
+          <DialogTitle className="font-serif text-2xl font-medium tracking-tight">
             TheAstroKaur
-          </h3>
+          </DialogTitle>
           <p className="text-xs text-[#6B3448] dark:text-[#E5B842] tracking-[0.2em] uppercase font-semibold mt-0.5">
             Written In The Stars
           </p>
         </div>
 
-        {/* Tab Switcher: Sign In / Create Account */}
-        <div className="grid grid-cols-2 p-1 rounded-full bg-[#0F172A]/5 dark:bg-[#FAF8F5]/5 border border-[#E5B842]/20 mb-5">
-          <button
-            type="button"
-            onClick={() => {
-              setAuthModalTab("signin");
-              setErrorMsg(null);
-            }}
-            className={`py-2 rounded-full text-xs font-semibold tracking-wider uppercase transition-all duration-300 cursor-pointer ${
-              authModalTab === "signin"
-                ? "bg-[#E5B842] text-[#0F172A] shadow-sm font-bold"
-                : "text-[#0F172A]/70 dark:text-[#FAF8F5]/70 hover:text-[#0F172A] dark:hover:text-[#FAF8F5]"
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setAuthModalTab("signup");
-              setErrorMsg(null);
-            }}
-            className={`py-2 rounded-full text-xs font-semibold tracking-wider uppercase transition-all duration-300 cursor-pointer ${
-              authModalTab === "signup"
-                ? "bg-[#E5B842] text-[#0F172A] shadow-sm font-bold"
-                : "text-[#0F172A]/70 dark:text-[#FAF8F5]/70 hover:text-[#0F172A] dark:hover:text-[#FAF8F5]"
-            }`}
-          >
-            Create Account
-          </button>
-        </div>
-
+        <Tabs value={authModalTab} onValueChange={(value) => { setAuthModalTab(value as "signin" | "signup"); setErrorMsg(null); }}>
+          <TabsList className="mb-5 grid h-10 w-full grid-cols-2 bg-secondary">
+            <TabsTrigger value="signin" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground">Sign In</TabsTrigger>
+            <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground">Create Account</TabsTrigger>
+          </TabsList>
         {/* Feedback Messages */}
         {errorMsg && (
           <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs">
@@ -232,13 +190,13 @@ export default function AuthModal() {
         )}
 
         {/* ── Form: SIGN IN ── */}
-        {authModalTab === "signin" ? (
+        <TabsContent value="signin">
           <form onSubmit={handleSignIn} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+              <label htmlFor="auth-field-1" className="block text-xs font-medium uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                 Email Address
               </label>
-              <input
+              <Input id="auth-field-1"
                 type="email"
                 required
                 value={email}
@@ -253,7 +211,7 @@ export default function AuthModal() {
                 Password
               </label>
               <div className="relative">
-                <input
+                <Input
                   type={showPassword ? "text" : "password"}
                   required
                   value={password}
@@ -261,32 +219,35 @@ export default function AuthModal() {
                   placeholder="••••••••"
                   className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#131F33] border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 text-sm focus:outline-none focus:border-[#E5B842] focus:ring-1 focus:ring-[#E5B842] transition-colors pr-12"
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[#0F172A]/50 dark:text-[#FAF8F5]/50 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] cursor-pointer"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? "Hide" : "Show"}
-                </button>
+                </Button>
               </div>
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={submitting}
               className="w-full mt-2 py-3 rounded-full bg-gradient-to-r from-[#E5B842] via-[#F3CE6D] to-[#E5B842] hover:opacity-95 text-[#0F172A] font-bold text-xs tracking-widest uppercase shadow-[0_4px_16px_rgba(229,184,66,0.35)] transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
             >
               {submitting ? "Signing in..." : "Sign In"}
-            </button>
+            </Button>
           </form>
-        ) : (
-          /* ── Form: CREATE ACCOUNT ── */
+        </TabsContent>
+        <TabsContent value="signup">
+          {/* Form: create account */}
           <form onSubmit={handleSignUp} className="space-y-3.5">
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+              <label htmlFor="auth-field-2" className="block text-xs font-medium uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                 Full Name <span className="text-red-500">*</span>
               </label>
-              <input
+              <Input id="auth-field-2"
                 type="text"
                 required
                 value={displayName}
@@ -297,10 +258,10 @@ export default function AuthModal() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+              <label htmlFor="auth-field-3" className="block text-xs font-medium uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                 Email Address <span className="text-red-500">*</span>
               </label>
-              <input
+              <Input id="auth-field-3"
                 type="email"
                 required
                 value={email}
@@ -336,7 +297,7 @@ export default function AuthModal() {
                 Create Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <input
+                <Input
                   type={showPassword ? "text" : "password"}
                   required
                   value={password}
@@ -356,13 +317,15 @@ export default function AuthModal() {
                       : "border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 focus:border-[#E5B842] focus:ring-1 focus:ring-[#E5B842]"
                   }`}
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[#0F172A]/50 dark:text-[#FAF8F5]/50 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] cursor-pointer"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? "Hide" : "Show"}
-                </button>
+                </Button>
               </div>
 
               {/* Live Password Requirement Status (Green Light / Amber Countdown) */}
@@ -397,17 +360,19 @@ export default function AuthModal() {
                   Profile Avatar <span className="text-[10px] lowercase text-[#E5B842]">(optional)</span>
                 </label>
                 {(customAvatarPreview || selectedAvatar) && (
-                  <button
+                  <Button
                     type="button"
+                    variant="link"
+                    size="sm"
                     onClick={() => {
                       setSelectedAvatar("");
                       setCustomAvatarBlob(null);
                       setCustomAvatarPreview(null);
                     }}
-                    className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40 hover:text-red-500 transition-colors cursor-pointer"
+                    className="h-auto p-0 text-[10px] text-muted-foreground hover:text-destructive"
                   >
                     Skip
-                  </button>
+                  </Button>
                 )}
               </div>
 
@@ -424,29 +389,33 @@ export default function AuthModal() {
                 {customAvatarPreview ? (
                   <div className="relative w-11 h-9 rounded-xl overflow-hidden border-2 border-[#E5B842] shrink-0 group">
                     <img src={customAvatarPreview} alt="Preview" className="w-full h-full object-cover" />
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => {
                         setCustomAvatarBlob(null);
                         setCustomAvatarPreview(null);
                       }}
-                      className="absolute inset-0 bg-black/60 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      className="absolute inset-0 h-full w-full rounded-none bg-black/60 text-white text-[10px] p-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       title="Remove uploaded photo"
                     >
                       ✕
-                    </button>
+                    </Button>
                   </div>
                 ) : (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => photoInputRef.current?.click()}
                     disabled={convertingPhoto}
-                    className="px-2.5 py-1.5 rounded-xl border border-dashed border-[#E5B842]/60 hover:border-[#E5B842] hover:bg-[#E5B842]/10 text-xs font-semibold text-[#0F172A] dark:text-[#FAF8F5] flex items-center gap-1 transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                    className="h-8 px-2.5 rounded-xl border-dashed border-[#E5B842]/60 hover:border-[#E5B842] hover:bg-[#E5B842]/10 text-xs font-semibold gap-1 shrink-0"
                     title="Upload your own photo (PNG, JPG)"
                   >
                     <span>📷</span>
                     <span className="text-[11px]">{convertingPhoto ? "…" : "+ Photo"}</span>
-                  </button>
+                  </Button>
                 )}
 
                 {/* Celestial Avatar Options */}
@@ -454,23 +423,23 @@ export default function AuthModal() {
                   {CELESTIAL_AVATARS.map((av) => {
                     const active = !customAvatarPreview && selectedAvatar === av.id;
                     return (
-                      <button
+                      <Button
                         key={av.id}
                         type="button"
+                        variant={active ? "secondary" : "outline"}
+                        size="sm"
                         onClick={() => {
                           setCustomAvatarBlob(null);
                           setCustomAvatarPreview(null);
                           setSelectedAvatar(av.id);
                         }}
-                        className={`flex-1 py-1.5 rounded-xl border text-sm flex flex-col items-center justify-center transition-all cursor-pointer ${
-                          active
-                            ? "border-[#E5B842] bg-[#E5B842]/20 scale-105 shadow-2xs"
-                            : "border-[#0F172A]/10 dark:border-[#FAF8F5]/10 hover:border-[#E5B842]/50 hover:bg-[#E5B842]/5"
+                        className={`flex-1 h-8 py-0 rounded-xl ${
+                          active ? "border-[#E5B842] bg-[#E5B842]/20 scale-105" : ""
                         }`}
                         title={`${av.label} — ${av.meaning}`}
                       >
                         <span>{av.symbol}</span>
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
@@ -479,10 +448,12 @@ export default function AuthModal() {
 
             {/* ── Optional Astrological Birth Details Accordion ── */}
             <div className="pt-1 border-t border-[#0F172A]/10 dark:border-[#FAF8F5]/10">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowBirthDetails(!showBirthDetails)}
-                className="w-full flex items-center justify-between py-2 text-xs font-medium text-[#6B3448] dark:text-[#E5B842] hover:opacity-80 transition-opacity cursor-pointer"
+                className="w-full flex items-center justify-between py-2 h-auto text-xs font-medium text-[#6B3448] dark:text-[#E5B842] hover:bg-transparent"
               >
                 <span className="flex items-center gap-1.5">
                   <span>✦</span>
@@ -493,7 +464,7 @@ export default function AuthModal() {
                 <span className="text-xs transition-transform duration-200">
                   {showBirthDetails ? "▲" : "▼"}
                 </span>
-              </button>
+              </Button>
 
               {showBirthDetails && (
                 <div className="p-3.5 rounded-2xl bg-[#0F172A]/[0.03] dark:bg-[#FAF8F5]/[0.03] border border-[#E5B842]/20 space-y-3 mt-1 animate-in fade-in duration-200">
@@ -503,10 +474,10 @@ export default function AuthModal() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                      <label htmlFor="auth-field-4" className="block text-[11px] font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                         Date of Birth
                       </label>
-                      <input
+                      <Input id="auth-field-4"
                         type="date"
                         value={dateOfBirth}
                         onChange={(e) => setDateOfBirth(e.target.value)}
@@ -515,10 +486,10 @@ export default function AuthModal() {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                      <label htmlFor="auth-field-5" className="block text-[11px] font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                         Time of Birth
                       </label>
-                      <input
+                      <Input id="auth-field-5"
                         type="time"
                         disabled={timeUncertain}
                         value={timeOfBirth}
@@ -529,10 +500,10 @@ export default function AuthModal() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                    <label htmlFor="auth-field-6" className="block text-[11px] font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                       Place of Birth
                     </label>
-                    <input
+                    <Input id="auth-field-6"
                       type="text"
                       value={placeOfBirth}
                       onChange={(e) => setPlaceOfBirth(e.target.value)}
@@ -542,11 +513,10 @@ export default function AuthModal() {
                   </div>
 
                   <label className="flex items-center gap-2 text-[11px] text-[#0F172A]/70 dark:text-[#FAF8F5]/70 cursor-pointer pt-0.5">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={timeUncertain}
-                      onChange={(e) => setTimeUncertain(e.target.checked)}
-                      className="rounded accent-[#E5B842]"
+                      onCheckedChange={(checked) => setTimeUncertain(checked === true)}
+                      
                     />
                     <span>I don&apos;t know my exact birth time</span>
                   </label>
@@ -554,15 +524,16 @@ export default function AuthModal() {
               )}
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={submitting}
               className="w-full mt-2 py-3 rounded-full bg-gradient-to-r from-[#E5B842] via-[#F3CE6D] to-[#E5B842] hover:opacity-95 text-[#0F172A] font-bold text-xs tracking-widest uppercase shadow-[0_4px_16px_rgba(229,184,66,0.35)] transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
             >
               {submitting ? "Creating Account..." : "Create Account"}
-            </button>
+            </Button>
           </form>
-        )}
+        </TabsContent>
+        </Tabs>
 
         {/* Footer Note */}
         <p className="mt-4 text-center text-[11px] text-[#0F172A]/60 dark:text-[#FAF8F5]/60">
@@ -586,7 +557,7 @@ export default function AuthModal() {
           </a>
           .
         </p>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

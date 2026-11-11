@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
         throw new BookingError("Invalid service.");
     }
     return NextResponse.json(
-      await availability(serviceId, orderId || undefined),
+      await availability(serviceId, orderId || undefined, isAdmin && req.nextUrl.searchParams.get("admin") === "1"),
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {

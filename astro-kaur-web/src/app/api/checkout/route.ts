@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     ) {
       if (order.status === "pending_payment") await reconcileCheckout(order);
       throw new BookingError(
-        "This time is no longer reserved. Please choose another available slot.",
+        "This checkout is no longer available. Please start a new order.",
         409,
       );
     }

@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 import ChangeUserPassword from "@/components/admin/ChangeUserPassword";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 type CustomerProfile = Database["public"]["Tables"]["customer_profiles"]["Row"];
 type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
@@ -280,22 +284,23 @@ export default function AdminUserDetailPage({
 
         <div className="flex items-center gap-2 flex-wrap">
           <ChangeUserPassword key={profile.id} id={profile.id} email={profile.email} />
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setIsEditing(true)}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[#131F33] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 text-[#0F172A] dark:text-[#FAF8F5] hover:border-[#E5B842]/50 hover:bg-[#E5B842]/5 transition-all shadow-xs cursor-pointer"
           >
             Edit User
-          </button>
+          </Button>
 
-          <button
+          <Button
+            size="sm"
             onClick={() => {
               setTargetRole(profile.role === "admin" ? "customer" : "admin");
               setRoleDialogOpen(true);
             }}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-xs cursor-pointer"
           >
             {profile.role === "admin" ? "Demote to Customer" : "Promote to Admin"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -303,9 +308,14 @@ export default function AdminUserDetailPage({
       {actionError && (
         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/25 text-red-600 dark:text-red-400 text-xs flex items-center justify-between">
           <span>⚠ {actionError}</span>
-          <button onClick={() => setActionError(null)} className="underline ml-4">
+          <Button
+            variant="link"
+            size="sm"
+            onClick={() => setActionError(null)}
+            className="h-auto p-0 underline ml-4"
+          >
             Dismiss
-          </button>
+          </Button>
         </div>
       )}
 
@@ -322,27 +332,30 @@ export default function AdminUserDetailPage({
             1. ACCOUNT INFORMATION
           </p>
           <div className="flex items-center gap-2">
-            <span
-              className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+            <Badge
+              variant={profile.account_status === "active" ? "default" : profile.account_status === "suspended" ? "secondary" : "destructive"}
+              className={
                 profile.account_status === "active"
-                  ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
+                  ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-transparent uppercase"
                   : profile.account_status === "suspended"
-                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                  : "bg-rose-500/15 text-rose-700 dark:text-rose-300"
-              }`}
+                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-transparent uppercase"
+                  : "uppercase"
+              }
             >
               {profile.account_status || "active"}
-            </span>
+            </Badge>
 
-            <button
+            <Button
+              variant="link"
+              size="sm"
               onClick={() => {
                 setTargetStatus(profile.account_status === "active" ? "suspended" : "active");
                 setStatusDialogOpen(true);
               }}
-              className="text-xs text-[#E5B842] hover:underline font-medium ml-1"
+              className="h-auto p-0 text-xs text-[#E5B842] hover:underline font-medium ml-1"
             >
               Change Status
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -564,26 +577,26 @@ export default function AdminUserDetailPage({
               Prefer suspending or deactivating accounts to retain historical financial and reading audit records.
             </p>
           </div>
-          <button
+          <Button
+            variant="destructive"
+            size="sm"
             onClick={() => setDeleteDialogOpen(true)}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors cursor-pointer shadow-xs"
           >
             Delete Account…
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* ─── ROLE CONFIRMATION MODAL ─── */}
-      {roleDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-4 shadow-2xl">
-            <h3 className="font-serif text-xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
+      <Dialog open={roleDialogOpen} onOpenChange={(open) => { if (!savingRole) setRoleDialogOpen(open); }}>
+        <DialogContent showCloseButton={true} aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] space-y-4 overflow-y-auto rounded-2xl border-border bg-card p-6 text-card-foreground sm:max-w-md sm:p-8">
+            <DialogTitle className="font-serif text-xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
               {targetRole === "admin"
                 ? "Make this user an administrator?"
                 : "Demote administrator to customer?"}
-            </h3>
+            </DialogTitle>
 
-            <p className="text-xs text-[#0F172A]/70 dark:text-[#FAF8F5]/70 leading-relaxed">
+            <div className="text-xs text-[#0F172A]/70 dark:text-[#FAF8F5]/70 leading-relaxed">
               {targetRole === "admin" ? (
                 <>
                   Administrators have full operational access to TheAstroKaur. They can:
@@ -601,37 +614,36 @@ export default function AdminUserDetailPage({
                   <strong>{profile.email}</strong>. They will only have standard customer access to their personal account.
                 </>
               )}
-            </p>
+            </div>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setRoleDialogOpen(false)}
                 disabled={savingRole}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:bg-[#0F172A]/5 cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                size="sm"
                 onClick={handleConfirmRoleChange}
                 disabled={savingRole}
-                className="px-6 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 {savingRole ? "Updating Role…" : "Confirm Role Change"}
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {/* ─── STATUS CHANGE MODAL ─── */}
-      {statusDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-4 shadow-2xl">
-            <h3 className="font-serif text-xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
+{/* ─── STATUS CHANGE MODAL ─── */}
+      <Dialog open={statusDialogOpen} onOpenChange={(open) => { if (!savingStatus) setStatusDialogOpen(open); }}>
+        <DialogContent showCloseButton={true} aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] space-y-4 overflow-y-auto rounded-2xl border-border bg-card p-6 text-card-foreground sm:max-w-md sm:p-8">
+            <DialogTitle className="font-serif text-xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
               Update Account Status
-            </h3>
+            </DialogTitle>
             <p className="text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60">
               Select the operational status for <strong>{profile.email}</strong>:
             </p>
@@ -670,34 +682,33 @@ export default function AdminUserDetailPage({
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setStatusDialogOpen(false)}
                 disabled={savingStatus}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:bg-[#0F172A]/5 cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                size="sm"
                 onClick={handleConfirmStatusChange}
                 disabled={savingStatus}
-                className="px-6 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 {savingStatus ? "Saving Status…" : "Save Status"}
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {/* ─── DELETE USER MODAL ─── */}
-      {deleteDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-red-500/30 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-4 shadow-2xl">
-            <h3 className="font-serif text-xl font-semibold text-red-600 dark:text-red-400">
+{/* ─── DELETE USER MODAL ─── */}
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => { if (!deleting) setDeleteDialogOpen(open); }}>
+        <DialogContent showCloseButton={true} aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] space-y-4 overflow-y-auto rounded-2xl border-border bg-card p-6 text-card-foreground sm:max-w-md sm:p-8">
+            <DialogTitle className="font-serif text-xl font-semibold text-red-600 dark:text-red-400">
               Permanently Delete Account?
-            </h3>
+            </DialogTitle>
             <p className="text-xs text-[#0F172A]/70 dark:text-[#FAF8F5]/70 leading-relaxed">
               Are you sure you want to permanently delete <strong>{profile.email}</strong>?
               This will remove the user from Supabase Auth and customer profiles.
@@ -707,49 +718,53 @@ export default function AdminUserDetailPage({
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setDeleteDialogOpen(false)}
                 disabled={deleting}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:bg-[#0F172A]/5 cursor-pointer"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="destructive"
+                size="sm"
                 onClick={handleConfirmDelete}
                 disabled={deleting}
-                className="px-6 py-2.5 rounded-full text-xs font-semibold bg-red-600 text-white hover:bg-red-700 shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 {deleting ? "Deleting…" : "Permanently Delete"}
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {/* ─── EDIT PROFILE DRAWER ─── */}
-      {isEditing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-4 shadow-2xl">
+{/* ─── EDIT PROFILE DRAWER ─── */}
+      <Dialog open={isEditing} onOpenChange={(open) => { if (!savingEdit) setIsEditing(open); }}>
+        <DialogContent showCloseButton={false} aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] space-y-4 overflow-y-auto rounded-2xl border-border bg-card p-6 text-card-foreground sm:max-w-md sm:p-8">
             <div className="flex items-center justify-between pb-3 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
-              <h3 className="font-serif text-xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
+              <DialogTitle className="font-serif text-xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
                 Edit User Details
-              </h3>
-              <button
+              </DialogTitle>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setIsEditing(false)}
-                className="p-1 rounded-full text-[#0F172A]/50 dark:text-[#FAF8F5]/50 hover:bg-[#0F172A]/5 cursor-pointer"
+                aria-label="Close edit user details"
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
               >
                 ✕
-              </button>
+              </Button>
             </div>
 
             <form onSubmit={handleSaveEdit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                <label htmlFor="customer-field-1" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                   Display Name
                 </label>
-                <input
+                <Input id="customer-field-1"
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
@@ -758,10 +773,10 @@ export default function AdminUserDetailPage({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                <label htmlFor="customer-field-2" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                   Email
                 </label>
-                <input
+                <Input id="customer-field-2"
                   type="email"
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
@@ -771,10 +786,10 @@ export default function AdminUserDetailPage({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                  <label htmlFor="customer-field-3" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                     Date of Birth
                   </label>
-                  <input
+                  <Input id="customer-field-3"
                     type="date"
                     value={editDob}
                     onChange={(e) => setEditDob(e.target.value)}
@@ -782,10 +797,10 @@ export default function AdminUserDetailPage({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                  <label htmlFor="customer-field-4" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                     Time of Birth
                   </label>
-                  <input
+                  <Input id="customer-field-4"
                     type="time"
                     value={editTob}
                     onChange={(e) => setEditTob(e.target.value)}
@@ -795,10 +810,10 @@ export default function AdminUserDetailPage({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                <label htmlFor="customer-field-5" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                   Place of Birth
                 </label>
-                <input
+                <Input id="customer-field-5"
                   type="text"
                   value={editPob}
                   onChange={(e) => setEditPob(e.target.value)}
@@ -807,26 +822,27 @@ export default function AdminUserDetailPage({
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setIsEditing(false)}
                   disabled={savingEdit}
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:bg-[#0F172A]/5 cursor-pointer"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  size="sm"
                   disabled={savingEdit}
-                  className="px-6 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] shadow-xs disabled:opacity-50 cursor-pointer"
                 >
                   {savingEdit ? "Saving…" : "Save Changes"}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

@@ -57,12 +57,12 @@ export async function POST(req: NextRequest, context: Context) {
       order = await loadOrder(id);
     if (order.auth_user_id !== user.id)
       throw new BookingError("Order not found.", 404);
-    if (!["reschedule", "cancel", "withdrawal", "refund"].includes(body.action))
+    if (!["schedule", "reschedule", "cancel", "withdrawal", "refund"].includes(body.action))
       throw new BookingError("Invalid action.");
     if (body.confirmed !== true)
       throw new BookingError("Please confirm this change.");
-    if (body.action === "reschedule") {
-      if (!canReschedule(order))
+    if (body.action === "schedule" || body.action === "reschedule") {
+      if (body.action === "reschedule" && !canReschedule(order))
         throw new BookingError(
           "Self-service rescheduling has closed. Please contact support.",
           409,
@@ -70,6 +70,16 @@ export async function POST(req: NextRequest, context: Context) {
       const available = await availability(order.service_id!, order.id);
       if (!available.slots.some((s) => s.start === body.starts_at))
         throw new BookingError("Replacement time is unavailable.", 409);
+    }
+    if (body.action === "schedule") {
+      const result = check(await database().rpc("booking_schedule_paid", {
+        p_order: id,
+        p_actor: user.id,
+        p_start: body.starts_at,
+        p_admin: false,
+        p_timezone: typeof body.timezone === "string" ? body.timezone : null,
+      }));
+      return NextResponse.json({ order: result });
     }
     const result = check(
       await database().rpc("booking_change", {

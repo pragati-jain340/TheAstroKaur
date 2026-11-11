@@ -18,6 +18,8 @@ export interface BookingOrder extends Omit<Order, "status"> {
   reschedule_count: number;
   booking_version: number;
   refund_status: string;
+  duration_minutes_snapshot: number | null;
+  availability_notified_at: string | null;
 }
 export interface Settings {
   worker_last_seen_at?: string | null;

@@ -1,11 +1,18 @@
 "use client";
+import { NativeSelect } from "@/components/ui/native-select";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { ASCENDANT_READINGS, AscendantReading } from "@/lib/astrology/ascendantData";
-import { DEFAULT_FREE_READING_CONTENT, FreeReadingContent } from "@/lib/astrology/freeReadingContent";
 import { DEFAULT_VISION, type VisionContent } from "@/lib/homeContent";
+import AdminTestimonialsManager from "@/components/admin/AdminTestimonialsManager";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
 
 interface AboutContent {
   tag: string;
@@ -43,7 +50,7 @@ function getServiceSlug(title?: string): string {
 }
 
 export default function AdminContentPage() {
-  const [activeTab, setActiveTab] = useState<"about" | "vision" | "free-reading" | "readings">("about");
+  const [activeTab, setActiveTab] = useState<"testimonials" | "about" | "vision" | "free-reading" | "readings">("testimonials");
   const [loading, setLoading] = useState(true);
   const [savingAbout, setSavingAbout] = useState(false);
   const [savingVision, setSavingVision] = useState(false);
@@ -57,6 +64,7 @@ export default function AdminContentPage() {
     freeReadingContent: { exists: boolean; rows: number };
   } | null>(null);
   const [settingUpDb, setSettingUpDb] = useState(false);
+
 
   // Notifications
   const [notification, setNotification] = useState<{
@@ -78,7 +86,6 @@ export default function AdminContentPage() {
   const [visionForm, setVisionForm] = useState<VisionContent>(DEFAULT_VISION);
   const [selectedAscendant, setSelectedAscendant] = useState("Aries");
   const [ascendantContent, setAscendantContent] = useState<Record<string, AscendantReading>>(ASCENDANT_READINGS);
-  const [freeReadingForm, setFreeReadingForm] = useState<FreeReadingContent>(DEFAULT_FREE_READING_CONTENT);
 
   // Photo Upload & WebP Conversion state
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -644,8 +651,6 @@ export default function AdminContentPage() {
     }
   };
 
-  const activeServicesCount = services.filter((s) => s.is_active).length;
-  const hiddenServicesCount = services.filter((s) => !s.is_active).length;
   const readingSectionKeys = [
     ["Core Energy", "coreEnergy"],
     ["Career & Success", "careerSuccess"],
@@ -660,74 +665,21 @@ export default function AdminContentPage() {
       {/* ─── Header matching Admin Dashboard design ─── */}
       <div className="border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 pb-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Link
-              href="/admin"
-              className="text-[10px] font-bold tracking-widest text-[#E5B842] uppercase hover:underline"
-            >
-              ADMIN
-            </Link>
-            <span className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40">/</span>
-            <span className="text-[10px] font-bold tracking-widest text-[#0F172A]/50 dark:text-[#FAF8F5]/50 uppercase">
-              CONTENT
-            </span>
-          </div>
-          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#0F172A] dark:text-[#FAF8F5] tracking-tight uppercase">
-            WEBSITE CONTENT
-          </h1>
-          <p className="mt-1 text-sm text-[#0F172A]/60 dark:text-[#FAF8F5]/60">
-            Edit About Me and Vision sections copy, reading catalog prices, duration, and formats.
-          </p>
+          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">Website Content</h1>
+          <p className="mt-2 text-sm text-[#46505F] dark:text-[#BCC4D0]">Manage testimonials and the content customers see on the site.</p>
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={loadContent}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-[#131F33] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 text-[#0F172A] dark:text-[#FAF8F5] hover:border-[#E5B842]/50 hover:bg-[#E5B842]/5 transition-all shadow-xs cursor-pointer disabled:opacity-50 self-start sm:self-auto"
+          className="gap-2 self-start sm:self-auto"
         >
           <span className={loading ? "animate-spin" : ""}>↻</span>
           <span>Refresh</span>
-        </button>
-      </div>
-
-      {/* ─── Metrics Bar matching Testimonials & Overview tabs ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-4 shadow-xs">
-          <p className="text-[11px] font-bold tracking-wider text-[#0F172A]/50 dark:text-[#FAF8F5]/50 uppercase">
-            Active Readings
-          </p>
-          <p className="text-2xl font-serif font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-            {activeServicesCount}
-          </p>
-          <p className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40 mt-0.5">
-            Visible to clients
-          </p>
-        </div>
-
-        <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-4 shadow-xs">
-          <p className="text-[11px] font-bold tracking-wider text-[#0F172A]/50 dark:text-[#FAF8F5]/50 uppercase">
-            Hidden Readings
-          </p>
-          <p className="text-2xl font-serif font-bold text-[#0F172A]/60 dark:text-[#FAF8F5]/60 mt-1">
-            {hiddenServicesCount}
-          </p>
-          <p className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40 mt-0.5">
-            Draft / Inactive
-          </p>
-        </div>
-
-        <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-4 shadow-xs">
-          <p className="text-[11px] font-bold tracking-wider text-[#E5B842] uppercase">
-            Pricing Tiers
-          </p>
-          <p className="text-2xl font-serif font-bold text-[#E5B842] mt-1">
-            €20 – €60
-          </p>
-          <p className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40 mt-0.5">
-            Text &amp; Voice calls
-          </p>
-        </div>
+        </Button>
       </div>
 
       {/* ─── Database Setup Warning Banner ─── */}
@@ -747,30 +699,19 @@ export default function AdminContentPage() {
               </p>
             </div>
           </div>
-          <button
+          <Button
             type="button"
+            size="sm"
             onClick={handleSetupDb}
             disabled={settingUpDb}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-all shadow-xs cursor-pointer disabled:opacity-60 shrink-0"
+            className="gap-2 bg-amber-500 text-white hover:bg-amber-600 shrink-0"
           >
             {settingUpDb ? (
               <><span className="animate-spin">⟳</span> Creating tables…</>
             ) : (
               <>⚡ Create Tables Now</>
             )}
-          </button>
-        </div>
-      )}
-
-      {/* ─── DB tables all good banner ─── */}
-      {dbStatus && dbStatus.profiles.exists && dbStatus.services.exists && dbStatus.freeReadingContent.exists && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-emerald-500/25 bg-emerald-500/6 text-[11px] text-emerald-700 dark:text-emerald-400">
-          <span>✓</span>
-          <span>
-            Database ready — <code>profiles</code> ({dbStatus.profiles.rows} row{dbStatus.profiles.rows !== 1 ? "s" : ""}){" "}
-            &amp; <code>services</code> ({dbStatus.services.rows} service{dbStatus.services.rows !== 1 ? "s" : ""})
-            {" "}&amp; <code>free_reading_content</code> ({dbStatus.freeReadingContent.rows} record{dbStatus.freeReadingContent.rows !== 1 ? "s" : ""})
-          </span>
+          </Button>
         </div>
       )}
 
@@ -787,84 +728,46 @@ export default function AdminContentPage() {
             <span>{notification.type === "success" ? "✓" : "⚠"}</span>
             <span>{notification.message}</span>
           </div>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => setNotification(null)}
-            className="text-xs opacity-70 hover:opacity-100 cursor-pointer p-1"
+            className="h-6 w-6 p-0 text-xs opacity-70 hover:opacity-100"
             aria-label="Dismiss notification"
           >
             ✕
-          </button>
+          </Button>
         </div>
       )}
 
-      {/* ─── Filter & Sub-Tabs Bar matching Readings & Users tabs ─── */}
-      <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-xs">
-        {/* Unified Tab Pills Container */}
-        <div className="inline-flex max-w-full overflow-x-auto shrink-0 [&>button]:shrink-0 p-1 rounded-xl bg-white dark:bg-[#131F33] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 self-start">
-          <button
-            type="button"
-            onClick={() => setActiveTab("about")}
-            className={`px-4 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-              activeTab === "about"
-                ? "bg-[#E5B842] text-[#0F172A] font-semibold shadow-xs"
-                : "text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#0F172A] dark:hover:text-[#FAF8F5]"
-            }`}
-          >
-            About Me Section
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("vision")}
-            className={`px-4 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-              activeTab === "vision"
-                ? "bg-[#E5B842] text-[#0F172A] font-semibold shadow-xs"
-                : "text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#0F172A] dark:hover:text-[#FAF8F5]"
-            }`}
-          >
-            Vision Section
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("free-reading")}
-            className={`px-4 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-              activeTab === "free-reading"
-                ? "bg-[#E5B842] text-[#0F172A] font-semibold shadow-xs"
-                : "text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#0F172A] dark:hover:text-[#FAF8F5]"
-            }`}
-          >
-            Free Reading
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("readings")}
-            className={`px-4 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-              activeTab === "readings"
-                ? "bg-[#E5B842] text-[#0F172A] font-semibold shadow-xs"
-                : "text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#0F172A] dark:hover:text-[#FAF8F5]"
-            }`}
-          >
-            Readings &amp; Services ({services.length})
-          </button>
-        </div>
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)} className="gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <TabsList aria-label="Website content sections" className="grid !h-auto w-full grid-cols-2 gap-1 bg-secondary p-1 sm:flex sm:w-fit">
+          <TabsTrigger className="min-h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground" value="testimonials">Testimonials</TabsTrigger>
+          <TabsTrigger className="min-h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground" value="about">About Me Section</TabsTrigger>
+          <TabsTrigger className="min-h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground" value="vision">Vision Section</TabsTrigger>
+          <TabsTrigger className="min-h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground" value="free-reading">Free Reading</TabsTrigger>
+          <TabsTrigger className="min-h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground" value="readings">Readings &amp; Services ({services.length})</TabsTrigger>
+        </TabsList>
 
         {/* Action Button for Readings Tab */}
         {activeTab === "readings" && (
-          <button
+          <Button
             type="button"
+            size="sm"
             onClick={openCreateService}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-xs cursor-pointer self-start sm:self-auto"
+            className="rounded-full px-5 py-2.5 text-xs font-semibold self-start sm:self-auto"
           >
             <span>+ Add New Reading</span>
-          </button>
+          </Button>
         )}
       </div>
 
+      <TabsContent value="testimonials"><AdminTestimonialsManager /></TabsContent>
+
       {/* ── SUB-TAB 1: ABOUT ME SECTION ── */}
-      {activeTab === "about" && (
+      <TabsContent value="about">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left: Edit Form */}
           <div className="lg:col-span-7 bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-6 sm:p-7 shadow-xs">
@@ -875,10 +778,10 @@ export default function AdminContentPage() {
             <form onSubmit={handleSaveAbout} className="space-y-4">
               {/* Badge Label */}
               <div>
-                <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                <label htmlFor="content-field-1" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                   Badge Label (Uppercase Pill)
                 </label>
-                <input
+                <Input id="content-field-1"
                   type="text"
                   value={aboutForm.tag}
                   onChange={(e) => setAboutForm({ ...aboutForm, tag: e.target.value })}
@@ -891,10 +794,10 @@ export default function AdminContentPage() {
               {/* Heading: Prefix & Name */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                  <label htmlFor="content-field-2" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                     Heading Line 1
                   </label>
-                  <input
+                  <Input id="content-field-2"
                     type="text"
                     value={aboutForm.heading_prefix}
                     onChange={(e) =>
@@ -906,10 +809,10 @@ export default function AdminContentPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                  <label htmlFor="content-field-3" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                     Heading Line 2 (Gold Accent)
                   </label>
-                  <input
+                  <Input id="content-field-3"
                     type="text"
                     value={aboutForm.heading_name}
                     onChange={(e) =>
@@ -924,10 +827,10 @@ export default function AdminContentPage() {
 
               {/* Story Paragraph 1 */}
               <div>
-                <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                <label htmlFor="content-field-4" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                   Story Paragraph 1 (Academic Background &amp; Rational Logic)
                 </label>
-                <textarea
+                <Textarea id="content-field-4"
                   rows={4}
                   value={aboutForm.paragraph_1}
                   onChange={(e) =>
@@ -940,10 +843,10 @@ export default function AdminContentPage() {
 
               {/* Story Paragraph 2 */}
               <div>
-                <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                <label htmlFor="content-field-5" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                   Story Paragraph 2 (Astrological Awakening &amp; Growth)
                 </label>
-                <textarea
+                <Textarea id="content-field-5"
                   rows={4}
                   value={aboutForm.paragraph_2}
                   onChange={(e) =>
@@ -985,7 +888,7 @@ export default function AdminContentPage() {
                       : "border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-[#FAF8F5]/50 dark:bg-[#131F33]/50 hover:border-[#E5B842]/60"
                   }`}
                 >
-                  <input
+                  <Input
                     ref={fileInputRef}
                     type="file"
                     accept="image/png,image/jpeg,image/jpg,image/webp,image/avif"
@@ -1011,11 +914,12 @@ export default function AdminContentPage() {
 
                     <div className="text-center sm:text-left space-y-1.5 flex-1">
                       <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                        <button
+                        <Button
                           type="button"
+                          size="sm"
                           onClick={() => fileInputRef.current?.click()}
                           disabled={uploadingPhoto}
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] shadow-xs cursor-pointer transition-all disabled:opacity-50"
+                          className="gap-2 text-xs font-semibold uppercase tracking-wider"
                         >
                           {uploadingPhoto ? (
                             <>
@@ -1027,7 +931,7 @@ export default function AdminContentPage() {
                               <span>↑ Choose Image from PC</span>
                             </>
                           )}
-                        </button>
+                        </Button>
                         <span className="text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
                           or drag &amp; drop file here
                         </span>
@@ -1051,10 +955,10 @@ export default function AdminContentPage() {
 
               {/* Submit CTA */}
               <div className="pt-3">
-                <button
+                <Button
                   type="submit"
                   disabled={savingAbout}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                  className="rounded-full px-6 py-2.5 text-xs font-semibold"
                 >
                   {savingAbout ? (
                     <>
@@ -1067,7 +971,7 @@ export default function AdminContentPage() {
                       <span>→</span>
                     </>
                   )}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -1110,10 +1014,10 @@ export default function AdminContentPage() {
             </div>
           </div>
         </div>
-      )}
+      </TabsContent>
 
       {/* ── SUB-TAB: VISION SECTION ── */}
-      {activeTab === "vision" && (
+      <TabsContent value="vision">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left: Edit Form */}
           <div className="lg:col-span-7 bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-6 sm:p-7 shadow-xs">
@@ -1126,23 +1030,25 @@ export default function AdminContentPage() {
                   Customize the philosophical vision section presented on the homepage.
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="link"
+                size="sm"
                 onClick={() => setVisionForm(DEFAULT_VISION)}
-                className="text-[11px] font-medium text-[#E5B842] hover:underline cursor-pointer"
+                className="h-auto p-0 text-[11px] font-medium text-[#E5B842] hover:underline"
                 title="Restore default copy"
               >
                 Reset to Default
-              </button>
+              </Button>
             </div>
 
             <form onSubmit={handleSaveVision} className="space-y-4">
               {/* Badge Label */}
               <div>
-                <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                <label htmlFor="content-field-6" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                   Badge Label (Uppercase Pill)
                 </label>
-                <input
+                <Input id="content-field-6"
                   type="text"
                   value={visionForm.tag}
                   onChange={(e) => setVisionForm({ ...visionForm, tag: e.target.value })}
@@ -1158,10 +1064,10 @@ export default function AdminContentPage() {
               {/* Headline Line 1 & Line 2 */}
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                  <label htmlFor="content-field-7" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                     Headline Line 1
                   </label>
-                  <input
+                  <Input id="content-field-7"
                     type="text"
                     value={visionForm.heading_line_1}
                     onChange={(e) =>
@@ -1174,10 +1080,10 @@ export default function AdminContentPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                  <label htmlFor="content-field-8" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                     Headline Line 2 (Sub-line)
                   </label>
-                  <input
+                  <Input id="content-field-8"
                     type="text"
                     value={visionForm.heading_line_2}
                     onChange={(e) =>
@@ -1191,10 +1097,10 @@ export default function AdminContentPage() {
 
               {/* Vision Paragraph 1 */}
               <div>
-                <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                <label htmlFor="content-field-9" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                   Vision Statement — Paragraph 1 (Perspective &amp; Awareness)
                 </label>
-                <textarea
+                <Textarea id="content-field-9"
                   rows={4}
                   value={visionForm.paragraph_1}
                   onChange={(e) =>
@@ -1208,10 +1114,10 @@ export default function AdminContentPage() {
 
               {/* Vision Paragraph 2 */}
               <div>
-                <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                <label htmlFor="content-field-10" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                   Vision Statement — Paragraph 2 (Bridging Ancient Vedic Wisdom)
                 </label>
-                <textarea
+                <Textarea id="content-field-10"
                   rows={4}
                   value={visionForm.paragraph_2}
                   onChange={(e) =>
@@ -1224,10 +1130,10 @@ export default function AdminContentPage() {
 
               {/* Submit CTA */}
               <div className="pt-3 flex items-center gap-3">
-                <button
+                <Button
                   type="submit"
                   disabled={savingVision}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                  className="rounded-full px-6 py-2.5 text-xs font-semibold"
                 >
                   {savingVision ? (
                     <>
@@ -1240,7 +1146,7 @@ export default function AdminContentPage() {
                       <span>→</span>
                     </>
                   )}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -1311,60 +1217,26 @@ export default function AdminContentPage() {
             </p>
           </div>
         </div>
-      )}
+      </TabsContent>
 
       {/* ── SUB-TAB 2: READINGS & SERVICES ── */}
-      {activeTab === "free-reading" && (
+      <TabsContent value="free-reading">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div className="lg:col-span-8 bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-6 sm:p-7 shadow-xs">
             <h2 className="font-serif text-lg font-semibold text-[#0F172A] dark:text-[#FAF8F5] uppercase tracking-wide">Edit Ascendant Reading</h2>
             <p className="text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60 mt-1 mb-5">Choose a sign and edit the complete reading shown to people with that Ascendant.</p>
             <form onSubmit={handleSaveFreeReading} className="space-y-4">
-              <div><label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">Ascendant Sign</label><select value={selectedAscendant} onChange={(e) => setSelectedAscendant(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-[#FAF8F5] dark:bg-[#131F33] text-sm text-[#0F172A] dark:text-[#FAF8F5]">{Object.keys(ASCENDANT_READINGS).map((sign) => <option key={sign}>{sign}</option>)}</select></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">Sanskrit Name</label><input value={ascendantContent[selectedAscendant].sanskritName} onChange={(e) => setAscendantContent({ ...ascendantContent, [selectedAscendant]: { ...ascendantContent[selectedAscendant], sanskritName: e.target.value } })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 bg-white dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-sm" /></div><div><label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">Ruling Planet</label><input value={ascendantContent[selectedAscendant].ruler} onChange={(e) => setAscendantContent({ ...ascendantContent, [selectedAscendant]: { ...ascendantContent[selectedAscendant], ruler: e.target.value } })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 bg-white dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-sm" /></div></div>
-              {readingSectionKeys.map(([label, key]) => { const section = ascendantContent[selectedAscendant][key]; return <div key={key} className="p-4 rounded-2xl border border-[#E5B842]/25 bg-[#E5B842]/5 space-y-3"><label className="block text-sm font-semibold text-[#0F172A] dark:text-[#FAF8F5]">{label}</label><input value={section.title} onChange={(e) => setAscendantContent({ ...ascendantContent, [selectedAscendant]: { ...ascendantContent[selectedAscendant], [key]: { ...section, title: e.target.value } } })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 bg-white dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-sm" placeholder="Section heading" /><textarea rows={5} value={section.paragraphs.join('\n\n')} onChange={(e) => setAscendantContent({ ...ascendantContent, [selectedAscendant]: { ...ascendantContent[selectedAscendant], [key]: { ...section, paragraphs: e.target.value.split(/\n\s*\n/).filter(Boolean) } } })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 bg-white dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-sm leading-relaxed" placeholder="Write one paragraph, leave a blank line, then write the next." /><p className="text-[10px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50">Use a blank line between paragraphs.</p></div>; })}
-              <button type="submit" disabled={savingFreeReading} className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-xs cursor-pointer disabled:opacity-50">{savingFreeReading ? "Saving..." : `Save ${selectedAscendant} Reading`}</button>
+              <div><label htmlFor="content-field-11" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">Ascendant Sign</label><NativeSelect id="content-field-11" value={selectedAscendant} onChange={(e) => setSelectedAscendant(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-[#FAF8F5] dark:bg-[#131F33] text-sm text-[#0F172A] dark:text-[#FAF8F5]">{Object.keys(ASCENDANT_READINGS).map((sign) => <option key={sign}>{sign}</option>)}</NativeSelect></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label htmlFor="content-field-12" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">Sanskrit Name</label><Input id="content-field-12" value={ascendantContent[selectedAscendant].sanskritName} onChange={(e) => setAscendantContent({ ...ascendantContent, [selectedAscendant]: { ...ascendantContent[selectedAscendant], sanskritName: e.target.value } })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 bg-white dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-sm" /></div><div><label htmlFor="content-field-13" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">Ruling Planet</label><Input id="content-field-13" value={ascendantContent[selectedAscendant].ruler} onChange={(e) => setAscendantContent({ ...ascendantContent, [selectedAscendant]: { ...ascendantContent[selectedAscendant], ruler: e.target.value } })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 bg-white dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-sm" /></div></div>
+              {readingSectionKeys.map(([label, key]) => { const section = ascendantContent[selectedAscendant][key]; return <div key={key} className="p-4 rounded-2xl border border-[#E5B842]/25 bg-[#E5B842]/5 space-y-3"><label className="block text-sm font-semibold text-[#0F172A] dark:text-[#FAF8F5]">{label}</label><Input value={section.title} onChange={(e) => setAscendantContent({ ...ascendantContent, [selectedAscendant]: { ...ascendantContent[selectedAscendant], [key]: { ...section, title: e.target.value } } })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 bg-white dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-sm" placeholder="Section heading" /><Textarea rows={5} value={section.paragraphs.join('\n\n')} onChange={(e) => setAscendantContent({ ...ascendantContent, [selectedAscendant]: { ...ascendantContent[selectedAscendant], [key]: { ...section, paragraphs: e.target.value.split(/\n\s*\n/).filter(Boolean) } } })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 bg-white dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-sm leading-relaxed" placeholder="Write one paragraph, leave a blank line, then write the next." /><p className="text-[10px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50">Use a blank line between paragraphs.</p></div>; })}
+              <Button type="submit" disabled={savingFreeReading} className="rounded-full px-6 py-2.5 text-xs font-semibold">{savingFreeReading ? "Saving..." : `Save ${selectedAscendant} Reading`}</Button>
             </form>
           </div>
           <div className="lg:col-span-4 bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-6 shadow-xs sticky top-6"><p className="text-[10px] font-bold tracking-widest uppercase text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mb-4">Live reading preview</p><div className="max-h-[70vh] overflow-y-auto p-5 rounded-2xl bg-gradient-to-b from-[#E5B842]/20 to-transparent border border-[#E5B842]/35 space-y-5"><div><h3 className="font-serif text-2xl text-[#0F172A] dark:text-[#FAF8F5]">{selectedAscendant} Ascendant</h3><p className="text-xs italic text-[#0F172A]/60 mt-1">{ascendantContent[selectedAscendant]?.sanskritName} Lagna · Ruled by {ascendantContent[selectedAscendant]?.ruler}</p></div>{(['coreEnergy', 'careerSuccess', 'loveRelationships', 'moneySecurity', 'emotionalWorld', 'hiddenPotential'] as const).map((key) => <div key={key} className="border-t border-[#0F172A]/10 pt-4"><h4 className="font-serif text-lg text-[#0F172A] dark:text-[#FAF8F5]">{ascendantContent[selectedAscendant][key].title}</h4>{ascendantContent[selectedAscendant][key].paragraphs.map((paragraph, index) => <p key={index} className="mt-2 text-xs leading-relaxed text-[#0F172A]/70 dark:text-[#FAF8F5]/70">{paragraph}</p>)}</div>)}</div></div>
         </div>
-      )}
+      </TabsContent>
 
-      {false && activeTab === "free-reading" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <div className="lg:col-span-7 bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-6 sm:p-7 shadow-xs">
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <div>
-                <h2 className="font-serif text-lg font-semibold text-[#0F172A] dark:text-[#FAF8F5] uppercase tracking-wide">Edit Free Reading Section</h2>
-                <p className="text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60 mt-1">Control the public copy shown before and after a visitor receives their Vedic Ascendant reading.</p>
-              </div>
-              <button type="button" onClick={() => setFreeReadingForm(DEFAULT_FREE_READING_CONTENT)} className="shrink-0 text-[11px] font-medium text-[#E5B842] hover:underline cursor-pointer">Reset to Default</button>
-            </div>
-            <form onSubmit={handleSaveFreeReading} className="space-y-4">
-              {Object.entries(freeReadingForm).map(([key, value]) => {
-                const label = key.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-                const isLongCopy = ["section_intro", "sign_in_description", "cta_description", "cta_quote"].includes(key);
-                return <div key={key}>
-                  <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">{label}</label>
-                  {isLongCopy ? <textarea rows={3} value={value} onChange={(e) => setFreeReadingForm({ ...freeReadingForm, [key]: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-[#FAF8F5] dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40" required /> : <input type="text" value={value} onChange={(e) => setFreeReadingForm({ ...freeReadingForm, [key]: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-[#FAF8F5] dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] text-xs focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40" required />}
-                </div>;
-              })}
-              <button type="submit" disabled={savingFreeReading} className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-xs cursor-pointer disabled:opacity-50">{savingFreeReading ? "Saving..." : "Save Free Reading Section"}</button>
-            </form>
-          </div>
-          <div className="lg:col-span-5 bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-6 shadow-xs sticky top-6">
-            <p className="text-[10px] font-bold tracking-widest uppercase text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mb-4">Live homepage preview</p>
-            <div className="text-center p-6 rounded-2xl bg-gradient-to-b from-[#E5B842]/20 via-[#E5B842]/5 to-transparent border border-[#E5B842]/35 space-y-4">
-              <h3 className="font-serif text-2xl text-[#0F172A] dark:text-[#FAF8F5]">{freeReadingForm.section_heading}</h3>
-              <p className="text-xs leading-relaxed text-[#0F172A]/70 dark:text-[#FAF8F5]/70">{freeReadingForm.section_intro}</p>
-              <span className="inline-block px-3 py-1 rounded-full text-[10px] bg-white/70 dark:bg-[#0F172A]/70 border border-[#0F172A]/10 dark:border-white/10 text-[#0F172A]/70 dark:text-[#FAF8F5]/70">{freeReadingForm.eligibility_note}</span>
-              <div className="pt-5 border-t border-[#0F172A]/10 dark:border-white/10"><h4 className="font-serif text-xl text-[#0F172A] dark:text-[#FAF8F5]">{freeReadingForm.cta_heading}</h4><p className="mt-2 text-xs text-[#0F172A]/70 dark:text-[#FAF8F5]/70">{freeReadingForm.cta_description}</p><p className="mt-3 text-xs font-semibold text-[#6B3448] dark:text-[#E5B842]">✦ {freeReadingForm.cta_accent}</p><button type="button" className="mt-4 px-5 py-2.5 rounded-full bg-[#E5B842] text-[#0F172A] text-[10px] font-bold uppercase">{freeReadingForm.cta_primary_label}</button></div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === "readings" && (
+      <TabsContent value="readings">
         <div className="space-y-6">
           {/* Services Cards Grid: Spacious & Breathable */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
@@ -1413,10 +1285,12 @@ export default function AdminContentPage() {
                         <span>{service.format === "voice_call" ? "Voice call" : "Text-based"}</span>
                       </div>
 
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleToggleActive(service)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-semibold tracking-wider uppercase border transition-all cursor-pointer ${
+                        className={`h-6 rounded-full px-3 text-[10.5px] font-semibold tracking-wider uppercase ${
                           service.is_active
                             ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20"
                             : "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/25 hover:bg-slate-500/20"
@@ -1424,12 +1298,12 @@ export default function AdminContentPage() {
                         title="Click to toggle Active status"
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${
+                          className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
                             service.is_active ? "bg-emerald-500" : "bg-slate-400"
                           }`}
                         />
                         <span>{service.is_active ? "Active" : "Hidden"}</span>
-                      </button>
+                      </Button>
                     </div>
 
                     {/* Celestial Logo Artwork (Matching the Website Theme) */}
@@ -1492,26 +1366,30 @@ export default function AdminContentPage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={() => openEditService(service)}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold uppercase tracking-wider border border-[#E5B842]/30 hover:border-[#E5B842] bg-white dark:bg-[#131F33] text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/10 transition-all cursor-pointer shadow-xs"
+                          className="h-8 gap-1.5 rounded-xl px-3.5 text-xs font-semibold uppercase tracking-wider"
                         >
                           <span>Edit</span>
                           <span className="text-xs text-[#E5B842]">✎</span>
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={() => confirmDeleteService(service)}
-                          className="inline-flex items-center justify-center p-2 rounded-xl text-xs font-semibold border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 text-[#0F172A]/40 dark:text-[#FAF8F5]/40 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/10 transition-all cursor-pointer shadow-xs"
+                          className="h-8 w-8 p-0 rounded-xl text-xs text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/10"
                           title={`Delete ${service.title}`}
                           aria-label={`Delete ${service.title}`}
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                           </svg>
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -1520,33 +1398,16 @@ export default function AdminContentPage() {
             })}
           </div>
         </div>
-      )}
+      </TabsContent>
+
+      </Tabs>
 
       {/* ── SERVICE EDIT / CREATE MODAL ── */}
-      {isServiceModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className="relative w-full max-w-lg bg-white dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-2xl p-6 sm:p-7 shadow-2xl text-[#0F172A] dark:text-[#FAF8F5] max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 mb-5">
-              <h3 className="font-serif text-lg font-semibold uppercase tracking-wide">
-                {isCreatingNew ? "Add New Reading Service" : "Edit Reading Service"}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsServiceModalOpen(false)}
-                className="w-8 h-8 rounded-full border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 flex items-center justify-center hover:bg-[#0F172A]/5 dark:hover:bg-[#FAF8F5]/5 cursor-pointer text-xs"
-                aria-label="Close modal"
-              >
-                ✕
-              </button>
-            </div>
+      <Dialog open={isServiceModalOpen} onOpenChange={setIsServiceModalOpen}>
+        <DialogContent aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border-[#E5B842]/30 bg-white p-6 text-[#0F172A] dark:bg-[#0D1829] dark:text-[#FAF8F5] sm:max-w-lg sm:p-7">
+          <DialogTitle className="mb-5 border-b border-[#0F172A]/10 pb-4 pr-8 font-serif text-lg dark:border-white/10">
+            {isCreatingNew ? "Add New Reading Service" : "Edit Reading Service"}
+          </DialogTitle>
 
             <form onSubmit={handleSaveService} className="space-y-4">
               {/* Artwork / Icon Image Uploader with WebP conversion */}
@@ -1580,7 +1441,7 @@ export default function AdminContentPage() {
                       : "border-[#0F172A]/15 dark:border-[#FAF8F5]/15 bg-[#FAF8F5]/50 dark:bg-[#131F33]/50 hover:border-[#E5B842]/60"
                   }`}
                 >
-                  <input
+                  <Input
                     ref={serviceFileInputRef}
                     type="file"
                     accept="image/png,image/jpeg,image/jpg,image/webp,image/avif"
@@ -1626,11 +1487,12 @@ export default function AdminContentPage() {
                     {/* Upload Controls & Status */}
                     <div className="text-left space-y-1.5 flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <button
+                        <Button
                           type="button"
+                          size="sm"
                           onClick={() => serviceFileInputRef.current?.click()}
                           disabled={uploadingServicePhoto}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold uppercase tracking-wider bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] shadow-xs cursor-pointer transition-all disabled:opacity-50"
+                          className="gap-1.5 rounded-xl px-3.5 text-xs font-semibold uppercase tracking-wider"
                         >
                           {uploadingServicePhoto ? (
                             <>
@@ -1642,20 +1504,22 @@ export default function AdminContentPage() {
                               <span>↑ Choose Image from PC</span>
                             </>
                           )}
-                        </button>
+                        </Button>
 
                         {serviceForm.image_url && (
-                          <button
+                          <Button
                             type="button"
+                            variant="outline"
+                            size="sm"
                             onClick={() => {
                               setServiceForm((prev) => ({ ...prev, image_url: "" }));
                               setServiceWebpStatus(null);
                             }}
-                            className="px-2.5 py-1.5 rounded-xl text-[11px] font-medium text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:bg-rose-500/10 cursor-pointer transition-colors"
+                            className="h-8 rounded-xl px-2.5 text-[11px] text-destructive hover:bg-destructive/10 border-destructive/20"
                             title="Reset to default celestial artwork"
                           >
                             Reset Default
-                          </button>
+                          </Button>
                         )}
                       </div>
 
@@ -1677,10 +1541,10 @@ export default function AdminContentPage() {
 
               {/* Title */}
               <div>
-                <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                <label htmlFor="content-field-14" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                   Reading Title
                 </label>
-                <input
+                <Input id="content-field-14"
                   type="text"
                   value={serviceForm.title}
                   onChange={(e) => setServiceForm({ ...serviceForm, title: e.target.value })}
@@ -1693,10 +1557,10 @@ export default function AdminContentPage() {
               {/* Format & Duration */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                  <label htmlFor="content-field-15" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                     Format
                   </label>
-                  <select
+                  <NativeSelect id="content-field-15"
                     value={serviceForm.format}
                     onChange={(e) =>
                       setServiceForm({
@@ -1708,14 +1572,14 @@ export default function AdminContentPage() {
                   >
                     <option value="voice_call">Voice call (Interactive)</option>
                     <option value="text">Text-based reading</option>
-                  </select>
+                  </NativeSelect>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                  <label htmlFor="content-field-16" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                     Duration (Minutes)
                   </label>
-                  <input
+                  <Input id="content-field-16"
                     type="number"
                     value={serviceForm.format === "text" ? "" : serviceForm.duration_minutes}
                     disabled={serviceForm.format === "text"}
@@ -1738,7 +1602,7 @@ export default function AdminContentPage() {
                     <span className="absolute left-3.5 top-2.5 text-xs text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
                       €
                     </span>
-                    <input
+                    <Input
                       type="number"
                       min={1}
                       step={1}
@@ -1754,10 +1618,10 @@ export default function AdminContentPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                  <label htmlFor="content-field-17" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                     Sort Order
                   </label>
-                  <input
+                  <Input id="content-field-17"
                     type="number"
                     min={1}
                     value={serviceForm.sort_order}
@@ -1773,10 +1637,10 @@ export default function AdminContentPage() {
 
               {/* Description */}
               <div>
-                <label className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                <label htmlFor="content-field-18" className="block text-xs font-medium text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                   Description
                 </label>
-                <textarea
+                <Textarea id="content-field-18"
                   rows={3}
                   value={serviceForm.description}
                   onChange={(e) =>
@@ -1790,14 +1654,13 @@ export default function AdminContentPage() {
 
               {/* Active Toggle Checkbox */}
               <div className="flex items-center gap-3 pt-1">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="modal_is_active"
                   checked={serviceForm.is_active}
-                  onChange={(e) =>
-                    setServiceForm({ ...serviceForm, is_active: e.target.checked })
+                  onCheckedChange={(checked) =>
+                    setServiceForm({ ...serviceForm, is_active: checked === true })
                   }
-                  className="w-4 h-4 accent-[#E5B842] rounded cursor-pointer"
+                  
                 />
                 <label
                   htmlFor="modal_is_active"
@@ -1811,109 +1674,57 @@ export default function AdminContentPage() {
               <div className="pt-4 flex items-center justify-between gap-3 border-t border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
                 <div>
                   {!isCreatingNew && editingService && (
-                    <button
+                    <Button
                       type="button"
+                      variant="destructive"
+                      size="sm"
                       onClick={() => confirmDeleteService(editingService)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 border border-rose-500/25 hover:bg-rose-500/10 cursor-pointer transition-colors"
+                      className="gap-1.5 rounded-xl text-xs font-semibold"
                       title="Permanently delete this reading service"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                       </svg>
                       <span>Delete Reading</span>
-                    </button>
+                    </Button>
                   )}
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
                     onClick={() => setIsServiceModalOpen(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-medium border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#0F172A]/5 dark:hover:bg-[#FAF8F5]/5 transition-colors cursor-pointer"
+                    className="rounded-xl text-xs"
                   >
                     Cancel
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button
                     type="submit"
                     disabled={savingService}
-                    className="px-5 py-2.5 rounded-full text-xs font-semibold bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                    className="rounded-full px-5 py-2.5 text-xs font-semibold"
                   >
                     {savingService ? "Saving..." : isCreatingNew ? "Create Service" : "Save Changes"}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {/* ── DELETE CONFIRMATION MODAL ── */}
-      {isDeleteModalOpen && serviceToDelete && (
-        <div
-          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs animate-in fade-in duration-150"
-          role="alertdialog"
-          aria-modal="true"
-        >
-          <div
-            className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain relative w-full max-w-md bg-white dark:bg-[#0D1829] border border-rose-500/30 rounded-2xl p-6 sm:p-7 shadow-2xl text-[#0F172A] dark:text-[#FAF8F5] animate-in zoom-in-95 duration-150"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Warning Icon Badge */}
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-600 dark:text-rose-400 mb-4 mx-auto sm:mx-0">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-              </svg>
-            </div>
-
-            <h3 className="font-serif text-lg font-semibold text-[#0F172A] dark:text-[#FAF8F5] mb-2 text-center sm:text-left">
-              Delete Reading Service?
-            </h3>
-
-            <p className="text-xs text-[#0F172A]/70 dark:text-[#FAF8F5]/70 leading-relaxed mb-4 text-center sm:text-left">
-              Are you sure you want to permanently delete{" "}
-              <strong className="text-[#0F172A] dark:text-[#FAF8F5] font-semibold">
-                &ldquo;{serviceToDelete.title}&rdquo;
-              </strong>
-              ? This will remove the reading from your website catalog and automatically purge its uploaded artwork from Supabase Storage to free up space.
-            </p>
-
-            <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 mb-5 text-[11px] text-rose-700 dark:text-rose-300">
-              ⚠️ This action is permanent and cannot be undone.
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
-              <button
-                type="button"
-                disabled={Boolean(deletingServiceId)}
-                onClick={() => {
-                  setIsDeleteModalOpen(false);
-                  setServiceToDelete(null);
-                }}
-                className="px-4 py-2 rounded-xl text-xs font-medium border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#0F172A]/5 dark:hover:bg-[#FAF8F5]/5 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                disabled={Boolean(deletingServiceId)}
-                onClick={handleDeleteService}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs cursor-pointer transition-all disabled:opacity-50"
-              >
-                {deletingServiceId ? (
-                  <>
-                    <span className="animate-spin text-xs">↻</span>
-                    <span>Deleting &amp; Purging...</span>
-                  </>
-                ) : (
-                  <span>Yes, Delete Service</span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AlertDialog open={isDeleteModalOpen && Boolean(serviceToDelete)} onOpenChange={(open) => { if (!open && !deletingServiceId) { setIsDeleteModalOpen(false); setServiceToDelete(null); } }}>
+        <AlertDialogContent className="border-border bg-card text-card-foreground">
+          <AlertDialogTitle>Delete reading service?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Permanently delete “{serviceToDelete?.title}” and its uploaded artwork? This cannot be undone.
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={Boolean(deletingServiceId)}>Cancel</AlertDialogCancel>
+            <Button variant="destructive" disabled={Boolean(deletingServiceId)} onClick={handleDeleteService}>{deletingServiceId ? "Deleting…" : "Delete service"}</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

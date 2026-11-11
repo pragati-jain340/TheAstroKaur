@@ -118,7 +118,7 @@ export interface Database {
           service_title: string
           format: 'text' | 'voice_call'
           price_eur: number
-          status: 'pending' | 'pending_payment' | 'confirmed' | 'completed' | 'cancelled' | 'expired' | 'payment_review'
+          status: 'pending' | 'pending_payment' | 'awaiting_schedule' | 'confirmed' | 'completed' | 'cancelled' | 'expired' | 'payment_review'
           scheduled_at: string | null
           stripe_receipt_url: string | null
           client_name: string | null
@@ -147,7 +147,7 @@ export interface Database {
           service_title: string
           format?: 'text' | 'voice_call'
           price_eur?: number
-          status?: 'pending' | 'pending_payment' | 'confirmed' | 'completed' | 'cancelled' | 'expired' | 'payment_review'
+          status?: 'pending' | 'pending_payment' | 'awaiting_schedule' | 'confirmed' | 'completed' | 'cancelled' | 'expired' | 'payment_review'
           scheduled_at?: string | null
           stripe_receipt_url?: string | null
           client_name?: string | null
@@ -174,7 +174,7 @@ export interface Database {
           service_title?: string
           format?: 'text' | 'voice_call'
           price_eur?: number
-          status?: 'pending' | 'pending_payment' | 'confirmed' | 'completed' | 'cancelled' | 'expired' | 'payment_review'
+          status?: 'pending' | 'pending_payment' | 'awaiting_schedule' | 'confirmed' | 'completed' | 'cancelled' | 'expired' | 'payment_review'
           scheduled_at?: string | null
           stripe_receipt_url?: string | null
           client_name?: string | null

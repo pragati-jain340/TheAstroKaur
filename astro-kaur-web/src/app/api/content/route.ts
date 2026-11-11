@@ -14,24 +14,33 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
-    // 1. Services (active only, for homepage)
-    const { data: servicesData } = await supabase
-      .from("services")
-      .select("*")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true });
+    const [
+      { data: servicesData, error: servicesError },
+      { data: profilesData },
+      { data: freeReadingRow },
+    ] = await Promise.all([
+      // 1. Services (active only, for homepage)
+      supabase
+        .from("services")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }),
 
-    // 2. Profile (About Me + Vision)
-    const { data: profilesData } = await supabase
-      .from("profiles")
-      .select("*")
-      .limit(1);
+      // 2. Profile (About Me + Vision)
+      supabase
+        .from("profiles")
+        .select("*")
+        .limit(1),
 
-    const { data: freeReadingRow } = await supabase
-      .from("free_reading_content")
-      .select("content")
-      .eq("id", "free-reading")
-      .maybeSingle();
+      // 3. Free reading content
+      supabase
+        .from("free_reading_content")
+        .select("content")
+        .eq("id", "free-reading")
+        .maybeSingle(),
+    ]);
+
+    if (servicesError) throw servicesError;
 
     let aboutContent = DEFAULT_ABOUT;
     let visionContent = DEFAULT_VISION;

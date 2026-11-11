@@ -1,6 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 
 export interface ReviewModalOrder {
@@ -28,8 +32,11 @@ const RATING_LABELS: Record<number, string> = {
   5: "Truly Transformative & Deeply Accurate",
 };
 
-export default function ReviewModal({
-  isOpen,
+export default function ReviewModal(props: ReviewModalProps) {
+  return props.isOpen ? <ReviewDialog key={`${props.order.id}:${props.initialMode}`} {...props} /> : null;
+}
+
+function ReviewDialog({
   onClose,
   order,
   initialMode = "write",
@@ -44,33 +51,6 @@ export default function ReviewModal({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const supabase = createClient();
-
-  // Reset form when modal opens or order changes
-  useEffect(() => {
-    if (isOpen) {
-      setMode(initialMode);
-      setRating(order.review_rating || 5);
-      setHoverRating(0);
-      setContent(order.review_text || "");
-      setErrorMsg(null);
-      setSuccessMsg(null);
-      setSubmitting(false);
-    }
-  }, [isOpen, order, initialMode]);
-
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,28 +121,8 @@ export default function ReviewModal({
   const activeRating = hoverRating || rating;
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className="relative w-full max-w-lg bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/30 rounded-3xl p-6 sm:p-8 shadow-[0_25px_60px_rgba(0,0,0,0.45)] text-[#0F172A] dark:text-[#FAF8F5] max-h-[calc(100dvh-2rem)] overflow-y-auto no-scrollbar"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close modal"
-          className="absolute top-5 right-5 w-9 h-9 rounded-full bg-[#0F172A]/5 dark:bg-[#FAF8F5]/5 hover:bg-[#E5B842]/15 text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] flex items-center justify-center transition-colors cursor-pointer"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border-[#E5B842]/30 bg-[#FAF8F5] p-6 text-[#0F172A] dark:bg-[#0D1829] dark:text-[#FAF8F5] sm:max-w-lg sm:p-8">
         {/* ── Mode A: VIEW ONLY ── */}
         {mode === "view" ? (
           <div>
@@ -173,13 +133,15 @@ export default function ReviewModal({
               </span>
             </div>
 
-            <h3 className="font-serif text-2xl font-normal text-[#0F172A] dark:text-[#FAF8F5]">
+            <DialogTitle className="font-serif text-2xl font-normal text-[#0F172A] dark:text-[#FAF8F5]">
               Your Reading Review
-            </h3>
+            </DialogTitle>
 
             {/* Reading badge */}
-            <div className="mt-3 inline-block px-3.5 py-1.5 rounded-xl bg-[#E5B842]/10 border border-[#E5B842]/20 text-xs font-medium text-[#0F172A]/80 dark:text-[#FAF8F5]/90">
-              {order.service_title}
+            <div className="mt-3">
+              <Badge variant="outline" className="border-[#E5B842]/30 bg-[#E5B842]/10 text-[#0F172A]/80 dark:text-[#FAF8F5]/90">
+                {order.service_title}
+              </Badge>
             </div>
 
             {/* Stars */}
@@ -204,7 +166,7 @@ export default function ReviewModal({
             {/* Content */}
             <div className="mt-5 p-5 rounded-2xl bg-[#0F172A]/[0.03] dark:bg-[#FAF8F5]/[0.03] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
               <p className="text-sm font-light text-[#0F172A]/90 dark:text-[#FAF8F5]/90 leading-relaxed italic">
-                "{order.review_text || "No feedback text provided."}"
+                &ldquo;{order.review_text || "No feedback text provided."}&rdquo;
               </p>
             </div>
 
@@ -221,20 +183,21 @@ export default function ReviewModal({
 
             {/* Actions */}
             <div className="mt-8 flex items-center justify-end gap-3 pt-4 border-t border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-full text-xs font-medium text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] transition-colors cursor-pointer"
+                className="cursor-pointer"
               >
                 Close
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => setMode("edit")}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] font-bold text-xs tracking-wider uppercase transition-all shadow-md cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-full bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] font-bold text-xs tracking-wider uppercase transition-all shadow-md cursor-pointer"
               >
                 <span>✎ Edit Review</span>
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -247,9 +210,9 @@ export default function ReviewModal({
               </span>
             </div>
 
-            <h3 className="font-serif text-2xl font-normal text-[#0F172A] dark:text-[#FAF8F5]">
+            <DialogTitle className="font-serif text-2xl font-normal text-[#0F172A] dark:text-[#FAF8F5]">
               {mode === "edit" ? "Edit Your Review" : "Leave a Review"}
-            </h3>
+            </DialogTitle>
 
             <p className="text-xs text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mt-1">
               For <span className="font-semibold text-[#0F172A] dark:text-[#FAF8F5]">{order.service_title}</span>
@@ -279,14 +242,16 @@ export default function ReviewModal({
 
               <div className="flex items-center gap-2">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <button
+                  <Button
                     key={star}
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setRating(star)}
                     onMouseEnter={() => setHoverRating(star)}
                     onMouseLeave={() => setHoverRating(0)}
                     aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
-                    className="p-1 text-3xl transition-transform hover:scale-125 active:scale-95 cursor-pointer focus:outline-none"
+                    className="h-9 w-9 p-0 text-3xl hover:bg-transparent hover:scale-125 active:scale-95 transition-transform"
                   >
                     <span
                       className={`transition-colors duration-150 ${
@@ -297,7 +262,7 @@ export default function ReviewModal({
                     >
                       ★
                     </span>
-                  </button>
+                  </Button>
                 ))}
               </div>
 
@@ -320,7 +285,7 @@ export default function ReviewModal({
                 </span>
               </div>
 
-              <textarea
+              <Textarea
                 id="review-feedback"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -336,16 +301,17 @@ export default function ReviewModal({
 
             {/* Action Buttons */}
             <div className="mt-8 flex items-center justify-end gap-3 pt-4 border-t border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={onClose}
                 disabled={submitting}
-                className="px-5 py-2.5 rounded-full text-xs font-medium text-[#0F172A]/60 dark:text-[#FAF8F5]/60 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] transition-colors cursor-pointer disabled:opacity-50"
+                className="cursor-pointer"
               >
                 Cancel
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="submit"
                 disabled={submitting || !!successMsg}
                 className="inline-flex items-center gap-2 px-7 py-3 rounded-full bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] font-bold text-xs tracking-wider uppercase transition-all duration-300 shadow-[0_4px_18px_rgba(229,184,66,0.3)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.5)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -361,11 +327,11 @@ export default function ReviewModal({
                     <span className="text-sm">→</span>
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </form>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

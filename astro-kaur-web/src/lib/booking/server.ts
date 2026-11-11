@@ -72,6 +72,7 @@ export function check<T>(result: {
   error: { message: string; code?: string } | null;
 }): T {
   if (result.error) {
+    console.error("Booking database error:", result.error.code, result.error.message);
     if (result.error.code === "23P01")
       throw new BookingError(
         "This time has just been reserved. Please select another slot.",

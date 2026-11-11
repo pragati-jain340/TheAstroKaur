@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
 
 export default function FinalCTASection() {
   const { openContactModal } = useAuth();
@@ -69,23 +70,27 @@ export default function FinalCTASection() {
             {/* Dual Horizontally Aligned Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto mb-7">
               {/* Primary Button: EXPLORE MY READINGS → */}
-              <a
-                href="#readings"
-                onClick={scrollToReadings}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] font-bold text-xs tracking-wider uppercase transition-all duration-300 shadow-[0_4px_18px_rgba(229,184,66,0.3)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.5)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              <Button
+                asChild
+                size="lg"
+                className="w-full sm:w-auto rounded-full bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] font-bold text-xs tracking-wider uppercase shadow-[0_4px_18px_rgba(229,184,66,0.3)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.5)] cursor-pointer h-auto py-3.5 px-8"
               >
-                <span>EXPLORE MY READINGS</span>
-                <span className="text-sm font-bold">→</span>
-              </a>
+                <a href="#readings" onClick={scrollToReadings}>
+                  <span>EXPLORE MY READINGS</span>
+                  <span className="text-sm font-bold">→</span>
+                </a>
+              </Button>
 
               {/* Secondary Button: GET IN TOUCH */}
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="lg"
                 onClick={() => openContactModal()}
-                className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-white/90 hover:bg-white text-[#0F172A] border border-[#0F172A]/15 hover:border-[#6B3448]/40 shadow-sm dark:bg-[#2A374A] dark:hover:bg-[#34445A] dark:border-white/20 dark:hover:border-white/40 dark:text-white font-semibold text-xs tracking-wider uppercase transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                className="w-full sm:w-auto rounded-full font-semibold text-xs tracking-wider uppercase cursor-pointer h-auto py-3.5 px-8"
               >
                 <span>GET IN TOUCH</span>
-              </button>
+              </Button>
             </div>
 
             {/* Trust Line */}
