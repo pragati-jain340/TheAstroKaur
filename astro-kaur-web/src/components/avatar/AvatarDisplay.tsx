@@ -38,7 +38,7 @@ export default function AvatarDisplay({
   className = "",
   showBorder = true,
 }: AvatarDisplayProps) {
-  const [imageError, setImageError] = useState(false);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const sizeConfig = SIZE_MAP[size] || SIZE_MAP.md;
   const celestial = getCelestialAvatar(avatarSeed);
 
@@ -48,7 +48,7 @@ export default function AvatarDisplay({
     : "border border-transparent";
 
   // 1. Priority 1: Custom Uploaded Photo (avatar_url)
-  if (avatarUrl && !imageError) {
+  if (avatarUrl && avatarUrl !== failedUrl) {
     return (
       <div
         className={`relative ${sizeConfig.box} rounded-full overflow-hidden shrink-0 bg-[#FAF8F5] dark:bg-[#070D18] ${borderClass} ${className}`}
@@ -57,7 +57,7 @@ export default function AvatarDisplay({
           src={avatarUrl}
           alt={name ? `${name}'s avatar` : "Profile Avatar"}
           className="w-full h-full object-cover rounded-full"
-          onError={() => setImageError(true)}
+          onError={() => setFailedUrl(avatarUrl)}
         />
       </div>
     );

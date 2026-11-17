@@ -2,6 +2,21 @@ import "server-only";
 import { BookingError, check, database, siteUrl } from "@/lib/booking/server";
 import type { BookingOrder, Connection, Interval } from "@/lib/booking/types";
 import { googleRequest, userConnection } from "./accounts";
+import { unavailableHolidayCalendars } from "./conflictCalendars";
+
+async function repairHolidayCalendars(connection: Connection, calendars: Record<string, { errors?: unknown[] }>) {
+  const removed = unavailableHolidayCalendars(connection.busy_calendar_ids, connection.calendar_id,
+    calendars as Record<string, { errors?: Array<{ reason?: string }> }>);
+  if (!removed.length) return connection.busy_calendar_ids;
+  const ids = connection.busy_calendar_ids.filter(id => !removed.includes(id));
+  const originalSelection = `{${connection.busy_calendar_ids.map(id => `"${id.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`).join(",")}}`;
+  // Compare the original selection so a concurrent admin edit is never overwritten.
+  check(await database().from("google_calendar_connections").update({ busy_calendar_ids: ids })
+    .eq("id", true).eq("auth_user_id", connection.auth_user_id).eq("busy_calendar_ids", originalSelection));
+  clearFreeBusyCache();
+  console.warn("Removed unavailable public holiday calendars from booking conflict checks.");
+  return ids;
+}
 
 let cachedGoogleConnection: { connection: Connection | null; expiresAt: number } | null = null;
 
@@ -76,11 +91,15 @@ export async function freeBusy(
       calendars: Record<string, { busy: Interval[]; errors?: unknown[] }>;
     };
     const organizer = connection.calendar_id;
+    const selectedIds = await repairHolidayCalendars(connection, data.calendars);
     const withoutOrganizer: Interval[] = [];
-    for (const id of connection.busy_calendar_ids.filter(
+    for (const id of selectedIds.filter(
       (id) => id !== organizer,
-    ))
+    )) {
+      if (!data.calendars[id] || data.calendars[id].errors?.length)
+        throw new BookingError("A selected conflict calendar is unavailable. Review your calendar selection in admin.", 503);
       withoutOrganizer.push(...(data.calendars[id]?.busy || []));
+    }
     let pageToken: string | undefined;
     do {
       const query = new URLSearchParams({
@@ -158,7 +177,7 @@ export async function freeBusy(
       calendars: Record<string, { busy: Interval[]; errors?: unknown[] }>;
     };
     const ranges: Interval[] = [];
-    for (const id of connection.busy_calendar_ids) {
+    for (const id of await repairHolidayCalendars(connection, data.calendars)) {
       const calendar = data.calendars[id];
       if (!calendar || calendar.errors?.length)
         throw new BookingError(

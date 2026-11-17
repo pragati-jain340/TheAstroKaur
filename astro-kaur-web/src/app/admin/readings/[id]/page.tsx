@@ -9,6 +9,7 @@ import BookingAdminActions from "@/components/admin/BookingAdminActions";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
+import type { BookingRefund } from "@/lib/payments/refunds";
 import type { BookingOrder } from "@/lib/booking/types";
 
 type ReadingDetailRow = Database["public"]["Tables"]["reading_details"]["Row"];
@@ -34,6 +35,8 @@ export default function AdminReadingDetailPage({
   // Paid Order & Reading Details
   const [readingDetail, setReadingDetail] = useState<ReadingDetailRow | null>(null);
   const [order, setOrder] = useState<BookingOrder | null>(null);
+  const [refundTrackingReady, setRefundTrackingReady] = useState(false);
+  const [refunds, setRefunds] = useState<BookingRefund[]>([]);
   const [bookingHistory, setBookingHistory] = useState<
     { id: string; action: string; created_at: string; reason: string | null }[]
   >([]);
@@ -72,6 +75,8 @@ export default function AdminReadingDetailPage({
           const detailData = result.detail;
           setOrder(orderData as BookingOrder);
           setBookingHistory(result.history || []);
+          setRefunds(result.refunds || []);
+          setRefundTrackingReady(result.refund_tracking_ready === true);
           if (detailData) {
             setReadingDetail(detailData);
             setCurrentStatus(detailData.status || orderData.status);
@@ -217,7 +222,7 @@ export default function AdminReadingDetailPage({
   return (
     <div className="space-y-8 animate-in fade-in duration-200 max-w-5xl mx-auto">
       {!isFreeReading && order && (
-        <BookingAdminActions id={rawId} initialOrder={order} history={bookingHistory} />
+        <BookingAdminActions id={rawId} initialOrder={order} history={bookingHistory} initialRefunds={refunds} refundTrackingReady={refundTrackingReady} onUpdated={snapshot => { setOrder(snapshot.order); setCurrentStatus(snapshot.detail?.status || snapshot.order.status); setReadingDetail(previous => previous && snapshot.detail ? { ...previous, status: snapshot.detail.status } : previous); setBookingHistory(snapshot.history); setRefunds(snapshot.refunds); setRefundTrackingReady(snapshot.refund_tracking_ready === true); }} />
       )}
 
       {/* ─── Breadcrumb & Header ─── */}
@@ -433,7 +438,7 @@ export default function AdminReadingDetailPage({
                 <span>↗</span>
               </a>
             ) : (
-              <span className="text-xs text-[#0F172A]/40 dark:text-[#FAF8F5]/40 italic">
+              <span className="text-xs text-[#0F172A]/40 dark:text-[#FAF8F5]/65 italic">
                 {isFreeReading ? "Promotional intake" : "No receipt generated yet"}
               </span>
             )}
@@ -501,7 +506,7 @@ export default function AdminReadingDetailPage({
         />
 
         <div className="flex items-center justify-between pt-1">
-          <p className="text-[11px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40 italic">
+          <p className="text-[11px] text-[#0F172A]/40 dark:text-[#FAF8F5]/65 italic">
             * Admin notes are stored server-side and are NEVER visible to customers.
           </p>
 

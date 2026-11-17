@@ -1,7 +1,5 @@
 "use client";
 
-import GoogleCalendarSettings from "@/components/services/GoogleCalendarSettings";
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -15,6 +13,7 @@ import ReviewModal from "@/components/reviews/ReviewModal";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordVisibilityToggle } from "@/components/ui/password-visibility-toggle";
 import { Checkbox } from "@/components/ui/checkbox";
 import { isUpcomingVoiceCall } from "@/lib/booking/display";
 
@@ -246,7 +245,7 @@ function ReadingCard({ order, onReviewSubmitted }: { order: Order; onReviewSubmi
                     "{order.review_text}"
                   </p>
                 )}
-                <p className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40">
+                <p className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/65">
                   Your review · {formatDate(order.review_created_at)}
                 </p>
               </div>
@@ -670,7 +669,7 @@ function ProfileTab() {
                   required
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="e.g. Pragati Jain"
+                  placeholder="Your full name"
                   className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1E293B] border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 text-[#0F172A] dark:text-[#FAF8F5] text-sm focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40"
                 />
               </div>
@@ -684,7 +683,7 @@ function ProfileTab() {
                   value={profile?.email || user?.email || ""}
                   className="w-full px-4 py-2.5 rounded-xl bg-[#0F172A]/5 dark:bg-[#FAF8F5]/5 border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 text-[#0F172A]/60 dark:text-[#FAF8F5]/60 text-sm cursor-not-allowed"
                 />
-                <p className="text-[11px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40 mt-1">
+                <p className="text-[11px] text-[#0F172A]/40 dark:text-[#FAF8F5]/65 mt-1">
                   Email is linked to your login account.
                 </p>
               </div>
@@ -870,7 +869,7 @@ function ProfileTab() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Card A: Personal Information */}
             <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/20 rounded-2xl md:rounded-3xl p-6 md:p-7 shadow-sm">
-              <p className="text-[10px] font-bold tracking-widest text-[#0F172A]/40 dark:text-[#FAF8F5]/40 uppercase mb-4">
+              <p className="text-[10px] font-bold tracking-widest text-[#0F172A]/40 dark:text-[#FAF8F5]/65 uppercase mb-4">
                 PERSONAL INFORMATION
               </p>
               <div className="space-y-4">
@@ -899,7 +898,7 @@ function ProfileTab() {
 
             {/* Card B: Birth Details */}
             <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/20 rounded-2xl md:rounded-3xl p-6 md:p-7 shadow-sm">
-              <p className="text-[10px] font-bold tracking-widest text-[#0F172A]/40 dark:text-[#FAF8F5]/40 uppercase mb-4">
+              <p className="text-[10px] font-bold tracking-widest text-[#0F172A]/40 dark:text-[#FAF8F5]/65 uppercase mb-4">
                 {isAdminUser ? "BIRTH DETAILS (OPTIONAL)" : "YOUR BIRTH DETAILS"}
               </p>
               <div className="grid grid-cols-2 gap-4">
@@ -1089,17 +1088,12 @@ function ProfileTab() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="At least 6 characters"
-                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1E293B] border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 text-[#0F172A] dark:text-[#FAF8F5] text-sm focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40 pr-12"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1E293B] border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 text-[#0F172A] dark:text-[#FAF8F5] text-sm focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40 pr-16"
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowPasswordText(!showPasswordText)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 h-7 px-2 text-[#0F172A]/40 dark:text-[#FAF8F5]/40 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] text-xs font-medium"
-                  >
-                    {showPasswordText ? "Hide" : "Show"}
-                  </Button>
+                  <PasswordVisibilityToggle
+                    visible={showPasswordText}
+                    onToggle={() => setShowPasswordText(!showPasswordText)}
+                  />
                 </div>
                 {newPassword.length > 0 && newPassword.length < 6 && (
                   <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5 flex items-center gap-1 animate-in fade-in duration-150">
@@ -1121,7 +1115,7 @@ function ProfileTab() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter new password"
-                    className={`w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1E293B] border text-[#0F172A] dark:text-[#FAF8F5] text-sm focus:outline-none focus:ring-2 pr-12 transition-colors ${
+                    className={`w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1E293B] border text-[#0F172A] dark:text-[#FAF8F5] text-sm focus:outline-none focus:ring-2 pr-16 transition-colors ${
                       isPasswordMismatch
                         ? "border-red-500/80 focus:ring-red-400/40 bg-red-500/5"
                         : isPasswordMatch
@@ -1477,7 +1471,7 @@ function ReceiptModal({
           <Button
             variant="ghost"
             onClick={onClose}
-            className="w-full text-center py-2 text-xs font-medium text-[#0F172A]/40 dark:text-[#FAF8F5]/40 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] transition-colors cursor-pointer"
+            className="w-full text-center py-2 text-xs font-medium text-[#0F172A]/40 dark:text-[#FAF8F5]/65 hover:text-[#0F172A] dark:hover:text-[#FAF8F5] transition-colors cursor-pointer"
           >
             Close
           </Button>
@@ -1706,7 +1700,7 @@ function AccountContent() {
 
           {/* Tab Content Section */}
           <div className="w-full">
-            {tab === "profile" && <><ProfileTab /><GoogleCalendarSettings /></>}
+            {tab === "profile" && <ProfileTab />}
             {!isAdminUser && tab === "readings" && <ReadingsTab />}
             {!isAdminUser && tab === "receipts" && <ReceiptsTab />}
           </div>

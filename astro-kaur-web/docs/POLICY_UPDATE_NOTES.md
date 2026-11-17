@@ -1,0 +1,9 @@
+# Policy revision - 18 November 2026
+
+The Privacy Policy, Terms of Service, Cancellation & Refund Policy and Astrology Disclaimer now describe the current customer/admin permissions, support-led appointment changes, separate cancellation/refund actions, exceptional Stripe refunds, operational emails/receipts, free-reading eligibility and automated calculations. The privacy notice also covers public avatar URLs and published review photos, calculation/location providers, administrator access, and deactivation versus deletion requests. Checkout acknowledges policy version 2026-11-18-test-v4.
+
+The operator name already present in the documents is retained. Business address and public business/privacy email placeholders are intentionally retained at the owner's request. They are shared through src/components/legal/PolicyContact.tsx and src/lib/legal/details.ts; fill them once using LEGAL_OPERATOR_NAME, LEGAL_BUSINESS_COUNTRY, LEGAL_PUBLIC_BUSINESS_ADDRESS and LEGAL_PUBLIC_CONTACT_EMAIL as appropriate. These are deliberately public business details. The component never falls back to the private SMTP/contact recipient.
+
+Before public launch, resolve the statutory online withdrawal flow separately from voluntary refunds. Section 356a BGB requires an accessible withdrawal function, a confirmation step and prompt acknowledgment on a durable medium where applicable. The current support-led refund controls are not represented as fulfilling that obligation by the policy wording. No withdrawal/refund UI was reintroduced during this policy-text update. Review the applicable contract classification and required notices before accepting live purchases.
+
+Primary references checked: https://www.gesetze-im-internet.de/bgb/__356a.html ; https://europa.eu/youreurope/citizens/consumers/shopping/returns/index_en.htm ; https://commission.europa.eu/law/law-topic/data-protection/information-individuals_en .

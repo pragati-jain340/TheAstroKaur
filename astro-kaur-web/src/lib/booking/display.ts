@@ -8,7 +8,7 @@ type ReadingSchedule = {
 export function isUpcomingVoiceCall(order: ReadingSchedule, now = Date.now()): boolean {
   const startsAt = order.scheduled_at ? Date.parse(order.scheduled_at) : Number.NaN;
   return order.format === "voice_call"
-    && order.payment_status === "paid"
+    && ["paid", "refunded"].includes(order.payment_status)
     && (order.status === "confirmed" || order.status === "pending")
     && Number.isFinite(startsAt)
     && startsAt > now;

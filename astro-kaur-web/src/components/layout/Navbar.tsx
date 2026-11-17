@@ -23,7 +23,7 @@ export default function Navbar() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const router = useRouter();
 
-  const { user, profile, isAdmin, openAuthModal, openContactModal, signOut } = useAuth();
+  const { user, profile, isAdmin, loading: authLoading, openAuthModal, openContactModal, signOut } = useAuth();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleNavItemClick = (e: React.MouseEvent<HTMLAnchorElement>, label: string) => {
@@ -107,7 +107,7 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-6 h-18 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
         {/* Official Brand Logo: Celestial Emblem + Typography */}
-        <a
+        <Link
           href="/"
           className="flex items-center gap-1.5 sm:gap-3.5 group py-1.5 min-w-0"
           aria-label="TheAstroKaur Home"
@@ -138,7 +138,7 @@ export default function Navbar() {
               Written In The Stars
             </span>
           </div>
-        </a>
+        </Link>
 
         {/* Navigation Tabs - Open & Elegant Layout */}
         <nav aria-label="Main navigation" className="hidden xl:flex items-center gap-0 2xl:gap-3.5">
@@ -320,12 +320,12 @@ export default function Navbar() {
           </div>
 
           {/* Book Reading CTA Button */}
-          <Button asChild className="group relative hidden sm:inline-flex rounded-full text-xs font-semibold tracking-wider uppercase text-[#0F172A] bg-gradient-to-r from-[#E5B842] via-[#F3CE6D] to-[#E5B842] shadow-[0_4px_16px_rgba(229,184,66,0.35)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.55)]">
-            <a href="/#readings">
+          {!isAdmin && !authLoading && <Button asChild className="group relative hidden sm:inline-flex rounded-full text-xs font-semibold tracking-wider uppercase text-[#0F172A] bg-gradient-to-r from-[#E5B842] via-[#F3CE6D] to-[#E5B842] shadow-[0_4px_16px_rgba(229,184,66,0.35)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.55)]">
+            <Link href="/#readings">
               <span>Book Reading</span>
               <span className="text-[#6B3448] font-bold text-xs transition-transform duration-300 group-hover:rotate-45">✦</span>
-            </a>
-          </Button>
+            </Link>
+          </Button>}
 
           {/* Mobile Menu Hamburger Toggle */}
           <Button
@@ -369,9 +369,9 @@ export default function Navbar() {
                 <span className="text-[#E5B842] text-sm">✦</span>
               </a>
             ))}
-            <Link href="/#readings" onClick={() => setMobileMenuOpen(false)} className="sm:hidden mt-2 px-5 py-3.5 rounded-full bg-[#E5B842] text-[#0F172A] text-center text-sm font-semibold">
+            {!isAdmin && !authLoading && <Link href="/#readings" onClick={() => setMobileMenuOpen(false)} className="sm:hidden mt-2 px-5 py-3.5 rounded-full bg-[#E5B842] text-[#0F172A] text-center text-sm font-semibold">
               Book a Reading
-            </Link>
+            </Link>}
           </div>
         </nav>
       )}

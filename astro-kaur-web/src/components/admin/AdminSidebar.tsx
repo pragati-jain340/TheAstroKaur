@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -7,111 +8,91 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import AvatarDisplay from "@/components/avatar/AvatarDisplay";
-import {
-  CalendarDays,
-  ExternalLink,
-  LayoutGrid,
-  ListPlus,
-  LogOut,
-  SquarePen,
-} from "lucide-react";
+import { ArrowLeft, CalendarDays, ChevronDown, LayoutGrid, ListPlus, LogOut, SquarePen, Users } from "lucide-react";
 
 const NAV_ITEMS = [
-  { label: "Overview", href: "/admin", icon: "overview" },
-  { label: "Voice Call Booking", href: "/admin/calendar", icon: "calendar" },
-  { label: "Text Booking", href: "/admin/text-booking", icon: "text" },
-  { label: "Website Content", href: "/admin/content", icon: "content" },
-] as const;
-
-const NAV_ICONS = { overview: LayoutGrid, calendar: CalendarDays, text: ListPlus, content: SquarePen };
+  { label: "Overview", href: "/admin", icon: LayoutGrid },
+  { label: "Voice call booking", href: "/admin/calendar", icon: CalendarDays },
+  { label: "Text booking", href: "/admin/text-booking", icon: ListPlus },
+  { label: "Website content", href: "/admin/content", icon: SquarePen },
+  { label: "Users", href: "/admin/users", icon: Users },
+];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, signOut } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const isActive = (href: string) => href === "/admin" ? pathname === href : pathname.startsWith(href);
+  const current = NAV_ITEMS.find(item => isActive(item.href));
 
-  const handleSignOut = async () => {
+  async function handleSignOut() {
     await signOut();
     router.push("/");
-  };
+  }
+
+  const brand = (
+    <Link href="/admin" className="flex min-w-0 items-center gap-2.5 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
+      <span className="relative h-9 w-9 shrink-0">
+        <Image src="/astro-emblem-light.png?v=6" alt="" fill unoptimized className="object-contain dark:hidden" />
+        <Image src="/astro-emblem-dark.png?v=6" alt="" fill unoptimized className="hidden object-contain dark:block" />
+      </span>
+      <span>
+        <span className="block font-serif text-lg font-semibold leading-tight">TheAstroKaur</span>
+        <span className="mt-0.5 block text-[11px] text-muted-foreground">Admin workspace</span>
+      </span>
+    </Link>
+  );
+
+  const navigation = NAV_ITEMS.map(item => (
+    <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} aria-current={isActive(item.href) ? "page" : undefined}
+      className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${isActive(item.href) ? "bg-primary/10 font-semibold text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+      <item.icon aria-hidden="true" className="size-4 shrink-0" />
+      {item.label}
+    </Link>
+  ));
+
+  const account = (
+    <div className="space-y-4 border-t border-border/60 pt-4">
+      <div className="flex min-w-0 items-center gap-2.5 px-1">
+        <AvatarDisplay avatarUrl={profile?.avatar_url} avatarSeed={profile?.avatar_seed} name={profile?.display_name || "Administrator"} size="sm" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-xs font-medium">{profile?.display_name || "Administrator"}</span>
+          <span className="block text-[11px] text-muted-foreground">Administrator</span>
+        </span>
+        <ThemeToggle className="h-8 w-8 shrink-0" />
+      </div>
+      <div className="flex gap-1">
+        <Button variant="ghost" size="sm" asChild className="flex-1 justify-start text-xs text-muted-foreground">
+          <Link href="/" onClick={() => setMobileOpen(false)}><ArrowLeft aria-hidden="true" className="size-3.5" />Home</Link>
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={handleSignOut} className="text-xs text-muted-foreground hover:text-destructive">
+          <LogOut aria-hidden="true" className="size-3.5" />Sign out
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
-    <header className="border-b border-[#0F172A]/10 bg-[#FFFDF9] dark:border-white/10 dark:bg-[#0F172A]">
-      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-10">
-        <Link href="/" className="flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#805b11] dark:focus-visible:outline-[#E5B842]">
-          <span className="relative h-9 w-9 shrink-0">
-            <Image src="/astro-emblem-light.png?v=6" alt="" fill unoptimized className="object-contain dark:hidden" />
-            <Image src="/astro-emblem-dark.png?v=6" alt="" fill unoptimized className="hidden object-contain dark:block" />
-          </span>
-          <span className="min-w-0">
-            <span className="block font-serif text-base font-semibold leading-tight text-[#0F172A] dark:text-[#FAF8F5]">The Astro Kaur</span>
-            <span className="block text-xs text-[#46505F] dark:text-[#BCC4D0]">Admin workspace</span>
-          </span>
-        </Link>
-
-        <div className="flex items-center gap-2 sm:gap-3 text-sm">
-          {/* User Profile Pill */}
-          <div className="hidden sm:flex items-center gap-2 py-1 px-2.5 rounded-full bg-[#0F172A]/5 dark:bg-white/5 border border-[#E5B842]/25">
-            <AvatarDisplay
-              avatarUrl={profile?.avatar_url}
-              avatarSeed={profile?.avatar_seed}
-              name={profile?.display_name || profile?.email || "Admin"}
-              size="xs"
-              showBorder={false}
-            />
-            <span
-              className="max-w-36 truncate text-xs font-medium text-[#0F172A] dark:text-[#FAF8F5]"
-              title={profile?.email || undefined}
-            >
-              {profile?.display_name || profile?.email || "Administrator"}
-            </span>
+    <>
+      <aside aria-label="Admin workspace" className="fixed inset-y-0 left-0 z-40 hidden w-56 flex-col overflow-y-auto border-r border-border/60 bg-[#FAF8F5] px-4 py-6 dark:bg-[#0D1829] lg:flex">
+        {brand}
+        <p className="mb-3 mt-10 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Workspace</p>
+        <nav aria-label="Admin sections" className="space-y-1.5">{navigation}</nav>
+        <div className="mt-auto pt-10">{account}</div>
+      </aside>
+      <header className="border-b border-border/60 bg-card px-4 py-4 lg:hidden">
+        {brand}
+        <details open={mobileOpen} onToggle={event => setMobileOpen(event.currentTarget.open)} className="group mt-4">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-lg border border-border/60 px-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+            {current?.label || "Admin sections"}<ChevronDown aria-hidden="true" className="size-4 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+          </summary>
+          <div className="pt-3">
+            <nav aria-label="Mobile admin sections" className="space-y-1">{navigation}</nav>
+            <div className="pt-4">{account}</div>
           </div>
-
-          {/* View Site Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="h-8 gap-1.5 rounded-lg border-[#E5B842]/30 bg-background/80 hover:bg-[#E5B842]/10 hover:border-[#E5B842] text-xs font-medium text-foreground transition-all shadow-2xs"
-          >
-            <Link href="/" target="_blank" rel="noopener noreferrer">
-              <span>View site</span>
-              <ExternalLink className="h-3 w-3 text-[#B87936] dark:text-[#E5B842]" />
-            </Link>
-          </Button>
-
-          {/* Sign Out Button */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleSignOut}
-            className="h-8 gap-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            <span>Sign out</span>
-          </Button>
-
-          {/* Theme Toggle */}
-          <div className="pl-1 border-l border-[#0F172A]/10 dark:border-white/10">
-            <ThemeToggle className="w-8 h-8" />
-          </div>
-        </div>
-      </div>
-
-      <nav aria-label="Admin sections" className="mx-auto grid max-w-[1440px] grid-cols-2 gap-2 px-4 pb-3 sm:grid-cols-4 sm:px-6 lg:px-10">
-        {NAV_ITEMS.map((item) => {
-          const Icon = NAV_ICONS[item.icon];
-          const active = item.href === "/admin" ? pathname === item.href : pathname.startsWith(item.href);
-          return (
-            <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}
-              className={`flex min-h-12 items-center gap-2.5 rounded-xl px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#805b11] dark:focus-visible:outline-[#E5B842] sm:px-4 ${active ? "bg-[#E5B842]/20 text-[#0F172A] dark:bg-[#E5B842]/20 dark:text-[#FFF8E7]" : "text-[#46505F] hover:bg-[#0F172A]/5 hover:text-[#0F172A] dark:text-[#BCC4D0] dark:hover:bg-white/5 dark:hover:text-white"}`}>
-              <Icon aria-hidden="true" className="h-5 w-5 shrink-0" />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-    </header>
+        </details>
+      </header>
+    </>
   );
 }

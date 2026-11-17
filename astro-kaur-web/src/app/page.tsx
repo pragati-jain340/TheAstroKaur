@@ -6,6 +6,7 @@ import ServicesPreview from "@/components/home/ServicesPreview";
 import AboutPreview from "@/components/home/AboutPreview";
 import VisionSection from "@/components/home/VisionSection";
 import ReviewsSection from "@/components/home/ReviewsSection";
+import EarlyKindWords from "@/components/home/EarlyKindWords";
 import FinalCTASection from "@/components/home/FinalCTASection";
 import Footer from "@/components/layout/Footer";
 import { DEFAULT_ABOUT, DEFAULT_VISION } from "@/lib/homeContent";
@@ -93,6 +94,7 @@ export default async function Home() {
         {/* Pass server-fetched content directly — no client-side fetch needed */}
         <AboutPreview initialContent={about} />
         <VisionSection initialContent={vision} />
+        <EarlyKindWords />
         <ReviewsSection />
         <FinalCTASection />
       </main>

@@ -1,6 +1,6 @@
 "use client";
 
-import { uploadUserAvatar } from "@/lib/avatar/imageToWebP";
+import { saveUserAvatar, uploadUserAvatar } from "@/lib/avatar/imageToWebP";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
@@ -37,9 +37,10 @@ interface AuthContextType {
   openBookingModal: (service?: BookingService) => void;
   closeBookingModal: () => void;
   contactModalOpen: boolean;
-  openContactModal: () => void;
+  contactBookingId: string | null;
+  openContactModal: (bookingId?: string) => void;
   closeContactModal: () => void;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string, options?: { avatarBlob?: Blob | null }) => Promise<{ error: string | null }>;
   signUp: (
     email: string,
     password: string,
@@ -82,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [selectedBookingService, setSelectedBookingService] = useState<BookingService | null>(null);
   const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [contactBookingId, setContactBookingId] = useState<string | null>(null);
 
   const supabase = createClient();
 
@@ -99,6 +101,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data) {
+        if (data.account_status !== "active") {
+          setProfile(null);
+          setUser(null);
+          // Auth callbacks must finish before another Auth operation takes the session lock.
+          setTimeout(() => { void supabase.auth.signOut({ scope: "local" }); }, 0);
+          return data;
+        }
         setProfile(data);
         return data;
       }
@@ -179,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthModalOpen(false);
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, options?: { avatarBlob?: Blob | null }) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -190,7 +199,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       if (data.user) {
         setUser(data.user);
-        await fetchProfile(data.user.id, data.user.email);
+        if (options?.avatarBlob) {
+          const saved = await saveUserAvatar(supabase, data.user.id, options.avatarBlob);
+          if (saved.error) {
+            console.error("Could not save signup photo:", saved.error);
+            return { error: "Could not save your profile photo. Please retry, or continue without a photo." };
+          }
+          setProfile(saved.profile);
+        }
+        const currentProfile = await fetchProfile(data.user.id, data.user.email);
+        if (!currentProfile || currentProfile.account_status !== "active") {
+          return { error: currentProfile ? "This account is inactive. Please contact support." : "Could not verify account access. Please retry." };
+        }
       }
       closeAuthModal();
       return { error: null };
@@ -339,6 +359,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const openBookingModal = (service?: BookingService) => {
+    if (profile?.role === "admin") return;
     if (service) {
       setSelectedBookingService(service);
     }
@@ -349,7 +370,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setBookingModalOpen(false);
   };
 
-  const openContactModal = () => {
+  const openContactModal = (bookingId?: string) => {
+    setContactBookingId(bookingId || null);
     setContactModalOpen(true);
   };
 
@@ -358,7 +380,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Admin authorization is determined strictly from database profile role (no hardcoded emails)
-  const isAdmin = profile?.role === "admin";
+  const isAdmin = profile?.role === "admin" && profile.account_status === "active";
 
   return (
     <AuthContext.Provider
@@ -377,6 +399,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         openBookingModal,
         closeBookingModal,
         contactModalOpen,
+        contactBookingId,
         openContactModal,
         closeContactModal,
         signIn,

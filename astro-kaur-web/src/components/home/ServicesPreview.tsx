@@ -243,7 +243,7 @@ function TypewriterHeading() {
 }
 
 export default function ServicesPreview() {
-  const { openBookingModal } = useAuth();
+  const { openBookingModal, isAdmin, loading: authLoading } = useAuth();
   const [servicesList, setServicesList] = useState<ReadingServiceItem[]>(STATIC_SERVICES);
   const [selectedService, setSelectedService] = useState<ReadingServiceItem | null>(null);
 
@@ -260,6 +260,7 @@ export default function ServicesPreview() {
   }, []);
 
   const handleBook = (service: ReadingServiceItem) => {
+    if (isAdmin || authLoading) return;
     setSelectedService(null);
     openBookingModal?.({
       id: service.id,
@@ -512,14 +513,14 @@ export default function ServicesPreview() {
                     </p>
                   </div>
 
-                  <Button size="lg"
+                  {!isAdmin && !authLoading && <Button size="lg"
                     type="button"
                     onClick={() => handleBook(selectedService)}
                     className="inline-flex items-center justify-center gap-2 px-7 sm:px-8 py-3 rounded-full bg-gradient-to-r from-[#B87936] via-[#E5B842] to-[#B87936] bg-[length:200%_auto] hover:bg-right text-[#070D18] font-bold text-xs sm:text-sm tracking-wider uppercase transition-all duration-300 shadow-[0_4px_16px_rgba(229,184,66,0.35)] hover:shadow-[0_6px_22px_rgba(229,184,66,0.55)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                   >
                     <span>Book This Reading</span>
                     <span>→</span>
-                  </Button>
+                  </Button>}
                 </div>
               </motion.div>
           </DialogContent>

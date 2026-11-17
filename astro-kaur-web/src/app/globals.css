@@ -3,6 +3,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  color-scheme: light;
+  --autofill-background: #ffffff;
   --background: #ffffff;
   --foreground: #171717;
 }
@@ -40,6 +42,16 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Keep browser-autofilled fields legible alongside theme-aware controls. */
+input[data-slot="input"]:is(:autofill, :-webkit-autofill) {
+  -webkit-text-fill-color: var(--foreground);
+  caret-color: var(--foreground);
+  box-shadow: inset 0 0 0 1000px var(--autofill-background),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    var(--tw-shadow, 0 0 #0000);
 }
 
 /* Let page and grid children shrink to the viewport instead of their text width. */
@@ -163,6 +175,8 @@ body > *, main {
   --destructive: #b91c1c; --border: #d1d5db; --input: #b8bec8; --ring: #805b11;
 }
 .dark {
+  color-scheme: dark;
+  --autofill-background: #131f33;
   --background: #0f172a; --foreground: #faf8f5;
   --card: #0d1829; --card-foreground: #faf8f5;
   --muted: #1e293b; --popover: #0d1829; --popover-foreground: #faf8f5;

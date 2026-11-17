@@ -380,7 +380,7 @@ export default function AdminTestimonialsPage() {
 
       {/* Main Content Area */}
       {loading ? (
-        <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-12 text-center text-xs text-[#0F172A]/40 dark:text-[#FAF8F5]/40">
+        <div className="bg-white dark:bg-[#070D18] border border-[#0F172A]/8 dark:border-[#FAF8F5]/8 rounded-2xl p-12 text-center text-xs text-[#0F172A]/40 dark:text-[#FAF8F5]/65">
           Loading testimonials...
         </div>
       ) : error ? (

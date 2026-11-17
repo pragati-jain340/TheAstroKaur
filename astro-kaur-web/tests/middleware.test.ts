@@ -58,6 +58,30 @@ test('refreshed session cookies reach both the request and response', async t =>
   assert.notEqual(req.cookies.get(cookie.name)?.value, cookie.value)
 })
 
+test('missing refresh tokens clear expired cookies on public pages and admin redirects', async t => {
+  t.mock.method(console, 'warn', () => {})
+  t.mock.method(console, 'error', () => {})
+  t.mock.method(globalThis, 'fetch', async () => Response.json(
+    { message: 'Invalid Refresh Token: Refresh Token Not Found', code: 'refresh_token_not_found' },
+    { status: 400 },
+  ))
+
+  for (const path of ['/', '/admin']) {
+    const req = request(path, true)
+    const cookie = req.cookies.getAll()[0]
+    const session = JSON.parse(Buffer.from(cookie.value.slice(7), 'base64url').toString())
+    req.cookies.set(cookie.name, `base64-${Buffer.from(JSON.stringify({
+      ...session, expires_at: 1,
+    })).toString('base64url')}`)
+
+    const response = await updateSession(req)
+    assert.equal(response.status, path === '/admin' ? 307 : 200)
+    assert.equal(req.cookies.get(cookie.name)?.value, '')
+    assert.equal(response.cookies.get(cookie.name)?.value, '')
+    assert.equal(response.cookies.get(cookie.name)?.maxAge, 0)
+  }
+})
+
 test('an Auth outage lets public pages load but denies admin access within the deadline', async t => {
   let aborted = 0
   t.mock.method(console, 'warn', () => {})

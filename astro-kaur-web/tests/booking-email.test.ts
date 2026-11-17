@@ -2,6 +2,7 @@ import test, { mock } from "node:test";
 import assert from "node:assert/strict";
 import nodemailer, { type SendMailOptions } from "nodemailer";
 import { runWorker } from "../src/lib/booking/worker";
+import { sendBookingEmail } from "../src/lib/email/booking";
 import type { BookingOrder, Job } from "../src/lib/booking/types";
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = "https://booking-email.invalid";
@@ -23,6 +24,19 @@ const job = {
   id: "22222222-2222-4222-8222-222222222222", order_id: order.id,
   kind: "customer", version: 1, attempts: 1, lease_token: "synthetic-lease",
 } as Job;
+
+test("missing SMTP credentials fail clearly before claiming an email", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalUser = process.env.SMTP_USER;
+  delete process.env.SMTP_USER;
+  globalThis.fetch = async () => { throw new Error("No database changes should occur before SMTP validation"); };
+  try {
+    await assert.rejects(sendBookingEmail(order, job), /SMTP configuration is missing or invalid/);
+  } finally {
+    process.env.SMTP_USER = originalUser;
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("SMTP jobs retry explicit rejections, stop uncertain sends, and preserve their original recipient", async () => {
   const original = globalThis.fetch;
@@ -52,6 +66,7 @@ test("SMTP jobs retry explicit rejections, stop uncertain sends, and preserve th
       });
       globalThis.fetch = async (input, options) => {
         const url = String(input), method = options?.method || "GET";
+        if (url.includes("/booking_refunds")) return Response.json([]);
         if (url.includes("/availability_settings") || url.includes("/rpc/booking_queue_reconciliation")) return Response.json(null);
         if (url.includes("/rpc/booking_claim_jobs")) return Response.json([currentJob]);
         if (url.includes("/orders")) return Response.json(url.includes("pending_payment") ? [] : order);

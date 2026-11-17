@@ -68,6 +68,7 @@ export async function createCheckout(order: BookingOrder) {
 export async function settleSession(
   session: Stripe.Checkout.Session,
   eventId: string,
+  provider?: Pick<Stripe, "paymentIntents">,
 ) {
   if (session.livemode)
     throw new BookingError("Live payment events are disabled.", 400);
@@ -83,7 +84,7 @@ export async function settleSession(
   let receipt: string | null = null;
   let startedAt: string | null = null;
   if (paid && intent) {
-    const payment = await stripe().paymentIntents.retrieve(intent, {
+    const payment = await (provider || stripe()).paymentIntents.retrieve(intent, {
       expand: ["latest_charge"],
     });
     if (
@@ -101,6 +102,14 @@ export async function settleSession(
         : null;
     if(typeof payment.latest_charge==='object' && payment.latest_charge) startedAt=new Date(payment.latest_charge.created*1000).toISOString();
   }
+  if (receipt)
+    check(
+      await database()
+        .from("orders")
+        .update({ stripe_receipt_url: receipt })
+        .eq("id", id)
+        .eq("stripe_checkout_session_id", session.id),
+    );
   const outcome = check(
     await database().rpc("booking_settle", {
       p_order: id,
@@ -113,14 +122,6 @@ export async function settleSession(
       p_started_at:startedAt,
     }),
   );
-  if (receipt)
-    check(
-      await database()
-        .from("orders")
-        .update({ stripe_receipt_url: receipt })
-        .eq("id", id)
-        .eq("stripe_payment_intent_id", intent),
-    );
   return outcome;
 }
 export async function reconcileCheckout(order: BookingOrder) {

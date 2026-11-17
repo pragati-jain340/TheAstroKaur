@@ -3,11 +3,16 @@ import nodemailer from "nodemailer";
 
 export class EmailDeliveryUncertain extends Error {}
 
-export function smtpTransport() {
+export function smtpConfiguration() {
   const { SMTP_HOST: host, SMTP_USER: user, SMTP_PASS: pass } = process.env;
   const port = Number(process.env.SMTP_PORT || "465");
-  if (!host || !user || !pass || !Number.isInteger(port) || port < 1 || port > 65535)
+  if (!host || !user || !/^[^\s@]+@[^\s@]+$/.test(user) || !pass || !Number.isInteger(port) || port < 1 || port > 65535)
     throw new Error("SMTP configuration is missing or invalid.");
+  return { host, user, pass, port };
+}
+
+export function smtpTransport() {
+  const { host, user, pass, port } = smtpConfiguration();
   return nodemailer.createTransport({
     host, port, secure: port === 465, requireTLS: port !== 465,
     auth: { user, pass },

@@ -1,6 +1,7 @@
 import "server-only";
 import { check, database, loadOrder } from "./server";
 import type { BookingOrder, Job } from "./types";
+import { reconcilePendingRefunds } from "@/lib/payments/refunds";
 import { reconcileCheckout } from "@/lib/payments/stripe";
 import { freeBusy, syncEvent } from "@/lib/google/calendar";
 import { sendBookingEmail } from "@/lib/email/booking";
@@ -10,12 +11,6 @@ import { availability } from "@/lib/booking/availability";
 export async function runWorker() {
   const db = database(),
     began = Date.now();
-  check(
-    await db
-      .from("availability_settings")
-      .update({ worker_last_seen_at: new Date().toISOString() })
-      .eq("id", true),
-  );
   check(await db.rpc("booking_queue_reconciliation"));
   const pending = check(
     await db
@@ -37,20 +32,30 @@ export async function runWorker() {
       /* Retain the lock on unknown provider state. Next scheduled invocation retries. */
     }
   }
+  try { await reconcilePendingRefunds(); } catch { console.error("Refund reconciliation is unavailable; pending refunds remain queued."); }
   const jobs = check(await db.rpc("booking_claim_jobs")) as Job[];
   for (const job of jobs) {
     if (Date.now() - began > 35000) break; // Unstarted leases are recoverable after three minutes.
     try {
       const order = await loadOrder(job.order_id);
+      if (["refund", "refund_owner"].includes(job.kind) && job.refund_id) {
+        const refund = check(await db.from("booking_refunds").select("status").eq("id", job.refund_id).single());
+        if (!refund) throw new Error("Refund notification record is missing.");
+        if (refund.status !== job.refund_status) {
+          check(await db.from("booking_jobs").update({ status: "skipped", lease_until: null }).eq("id", job.id).eq("lease_token", job.lease_token));
+          continue;
+        }
+      }
       const stale = job.version !== order.booking_version;
       const skip =
-        (stale && !["owner", "request", "schedule_owner"].includes(job.kind)) ||
+        (job.kind === "calendar" && order.status === "confirmed" && Date.parse(order.scheduled_end_at || order.scheduled_at || "") <= Date.now()) ||
+        (stale && !["owner", "request", "schedule_owner", "refund", "refund_owner", "payment_received"].includes(job.kind)) ||
         (job.kind === "schedule_owner" && order.status !== "awaiting_schedule") ||
         (job.kind === "availability_customer" && (order.status !== "awaiting_schedule" || !!order.availability_notified_at)) ||
         (job.kind === "reminder" &&
           (order.status !== "confirmed" ||
             Date.parse(order.scheduled_at || "") <= Date.now())) ||
-        (["customer", "rescheduled"].includes(job.kind) &&
+        (["customer", "rescheduled", "rescheduled_owner"].includes(job.kind) &&
           order.status !== "confirmed");
       if (skip) {
         check(
@@ -78,6 +83,23 @@ export async function runWorker() {
             if (conflicts.length) throw new Error("Google Calendar reports a conflict for this call.");
           }
           await syncEvent(order);
+          if (order.status === "confirmed") {
+            const recovered = check(await db.from("reading_details").select("meet_url,calendar_synced_version")
+              .eq("order_id", order.id).single());
+            if (recovered?.meet_url && recovered.calendar_synced_version === order.booking_version) {
+              const notifications = check(await db.from("booking_jobs").select("kind,email_payload")
+                .eq("order_id", order.id).eq("version", order.booking_version).eq("status", "sent")
+                .in("kind", ["customer", "owner"]));
+              for (const kind of ["customer", "owner"]) {
+                const sent = notifications?.filter(message => message.kind === kind) || [];
+                if (sent.length && !sent.some(message => message.email_payload?.html?.includes(recovered.meet_url))) {
+                  check(await db.from("booking_jobs").upsert({ order_id: order.id, kind, version: order.booking_version,
+                    dedupe_key: `${order.id}:${kind}:meet-recovery-v${order.booking_version}`,
+                  }, { onConflict: "dedupe_key", ignoreDuplicates: true }));
+                }
+              }
+            }
+          }
         }
       } else providerId = await sendBookingEmail(order, job);
       if (job.kind === "availability_customer") {
@@ -136,5 +158,12 @@ export async function runWorker() {
       }
     }
   }
+  // Advertise a healthy worker only after a full processing cycle succeeds.
+  check(
+    await db
+      .from("availability_settings")
+      .update({ worker_last_seen_at: new Date().toISOString() })
+      .eq("id", true),
+  );
   return { reconciled, processed };
 }

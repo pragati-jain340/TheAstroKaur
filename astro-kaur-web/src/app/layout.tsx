@@ -56,7 +56,8 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col">
+      {/* Grammarly and similar extensions can add body attributes before hydration. */}
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <AuthProvider>
           {children}
           <AuthModal />

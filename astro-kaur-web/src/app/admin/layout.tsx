@@ -47,10 +47,12 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFDF9] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#FAF8F5] selection:bg-[#E5B842]/30 selection:text-[#0F172A]">
+    <div className="min-h-screen bg-[#FFFDF9] font-sans text-[#0F172A] dark:bg-[#0F172A] dark:text-[#FAF8F5] selection:bg-[#E5B842]/30 selection:text-[#0F172A]">
       <AdminSidebar />
-      <main className="mx-auto min-h-[calc(100vh-116px)] w-full max-w-[1440px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
-        {children}
+      <main className="min-w-0 lg:pl-56">
+        <div className="mx-auto min-h-screen w-full max-w-[1400px] px-4 py-7 sm:px-7 sm:py-10 xl:px-12 xl:py-12 [&_h1]:font-sans [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:tracking-tight sm:[&_h1]:text-3xl">
+          {children}
+        </div>
       </main>
     </div>
   );

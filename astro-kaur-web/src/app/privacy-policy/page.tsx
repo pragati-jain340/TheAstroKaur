@@ -1,3 +1,5 @@
+import PolicyContact from "@/components/legal/PolicyContact";
+import { legalDetails, POLICY_UPDATED_DATE } from "@/lib/legal/details";
 import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -6,7 +8,7 @@ import SubpageBackground from "@/components/layout/SubpageBackground";
 export const metadata: Metadata = {
   title: "Privacy Policy — TheAstroKaur",
   description:
-    "Privacy Policy for TheAstroKaur. Learn how we collect, use, store, and protect your personal information in accordance with GDPR and applicable data protection laws.",
+    "How TheAstroKaur handles accounts, birth details, profile photos, bookings, payments, support messages and data protection requests.",
 };
 
 export default function PrivacyPolicyPage() {
@@ -27,13 +29,7 @@ export default function PrivacyPolicyPage() {
                 Privacy Policy
               </h1>
               <div className="text-xs sm:text-sm text-[#0F172A]/60 dark:text-[#FAF8F5]/60 font-light flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span>
-                  <strong className="font-medium text-[#0F172A]/80 dark:text-[#FAF8F5]/80">Effective Date:</strong> [Insert launch date]
-                </span>
-                <span className="hidden sm:inline opacity-40">•</span>
-                <span>
-                  <strong className="font-medium text-[#0F172A]/80 dark:text-[#FAF8F5]/80">Last Updated:</strong> [Insert date]
-                </span>
+                <span><strong className="font-medium text-[#0F172A]/80 dark:text-[#FAF8F5]/80">Last updated:</strong> {POLICY_UPDATED_DATE}</span>
               </div>
             </div>
 
@@ -49,7 +45,7 @@ export default function PrivacyPolicyPage() {
                     TheAstroKaur (“we”, “our”, or “us”) respects your privacy and is committed to protecting your personal information. This Privacy Policy explains how we collect, use, store, and share personal information when you visit our website, create an account, book an astrology reading, make a payment, submit a review, or contact us.
                   </p>
                   <p>
-                    TheAstroKaur is operated by Harvinder Kaur in Germany. For the purposes of applicable data protection laws, Harvinder Kaur acts as the data controller for the personal information processed through TheAstroKaur, unless otherwise stated.
+                    TheAstroKaur is operated by {legalDetails.operator} in {legalDetails.country}. For the purposes of applicable data protection laws, {legalDetails.operator} acts as the data controller for the personal information processed through TheAstroKaur, unless otherwise stated.
                   </p>
                   <p>
                     We process personal information in accordance with the General Data Protection Regulation (GDPR) and applicable German data protection laws.
@@ -72,7 +68,7 @@ export default function PrivacyPolicyPage() {
                       2.1 Account Information
                     </h3>
                     <p>
-                      When you create an account, we may collect your name, email address, authentication information, account preferences, and other details necessary to manage your account.
+                      When you create an account, we process your name, email address, authentication and email-verification information, account preferences, and account status. Authorised administrators can review profiles and related orders, manage access, and deactivate accounts to address misuse or security concerns. Account deactivation is different from deletion.
                     </p>
                   </div>
 
@@ -84,7 +80,7 @@ export default function PrivacyPolicyPage() {
                       To provide astrology readings, we may collect your date of birth, time of birth, place of birth, and information indicating whether your birth time is uncertain.
                     </p>
                     <p>
-                      We use this information to prepare and deliver the reading you request. Please provide only information that is relevant to your reading.
+                      We use this information to calculate charts and prepare the reading you request. Where a service needs partner details, we may also process the partner name and birth information you provide. Please have an appropriate basis for sharing another person&apos;s information and provide only what is relevant. Avoid including unnecessary health information, identity documents or other sensitive details in notes.
                     </p>
                   </div>
 
@@ -96,7 +92,7 @@ export default function PrivacyPolicyPage() {
                       When you book a reading, we may collect your selected service, booking date and time, order details, delivery preferences, and information necessary to manage your booking and provide the requested service.
                     </p>
                     <p>
-                      Appointment scheduling and related calendar services may be supported by Google Calendar and Meet.
+                      We retain a snapshot of the details supplied for an order, appointment time and time zone, booking reference, service and price, and a history of changes. Later profile edits do not necessarily change an existing order snapshot. Google Calendar and Meet support voice-call scheduling and invitations; written readings do not require a calendar appointment.
                     </p>
                   </div>
 
@@ -108,10 +104,10 @@ export default function PrivacyPolicyPage() {
                       Payments are processed through Stripe or the applicable payment service integrated into our website.
                     </p>
                     <p className="mb-2">
-                      We may receive information such as payment status, transaction references, order amounts, and limited billing details required to manage your purchase.
+                      We store payment and refund status, amounts and currency, Stripe payment/refund references, hosted receipt links where available, and records of administrator-approved refund exceptions. Full card entry is handled by Stripe. Payments currently run in test mode; account, booking and contact information entered during testing can still be real personal data.
                     </p>
                     <p>
-                      We do not intend to store full payment card details on our own website systems. Payment information handled by Stripe is also subject to Stripe&apos;s applicable privacy terms.
+                      We do not collect or store full payment-card numbers or security codes in our own booking database. Payment information handled by Stripe is also subject to Stripe&apos;s applicable privacy terms.
                     </p>
                   </div>
 
@@ -120,13 +116,13 @@ export default function PrivacyPolicyPage() {
                       2.5 Profile Photos
                     </h3>
                     <p className="mb-2">
-                      Uploading a profile photo is optional. If you choose to upload one, we use it only to display your profile image within your account and associated account interface.
+                      Uploading a profile photo is optional. Photos are cropped, resized and converted to WebP in your browser before the processed image is uploaded to Supabase Storage. The processed photo can appear in your account, administrator profile views, and beside a published review associated with your profile.
                     </p>
                     <p className="mb-2">
                       <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Profile photos are not used to prepare, interpret, or analyse astrology readings.</strong> You can use the website without uploading a profile photo.
                     </p>
                     <p>
-                      You may remove your profile photo through the available account features or contact us for assistance if necessary.
+                      Stored profile photos use publicly accessible image URLs. They should not be treated as confidential documents or private file storage. You can replace or remove a photo through the avatar controls, or contact support for help; copies already cached by browsers or third parties may not disappear immediately.
                     </p>
                   </div>
 
@@ -138,7 +134,7 @@ export default function PrivacyPolicyPage() {
                       If you submit a review after a reading, we may collect your rating, review text, name or display name, and any profile image displayed alongside the review, depending on your choices and the website&apos;s functionality.
                     </p>
                     <p>
-                      Reviews may be displayed publicly on our website as described when you submit them. Please avoid including sensitive or unnecessary personal information in a public review.
+                      A published review can display your author/display name, rating, review text, associated reading title, review date and current profile photo. Publication may make these details accessible to visitors and search engines. Please avoid including private birth details or other sensitive information. Contact support if you need to correct or remove published identifying information.
                     </p>
                   </div>
 
@@ -147,7 +143,7 @@ export default function PrivacyPolicyPage() {
                       2.7 Contact Information
                     </h3>
                     <p>
-                      If you contact us through our contact form or email, we collect the information you provide, such as your name, email address, enquiry subject, message, and related correspondence.
+                      If you contact us through our contact form or email, we collect the information you provide, such as your name, email address, enquiry subject, message, booking reference if supplied, and related correspondence.
                     </p>
                   </div>
 
@@ -165,6 +161,11 @@ export default function PrivacyPolicyPage() {
                 </div>
               </section>
 
+              <section className="pt-6 border-t border-[#0F172A]/10 dark:border-[#FAF8F5]/10">
+                <h2 className="font-serif text-xl sm:text-2xl font-medium text-[#0F172A] dark:text-[#FAF8F5] mb-3">Free-reading calculations</h2>
+                <p>Your complimentary rising-sign reading uses your birth date, time, birthplace coordinates and time zone. We send the calculation inputs to Navamsha and use the returned ascendant to select reading content. Place searches are sent to OpenStreetMap Nominatim. The result and supplied birth details are saved with your account/email to show your reading again and enforce the complimentary-reading limit. Choosing to update your profile is a separate option; leaving it unchecked does not prevent the free-reading record from being saved.</p>
+              </section>
+
               {/* Section 3 */}
               <section className="pt-6 border-t border-[#0F172A]/10 dark:border-[#FAF8F5]/10">
                 <h2 className="font-serif text-xl sm:text-2xl text-[#0F172A] dark:text-[#FAF8F5] font-medium tracking-tight mb-3">
@@ -180,7 +181,7 @@ export default function PrivacyPolicyPage() {
                   <li>To process payments and handle transaction-related enquiries.</li>
                   <li>To display optional profile photos within customer accounts.</li>
                   <li>To collect, manage, and display reviews.</li>
-                  <li>To respond to enquiries and send service-related communications.</li>
+                  <li>To respond to support enquiries and send verification codes, booking/payment confirmations, receipts or receipt links, appointment changes, cancellations and refund status updates. Relevant booking and payment updates are also sent to the authorised administrator. These operational emails are separate from marketing.</li>
                   <li>To maintain website functionality, security, and reliability.</li>
                   <li>To prevent misuse, manage disputes, and protect our legal rights.</li>
                   <li>To meet applicable legal, tax, accounting, and regulatory obligations.</li>
@@ -245,14 +246,16 @@ export default function PrivacyPolicyPage() {
                     <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Supabase:</strong> Customer authentication, database services, and storage for information such as account details, orders, and profile photos.
                   </li>
                   <li>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Email provider (Gmail SMTP):</strong> Sending contact-form enquiries, booking notifications and account emails.
+                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Email provider (configured SMTP mailbox, currently Gmail):</strong> Sending contact enquiries, verification and account emails, customer confirmations, receipt links, change/refund notifications and administrator copies. Email delivery records and queued message contents may be stored to manage delivery and avoid duplicate messages.
                   </li>
                   <li>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Stripe:</strong> Payment processing.
+                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Stripe:</strong> Hosted payment processing, payment verification, exceptional refunds and hosted receipts.
                   </li>
                   <li>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Google Calendar and Meet:</strong> Appointment scheduling, calendar functionality, and related business communications.
+                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Google Calendar and Meet:</strong> Voice-call availability checks, event creation and updates, invitations and meeting links using the booking organiser&apos;s connection. Booking does not require you to connect a personal Google Calendar. If you separately choose an optional Google connection, the relevant calendar permissions and connection tokens are used for that feature; you can revoke access through Google or the available connection controls.
                   </li>
+                  <li><strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Navamsha:</strong> Processing birth date/time, coordinates and time-zone inputs to calculate the free reading&apos;s ascendant.</li>
+                  <li><strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">OpenStreetMap Nominatim:</strong> Resolving birthplace search text into location suggestions and coordinates.</li>
                 </ul>
                 <div className="space-y-3">
                   <p>
@@ -277,16 +280,16 @@ export default function PrivacyPolicyPage() {
                 </h2>
                 <div className="space-y-3">
                   <p>
-                    Our website may use essential cookies and similar technologies to support functions such as account authentication, session management, security, and user preferences.
+                    The current website uses authentication/session cookies for sign-in and security, and browser storage to remember your light/dark theme preference. Payment and Google services may also use their own cookies when you visit or interact with those services.
                   </p>
                   <p>
                     If analytics, advertising, or other non-essential tracking technologies are introduced, we will handle them in accordance with applicable consent requirements.
                   </p>
                   <p>
-                    Where required, non-essential cookies will not be activated before the necessary consent is obtained. You can manage your preferences through the available cookie controls.
+                    Any future non-essential tracking that requires consent must be disclosed and enabled only after the required choice. The current site does not provide a separate analytics/advertising preference centre. You can manage cookies and local storage through your browser; clearing or blocking essential storage may sign you out or reset preferences.
                   </p>
                   <p>
-                    The specific cookies and technologies used will depend on the website&apos;s actual configuration.
+                    We do not treat account creation, booking or acceptance of these policies as consent to unrelated marketing or advertising tracking.
                   </p>
                 </div>
               </section>
@@ -334,7 +337,7 @@ export default function PrivacyPolicyPage() {
                     When information is no longer necessary, we will delete it or take appropriate steps to anonymise it, subject to applicable legal obligations and legitimate needs to establish, exercise, or defend legal claims.
                   </p>
                   <p>
-                    We will determine and document specific retention periods for relevant categories of information based on our actual practices and legal requirements.
+                    Retention is assessed against these purposes and applicable legal requirements. Deactivating an account does not itself erase records. Contact us for information about a particular record or to request deletion or restricted processing; records needed for tax, accounting or a legal claim may require different treatment from optional profile information.
                   </p>
                 </div>
               </section>
@@ -346,10 +349,10 @@ export default function PrivacyPolicyPage() {
                 </h2>
                 <div className="space-y-3">
                   <p>
-                    You may request deletion of your TheAstroKaur account through the available account settings or deletion functionality.
+                    Contact support to request account deletion, erasure of particular personal information, or restriction of processing. There is currently no customer self-service account-deletion button.
                   </p>
                   <p>
-                    When you delete your account, we will take the appropriate steps to delete or anonymise personal information associated with it, subject to applicable legal requirements and permitted exceptions.
+                    We review requests, verify identity where needed, and explain any information that must lawfully be retained. Accounts linked to verified transactions require manual review; that does not remove your right to request erasure of information that is no longer needed.
                   </p>
                   <p>
                     Certain records, such as transaction or accounting information, may need to be retained for legal or tax purposes. Information contained in backups may also remain for a limited period until the applicable backup retention process removes it.
@@ -383,7 +386,7 @@ export default function PrivacyPolicyPage() {
                     These rights are subject to applicable legal conditions and exceptions.
                   </p>
                   <p>
-                    To exercise your rights, contact us using the details in Section 14. We may request information necessary to verify your identity before responding.
+                    To exercise your rights, contact us using the details in Section 14. We may request information necessary to verify your identity before responding. Where the GDPR applies, we normally respond within one month, and will explain any lawful extension or refusal.
                   </p>
                 </div>
               </section>
@@ -445,23 +448,7 @@ export default function PrivacyPolicyPage() {
                   For questions about this Privacy Policy, requests concerning your personal information, or account deletion assistance, please contact:
                 </p>
 
-                <div className="mt-4 p-5 sm:p-6 rounded-2xl bg-[#FAF8F5] dark:bg-[#131F33] border border-[#E5B842]/25 space-y-1.5 text-sm sm:text-base text-[#0F172A]/85 dark:text-[#FAF8F5]/85">
-                  <p className="font-serif text-base sm:text-lg font-medium text-[#0F172A] dark:text-[#FAF8F5] mb-2">
-                    TheAstroKaur
-                  </p>
-                  <p>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Data Controller:</strong> Harvinder Kaur
-                  </p>
-                  <p>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Business Address:</strong> [Insert full business address in Germany]
-                  </p>
-                  <p>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Privacy Contact Email:</strong> [Insert dedicated privacy email address]
-                  </p>
-                  <p>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Website:</strong> [Insert official website URL]
-                  </p>
-                </div>
+                <PolicyContact />
 
                 <div className="mt-5 space-y-3">
                   <p>

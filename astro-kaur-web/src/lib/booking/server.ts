@@ -38,6 +38,11 @@ export async function requireUser() {
     throw new BookingError("An active account is required.", 403);
   return { user, isAdmin: profile.role === "admin" };
 }
+export async function requireCustomer() {
+  const auth = await requireUser();
+  if (auth.isAdmin) throw new BookingError("Admin accounts cannot make paid bookings. Use the admin workspace to manage customer bookings.", 403);
+  return auth;
+}
 export async function requireAdmin() {
   const auth = await requireUser();
   if (!auth.isAdmin)

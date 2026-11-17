@@ -349,7 +349,8 @@ export default function AdminUserDetailPage({
               variant="link"
               size="sm"
               onClick={() => {
-                setTargetStatus(profile.account_status === "active" ? "suspended" : "active");
+                setActionError(null);
+                setTargetStatus(profile.account_status === "active" ? "deactivated" : "active");
                 setStatusDialogOpen(true);
               }}
               className="h-auto p-0 text-xs text-[#E5B842] hover:underline font-medium ml-1"
@@ -394,7 +395,7 @@ export default function AdminUserDetailPage({
 
         {/* Birth Details Snapshot */}
         <div className="pt-4 border-t border-[#0F172A]/6 dark:border-[#FAF8F5]/6">
-          <p className="text-[10px] font-bold tracking-widest text-[#0F172A]/40 dark:text-[#FAF8F5]/40 uppercase mb-3">
+          <p className="text-[10px] font-bold tracking-widest text-[#0F172A]/40 dark:text-[#FAF8F5]/65 uppercase mb-3">
             Profile Birth Details
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
@@ -549,11 +550,11 @@ export default function AdminUserDetailPage({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-[#E5B842]">
                     {"★".repeat(r.review_rating || 5)}{" "}
-                    <span className="text-[#0F172A]/40 dark:text-[#FAF8F5]/40 font-normal">
+                    <span className="text-[#0F172A]/40 dark:text-[#FAF8F5]/65 font-normal">
                       ({r.review_rating}/5)
                     </span>
                   </span>
-                  <span className="text-[11px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40">
+                  <span className="text-[11px] text-[#0F172A]/40 dark:text-[#FAF8F5]/65">
                     {formatDate(r.review_created_at)}
                   </span>
                 </div>
@@ -648,6 +649,7 @@ export default function AdminUserDetailPage({
               Select the operational status for <strong>{profile.email}</strong>:
             </p>
 
+            {actionError && <p role="alert" className="text-sm text-destructive">{actionError}</p>}
             <div className="space-y-2">
               {(["active", "suspended", "deactivated"] as const).map((st) => (
                 <label

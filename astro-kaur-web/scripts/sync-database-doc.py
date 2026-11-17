@@ -12,7 +12,7 @@ def load_env(filepath):
             line = line.strip()
             if line and not line.startswith('#') and '=' in line:
                 key, val = line.split('=', 1)
-                os.environ.setdefault(key.strip(), val.strip())
+                os.environ.setdefault(key.strip(), val.strip().strip(chr(34)).strip(chr(39)))
 
 load_env('.env.local')
 load_env('../.env')

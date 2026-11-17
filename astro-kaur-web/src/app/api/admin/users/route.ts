@@ -1,18 +1,19 @@
-import { adminGuard } from "@/lib/booking/server";
+import { adminGuard, requireAdmin, apiError, database } from "@/lib/booking/server";
+import { AccountStatusError, changeAccountStatus } from "@/lib/admin/accountStatus";
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/types";
+const supabaseAdmin = database();
 
-// Initialize Supabase Admin client with Service Role Key for privileged server-side management
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://qdnwmfriilknnwqrepuy.supabase.co",
-  process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "",
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+async function allRows<T>(table: "customer_profiles" | "orders", columns: string): Promise<T[]> {
+  const rows: T[] = [];
+  for (let offset = 0; ; offset += 500) {
+    const { data, error } = await supabaseAdmin.from(table).select(columns).order("id").range(offset, offset + 499);
+    if (error) throw error;
+    const batch = (data || []) as unknown as T[];
+    rows.push(...batch);
+    if (batch.length < 500) return rows;
   }
-);
+}
 
 /**
  * Helper to count remaining active administrators
@@ -39,19 +40,13 @@ export async function GET() {
   const denied = await adminGuard();
   if (denied) return denied;
   try {
-    const { data: profiles, error: profileErr } = await supabaseAdmin
-      .from("customer_profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (profileErr) {
-      return NextResponse.json({ error: profileErr.message }, { status: 500 });
-    }
-
-    // Fetch order counts grouped by auth_user_id
-    const { data: orders } = await supabaseAdmin
-      .from("orders")
-      .select("auth_user_id, price_eur, payment_status");
+    type Profile = Database["public"]["Tables"]["customer_profiles"]["Row"];
+    type ListedProfile = Pick<Profile, "id" | "auth_user_id" | "display_name" | "email" | "role" | "account_status" | "created_at" | "avatar_url" | "avatar_seed">;
+    const [profiles, orders] = await Promise.all([
+      allRows<ListedProfile>("customer_profiles", "id,auth_user_id,display_name,email,role,account_status,created_at,avatar_url,avatar_seed"),
+      allRows<{ auth_user_id: string | null; price_eur: number | null; payment_status: string }>("orders", "auth_user_id,price_eur,payment_status"),
+    ]);
+    profiles.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
 
     const readingCountMap: Record<string, number> = {};
     const totalSpentMap: Record<string, number> = {};
@@ -117,6 +112,7 @@ export async function POST(req: NextRequest) {
       email: email.trim().toLowerCase(),
       password: assignedPassword,
       email_confirm: true,
+      ban_duration: accountStatus === "suspended" || accountStatus === "deactivated" ? "876000h" : "none",
       user_metadata: {
         display_name: displayName || email.split("@")[0],
       },
@@ -176,9 +172,12 @@ export async function POST(req: NextRequest) {
  * Updates user profile, role, and account status with Last Admin Protection
  */
 export async function PATCH(req: NextRequest) {
-  const denied = await adminGuard();
-  if (denied) return denied;
   try {
+    const actor = await requireAdmin();
+    const origin = req.headers.get("origin");
+    if (origin && origin !== req.nextUrl.origin) {
+      return NextResponse.json({ error: "Cross-site requests are not allowed." }, { status: 403 });
+    }
     const body = await req.json();
     const {
       id,
@@ -215,16 +214,18 @@ export async function PATCH(req: NextRequest) {
 
     const currentAuthId = existingProfile.auth_user_id;
 
-    // 2. LAST ADMIN PROTECTION ENFORCEMENT
-    // If the target is currently an admin, and is being demoted to customer OR deactivated/suspended:
-    const isDemoting = role !== undefined && role !== "admin" && existingProfile.role === "admin";
-    const isDeactivating =
-      accountStatus !== undefined &&
-      accountStatus !== "active" &&
-      existingProfile.role === "admin" &&
-      existingProfile.account_status === "active";
+    if (accountStatus !== undefined) {
+      if (Object.keys(body).some(key => !["id", "auth_user_id", "accountStatus"].includes(key))) {
+        return NextResponse.json({ error: "Change account status separately from profile or role edits." }, { status: 400 });
+      }
+      const user = await changeAccountStatus(supabaseAdmin, existingProfile, accountStatus, actor.user.id);
+      return NextResponse.json({ user });
+    }
 
-    if (isDemoting || isDeactivating) {
+
+    // Retain last-administrator protection when changing roles.
+    const isDemoting = role !== undefined && role !== "admin" && existingProfile.role === "admin";
+    if (isDemoting) {
       const activeAdminsCount = await countActiveAdmins();
       if (activeAdminsCount <= 1) {
         return NextResponse.json(
@@ -261,9 +262,6 @@ export async function PATCH(req: NextRequest) {
     if (email !== undefined) updates.email = email.trim().toLowerCase();
     if (displayName !== undefined) updates.display_name = displayName ? displayName.trim() : null;
     if (role !== undefined) updates.role = role === "admin" ? "admin" : "customer";
-    if (accountStatus !== undefined && ["active", "suspended", "deactivated"].includes(accountStatus)) {
-      updates.account_status = accountStatus;
-    }
     if (dateOfBirth !== undefined) updates.date_of_birth = dateOfBirth || null;
     if (timeOfBirth !== undefined) updates.time_of_birth = timeUncertain ? null : timeOfBirth || null;
     if (placeOfBirth !== undefined) updates.place_of_birth = placeOfBirth ? placeOfBirth.trim() : null;
@@ -289,8 +287,9 @@ export async function PATCH(req: NextRequest) {
     }
 
     return NextResponse.json({ user: updatedProfile });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to update user." }, { status: 500 });
+  } catch (err: unknown) {
+    if (err instanceof AccountStatusError) return NextResponse.json({ error: err.message }, { status: err.status });
+    return apiError(err);
   }
 }
 

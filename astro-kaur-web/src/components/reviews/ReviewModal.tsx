@@ -171,7 +171,7 @@ function ReviewDialog({
             </div>
 
             {order.review_created_at && (
-              <p className="text-[11px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40 mt-3">
+              <p className="text-[11px] text-[#0F172A]/40 dark:text-[#FAF8F5]/65 mt-3">
                 Submitted on{" "}
                 {new Date(order.review_created_at).toLocaleDateString("en-GB", {
                   day: "numeric",
@@ -280,7 +280,7 @@ function ReviewDialog({
                 >
                   Your Experience &amp; Reflection <span className="text-[#E5B842]">*</span>
                 </label>
-                <span className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40">
+                <span className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/65">
                   {content.length} characters
                 </span>
               </div>

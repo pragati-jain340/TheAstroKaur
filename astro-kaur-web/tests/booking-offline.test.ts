@@ -34,6 +34,33 @@ test("unconnected Google still offers 30-day availability while website reservat
   } finally { globalThis.fetch = original; }
 });
 
+test("one booked reading blocks overlapping starts for every other reading duration", async t => {
+  const start = new Date(); start.setUTCDate(start.getUTCDate() + 10); start.setUTCHours(10, 0, 0, 0);
+  const blockedUntil = new Date(start.getTime() + 60 * 60000); // 45 minute reading + 15 minute buffer
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith('/services')) {
+      const long = url.searchParams.get('id') === 'eq.long-reading';
+      return Response.json({ id: long ? 'long-reading' : 'short-reading', format: 'voice_call', duration_minutes: long ? 45 : 30 });
+    }
+    if (url.pathname.endsWith('/availability_settings')) return Response.json({ timezone: 'UTC', min_notice_minutes: 15, advance_window_days: 30, buffer_minutes: 15, slot_step_minutes: 15, booking_enabled: true });
+    if (url.pathname.endsWith('/availability_windows')) return Response.json(Array.from({ length: 7 }, (_, weekday) => ({ weekday, start_local: '09:00', end_local: '12:00', enabled: true })));
+    if (url.pathname.endsWith('/availability_overrides')) return Response.json([]);
+    if (url.pathname.endsWith('/google_calendar_connections')) return Response.json(null);
+    if (url.pathname.endsWith('/booking_reservations')) {
+      assert.equal(url.searchParams.get('service_id'), null);
+      return Response.json([{ starts_at: start.toISOString(), blocked_until: blockedUntil.toISOString() }]);
+    }
+    throw new Error(`Unexpected synthetic request: ${url}`);
+  });
+  for (const service of ['short-reading', 'long-reading']) {
+    const result = await availability(service);
+    assert.ok(result.slots.length > 0);
+    assert.ok(!result.slots.some(slot => Date.parse(slot.start) < blockedUntil.getTime() && Date.parse(slot.end) + 15 * 60000 > start.getTime()));
+    assert.ok(result.slots.some(slot => slot.start === blockedUntil.toISOString()));
+  }
+});
+
 test("Google sync errors send personal-contact instructions to customer and owner", async () => {
   const original = globalThis.fetch;
   let frozen: unknown; const sent: SendMailOptions[] = [];
@@ -67,6 +94,7 @@ test("calendar worker queues one owner warning for a rescheduled call when Googl
   const warnings = new Set<string>();
   globalThis.fetch = async (input, options) => {
     const url = String(input), method = options?.method || 'GET';
+    if (url.includes('/booking_refunds')) return Response.json([]);
     if (url.includes('/rpc/booking_queue_reconciliation')) return Response.json(null);
     if (url.includes('/rpc/booking_claim_jobs')) return Response.json([job]);
     if (url.includes('/availability_settings')) return new Response(null, { status: 204 });
@@ -83,4 +111,37 @@ test("calendar worker queues one owner warning for a rescheduled call when Googl
     await runWorker(); await runWorker();
     assert.deepEqual([...warnings], [`${order.id}:owner:2`]);
   } finally { globalThis.fetch = original; }
+});
+
+
+test("restarting the worker skips calendar invitations for consultations that have ended", async t => {
+  const { runWorker } = await import('../src/lib/booking/worker');
+  const order = { id: '22222222-2222-4222-8222-222222222222', format: 'voice_call', status: 'confirmed', booking_version: 1, scheduled_at: new Date(Date.now() - 3600000).toISOString(), scheduled_end_at: new Date(Date.now() - 1800000).toISOString() };
+  const job = { id: '33333333-3333-4333-8333-333333333333', order_id: order.id, kind: 'calendar', version: 1, attempts: 1, lease_token: 'synthetic-lease' };
+  let outcome: string | undefined;
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, options?: RequestInit) => {
+    const url = String(input);
+    if (url.includes('/rpc/booking_queue_reconciliation')) return Response.json(null);
+    if (url.includes('/rpc/booking_claim_jobs')) return Response.json([job]);
+    if (url.includes('/booking_refunds')) return Response.json([]);
+    if (url.includes('/availability_settings')) return new Response(null, { status: 204 });
+    if (url.includes('/orders')) return Response.json(url.includes('pending_payment') ? [] : order);
+    if (url.includes('/booking_jobs') && options?.method === 'PATCH') { outcome = JSON.parse(String(options.body)).status; return new Response(null, { status: 204 }); }
+    throw new Error('Ended consultations must not contact Google or queue notifications');
+  });
+  await runWorker();
+  assert.equal(outcome, 'skipped');
+});
+
+test("a failed worker cycle cannot advertise a healthy checkout heartbeat", async t => {
+  const { runWorker } = await import('../src/lib/booking/worker');
+  let heartbeats = 0;
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+    const url = String(input);
+    if (url.includes('/availability_settings')) { heartbeats++; return new Response(null, { status: 204 }); }
+    if (url.includes('/rpc/booking_queue_reconciliation')) return Response.json({ message: 'Synthetic queue failure', code: 'P0001' }, { status: 400 });
+    throw new Error('Unexpected request after worker queue failure');
+  });
+  await assert.rejects(runWorker(), /Synthetic queue failure/);
+  assert.equal(heartbeats, 0);
 });

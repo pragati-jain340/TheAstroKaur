@@ -1,6 +1,5 @@
 "use client";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import type { BookingOrder } from "@/lib/booking/types";
@@ -17,23 +16,18 @@ interface BookingState {
     calendar_invitation_status: string;
     delivered_at: string | null;
   } | null;
-  can_reschedule: boolean;
-  reschedule_deadline: number;
   server_now: string;
 }
 export default function BookingControls({ id }: { id: string }) {
-  const { openContactModal } = useAuth();
+  const { openContactModal, isAdmin } = useAuth();
   const [data, setData] = useState<BookingState | null>(null),
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
     [working, setWorking] = useState(false);
-  const [rescheduling, setRescheduling] = useState(false),
-    [start, setStart] = useState(""),
+  const [start, setStart] = useState(""),
     [zone, setZone] = useState(
       () => Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Berlin",
     );
-  const [request, setRequest] = useState(false),
-    [reason, setReason] = useState("");
   const load = useCallback(
     async (reconcile = false) => {
       const response = await fetch(
@@ -69,15 +63,12 @@ export default function BookingControls({ id }: { id: string }) {
       clearInterval(timer);
     };
   }, [load, id]);
-  async function change(action: string) {
+  async function change(action: "schedule" | "cancel") {
+    if (isAdmin) return;
     const prompt =
       action === "cancel"
         ? "Cancel this appointment? This releases your time and does not automatically issue a refund."
-        : action === "schedule"
-          ? "Confirm this appointment?"
-        : action === "reschedule"
-          ? "Confirm this new appointment? This uses your one self-service reschedule."
-          : "Submit this withdrawal/refund request for owner review?";
+        : "Confirm this appointment?";
     if (!window.confirm(prompt)) return;
     setWorking(true);
     setError("");
@@ -90,19 +81,12 @@ export default function BookingControls({ id }: { id: string }) {
             action,
             starts_at: start,
             timezone: zone,
-            reason,
             confirmed: true,
           }),
         }),
         result = await response.json();
       if (!response.ok) throw new Error(result.error);
-      setRescheduling(false);
-      setRequest(false);
-      setMessage(
-        action === "withdrawal"
-          ? "Your request has been recorded. The owner will review it and contact you."
-          : "Your booking has been updated.",
-      );
+      setMessage(action === "cancel" ? "Booking cancelled. No refund was issued." : "Your booking has been updated.");
       await load();
     } catch (err) {
       setError(
@@ -113,6 +97,7 @@ export default function BookingControls({ id }: { id: string }) {
     }
   }
   async function pay() {
+    if (isAdmin) return;
     setWorking(true);
     setError("");
     try {
@@ -151,7 +136,8 @@ export default function BookingControls({ id }: { id: string }) {
             Payment: {order.payment_status} · Order:{" "}
             {order.status.replaceAll("_", " ")}
           </p>
-          {order.status === "pending_payment" && (
+          {["processing", "pending", "requires_action", "refunded", "partially_refunded", "failed", "canceled"].includes(order.refund_status) && <p className="rounded-lg bg-muted/50 p-3 text-sm leading-relaxed">Refund: {order.refund_status === "processing" ? "awaiting Stripe confirmation" : order.refund_status.replaceAll("_", " ")}.{(order.refunded_amount_cents || 0) > 0 && ` Refunded amount: ${new Intl.NumberFormat("en-GB", { style: "currency", currency: order.currency_snapshot || "EUR" }).format((order.refunded_amount_cents || 0) / 100)}.`} A refund does not cancel your reading. Contact support if you need help.</p>}
+          {!isAdmin && order.status === "pending_payment" && (
             <>
               <p className="text-sm">
                 Payment has not yet been verified. Returning from checkout does
@@ -180,14 +166,14 @@ export default function BookingControls({ id }: { id: string }) {
             <p>
               {data.detail?.delivered_at
                 ? "The owner marked your reading as delivered. Please check your email."
-                : order.payment_status === "paid"
+                : ["paid", "refunded"].includes(order.payment_status)
                   ? "The owner will contact you personally by email about timing and send your completed reading directly to you."
                   : "Your reading will be prepared after payment is confirmed."}
             </p>
           )}
-          {order.format === "voice_call" && order.status === "awaiting_schedule" && order.payment_status === "paid" && order.service_id && (
+          {!isAdmin && order.format === "voice_call" && order.status === "awaiting_schedule" && ["paid", "refunded"].includes(order.payment_status) && order.service_id && (
             <div className="space-y-4">
-              <p>Payment received. Choose a time below. If no times are available, the owner will contact you to arrange your call.</p>
+              <p>Your reading is active. Choose a time below. If no times are available, the owner will contact you to arrange your call.</p>
               <ZoneSelect value={zone} onChange={setZone} />
               <SlotPicker serviceId={order.service_id} orderId={id} zone={zone} value={start} onChange={setStart} />
               <Button disabled={!start || working} size="lg" onClick={() => change("schedule")}>
@@ -234,50 +220,8 @@ export default function BookingControls({ id }: { id: string }) {
                       : "Your call details are being prepared. Your booking is confirmed."}
                   </p>
                 ))}
-              {data.can_reschedule && (
-                <>
-                  <p className="text-sm">
-                    One reschedule available until{" "}
-                    {formatAppointment(
-                      new Date(data.reschedule_deadline).toISOString(),
-                      order.customer_timezone,
-                    )}{" "}
-                    ({order.customer_timezone}).
-                  </p>
-                  <Button
-                    disabled={working}
-                    variant="link"
-                    onClick={() => setRescheduling((v) => !v)}
-                  >
-                    Reschedule
-                  </Button>
-                </>
-              )}
-              {rescheduling && order.service_id && (
-                <div className="space-y-4">
-                  <ZoneSelect value={zone} onChange={setZone} />
-                  <SlotPicker
-                    serviceId={order.service_id}
-                    orderId={id}
-                    zone={zone}
-                    value={start}
-                    onChange={setStart}
-                  />
-                  {start && (
-                    <p>
-                      {formatAppointment(start, zone)} ({zone})
-                    </p>
-                  )}
-                  <Button
-                    disabled={!start || working}
-                    size="lg"
-                    onClick={() => change("reschedule")}
-                  >
-                    Confirm reschedule
-                  </Button>
-                </div>
-              )}
-              {order.status === "confirmed" &&
+              {order.status === "confirmed" && <p className="text-sm text-muted-foreground">Need to change your appointment time? Use Get help with this booking below to contact support.</p>}
+              {!isAdmin && order.status === "confirmed" &&
                 Date.parse(order.scheduled_at) >
                   Date.parse(data.server_now) && (
                   <Button
@@ -291,11 +235,8 @@ export default function BookingControls({ id }: { id: string }) {
             </>
           )}
           <div className="flex flex-wrap gap-4 text-sm">
-            <Button onClick={openContactModal} variant="link">
-              Contact support
-            </Button>
-            <Button variant="link" onClick={() => setRequest((v) => !v)}>
-              Request withdrawal / refund
+            <Button onClick={() => openContactModal(id)} variant="link">
+              Get help with this booking
             </Button>
             <Button
               variant="link"
@@ -304,31 +245,8 @@ export default function BookingControls({ id }: { id: string }) {
               Refresh status
             </Button>
           </div>
-          {request && (
-            <div className="space-y-3">
-              <p className="text-sm">
-                This records a request for review and does not automatically
-                cancel your order or issue a refund.
-              </p>
-              <label className="block text-sm">
-                Reason
-                <Textarea
-                  className="mt-1"
-                  rows={3}
-                  maxLength={1000}
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                />
-              </label>
-              <Button
-                disabled={working || !reason.trim()}
-                onClick={() => change("withdrawal")}
-                size="lg"
-              >
-                Submit request
-              </Button>
-            </div>
-          )}
+          <p className="text-xs leading-relaxed text-muted-foreground">Bookings are non-refundable, except where required by law. Contact support for help, an approved exception, or to exercise applicable statutory rights. Cancelling a booking does not issue a refund.</p>
+
         </>
       )}
     </section>

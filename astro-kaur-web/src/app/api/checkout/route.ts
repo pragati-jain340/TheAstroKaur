@@ -3,12 +3,12 @@ import {
   apiError,
   BookingError,
   loadOrder,
-  requireUser,
+  requireCustomer,
 } from "@/lib/booking/server";
 import { createCheckout, reconcileCheckout } from "@/lib/payments/stripe";
 export async function POST(req: NextRequest) {
   try {
-    const { user } = await requireUser(),
+    const { user } = await requireCustomer(),
       body = await req.json(),
       order = await loadOrder(body.order_id);
     if (order.auth_user_id !== user.id)

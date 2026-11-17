@@ -2,9 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { calculateSlots, coversBooking } from "../src/lib/booking/slots";
 import {
-  canReschedule,
-  rescheduleDeadline,
-  type BookingOrder,
   type Settings,
 } from "../src/lib/booking/types";
 const settings: Settings = {
@@ -132,33 +129,6 @@ test("back-to-back start at the blocked interval end is allowed", () => {
     Date.parse("2026-10-20T06:00:00Z"),
   );
   assert.ok(slots.some((s) => s.start === "2026-10-20T08:00:00.000Z"));
-});
-test("rescheduling closes 12 hours after confirmation or original start, whichever is earlier", () => {
-  const order = {
-    format: "voice_call",
-    status: "confirmed",
-    payment_status: "paid",
-    payment_verified_at: "2026-10-19T12:00:00Z",
-    booking_confirmed_at: "2026-10-19T12:00:00Z",
-    original_scheduled_at: "2026-10-20T10:00:00Z",
-    reschedule_count: 0,
-  } as BookingOrder;
-  assert.equal(rescheduleDeadline(order), Date.parse("2026-10-20T00:00:00Z"));
-  assert.ok(canReschedule(order, Date.parse("2026-10-19T23:59:59Z")));
-  assert.ok(!canReschedule(order, Date.parse("2026-10-20T00:00:00Z")));
-  assert.ok(
-    !canReschedule(
-      { ...order, reschedule_count: 1 },
-      Date.parse("2026-10-19T13:00:00Z"),
-    ),
-  );
-  assert.equal(
-    rescheduleDeadline({
-      ...order,
-      original_scheduled_at: "2026-10-19T14:00:00Z",
-    }),
-    Date.parse("2026-10-19T14:00:00Z"),
-  );
 });
 test("written and disabled service schedules never offer slots", () => {
   assert.deepEqual(

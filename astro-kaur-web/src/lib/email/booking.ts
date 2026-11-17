@@ -1,7 +1,7 @@
 import "server-only";
 import { BookingError, check, database, siteUrl } from "@/lib/booking/server";
 import type { BookingOrder, Job } from "@/lib/booking/types";
-import { EmailDeliveryUncertain, sendEmail } from "./smtp";
+import { EmailDeliveryUncertain, sendEmail, smtpConfiguration } from "./smtp";
 
 const escape = (v: string) =>
   v.replace(
@@ -12,19 +12,22 @@ const escape = (v: string) =>
       ]!,
   );
 export async function sendBookingEmail(order: BookingOrder, job: Job) {
+  // Validate before freezing or claiming the message so configuration failures remain retryable.
+  const { user: smtpUser } = smtpConfiguration();
   const db = database();
   const details = check(
     await db
       .from("reading_details")
-      .select("meet_url,calendar_sync_status,calendar_synced_version")
+      .select("meet_url,calendar_sync_status,calendar_synced_version,client_name,client_date_of_birth,client_time_of_birth,client_time_uncertain,client_place_of_birth,partner_name,partner_date_of_birth,partner_time_of_birth,partner_time_uncertain,partner_place_of_birth")
       .eq("order_id", order.id)
       .single(),
   );
   if (!details) throw new Error("Reading snapshot is missing.");
-  const isOwner = ["owner", "request", "schedule_owner"].includes(job.kind);
+  const kind = ({ cancelled_owner: "cancelled", rescheduled_owner: "rescheduled", refund_owner: "refund" } as Record<string, string>)[job.kind] || job.kind;
+  const isOwner = ["owner", "request", "schedule_owner", "cancelled_owner", "rescheduled_owner", "refund_owner"].includes(job.kind);
   if (
     order.format === "voice_call" &&
-    ["customer", "owner", "rescheduled", "reminder"].includes(job.kind) &&
+    ["customer", "owner", "rescheduled", "reminder"].includes(kind) &&
     order.status === "confirmed" &&
     details.calendar_sync_status !== "error" &&
     (!details.meet_url ||
@@ -47,6 +50,11 @@ export async function sendBookingEmail(order: BookingOrder, job: Job) {
     request: "A customer withdrawal/refund request needs review",
     schedule_owner: "A paid voice reading needs scheduling",
     availability_customer: "Times are available for your voice reading",
+    refund: "Your reading payment refund update",
+    refund_owner: "Refund update for a customer booking",
+    cancelled_owner: "A customer booking has been cancelled",
+    rescheduled_owner: "A customer booking has been rescheduled",
+    payment_received: "Payment received for your reading",
   };
   const subject = subjects[job.kind] || "Your TheAstroKaur order";
   const parts = [
@@ -54,18 +62,60 @@ export async function sendBookingEmail(order: BookingOrder, job: Job) {
     `<p>${escape(order.service_title)}</p>`,
     `<p>Order reference: ${escape(order.id.slice(0, 8).toUpperCase())}</p>`,
   ];
-  if (order.format === "text" && job.kind === "customer")
+  if (isOwner) {
+    if (order.notes?.trim()) {
+      parts.push(`<h2 style="font-size:18px">Client's additional note</h2><p style="white-space:pre-wrap;overflow-wrap:anywhere">${escape(order.notes)}</p>`);
+    }
+    const row = (label: string, value: string | null | undefined) =>
+      `<tr><th align="left" style="padding:6px 12px 6px 0;font-weight:normal;color:#555">${escape(label)}</th><td style="padding:6px 0">${escape(value || "Not provided")}</td></tr>`;
+    const birthTime = (time: string | null, uncertain: boolean) =>
+      uncertain ? `${time || "Not provided"} (exact time unknown)` : time;
+    parts.push(`<h2 style="font-size:18px">Client details</h2><table role="presentation">${row("Name", details.client_name)}${row("Email", order.customer_email_snapshot)}${row("Reading format", order.format === "text" ? "Written reading" : "Voice call")}${row("Date of birth", details.client_date_of_birth)}${row("Time of birth", birthTime(details.client_time_of_birth, details.client_time_uncertain))}${row("Place of birth", details.client_place_of_birth)}${row("Customer timezone", order.customer_timezone)}</table>`);
+    if (order.requires_partner || details.partner_name || details.partner_date_of_birth || details.partner_place_of_birth) {
+      parts.push(`<h2 style="font-size:18px">Partner details</h2><table role="presentation">${row("Name", details.partner_name)}${row("Date of birth", details.partner_date_of_birth)}${row("Time of birth", birthTime(details.partner_time_of_birth, details.partner_time_uncertain))}${row("Place of birth", details.partner_place_of_birth)}</table>`);
+    }
+  }
+  if (kind === "refund" && job.refund_id) {
+    const refund = check(await db.from("booking_refunds").select("stripe_refund_id,amount_cents,currency,status,reason").eq("id", job.refund_id).single());
+    if (!refund) throw new Error("Refund notification record is missing.");
+    const amount = new Intl.NumberFormat("en-GB", { style: "currency", currency: refund.currency }).format(refund.amount_cents / 100);
+    const state = job.refund_status || refund.status;
+    const descriptions: Record<string, string> = {
+      pending: "The refund has been submitted to Stripe and is pending. It has not yet completed.",
+      requires_action: "The refund needs further action. Please contact support for help.",
+      succeeded: "Stripe reports that the refund succeeded. The time it takes to appear depends on your payment provider.",
+      failed: "The refund failed. Please contact support so we can help resolve it.",
+      canceled: "The refund was cancelled. Please contact support if you need help.",
+    };
+    if (isOwner) parts.push(`<p>Approved exception: ${escape(refund.reason || "See the booking history for details.")}</p>`);
+    parts.push(`<p>Refund amount: ${escape(amount)}</p><p>${escape(descriptions[state] || state)}</p><p>Stripe reference: ${escape(refund.stripe_refund_id || "Awaiting confirmation")}</p><p>This refund action does not cancel your reading. Current booking status: ${escape(order.status)}.</p><p>This is a test payment; no real money moves.</p>`);
+  }
+  if (["customer", "owner", "schedule_owner", "payment_received"].includes(kind) && order.payment_verified_at) {
+    const amount = new Intl.NumberFormat("en-GB", { style: "currency", currency: order.currency_snapshot || "EUR" }).format((order.price_cents_snapshot || 0) / 100);
+    parts.push(`<h2 style="font-size:18px">Payment receipt</h2><p>Amount paid: ${escape(amount)}</p><p>Payment reference: ${escape(order.stripe_payment_intent_id || order.id)}</p><p>Payment verified: ${escape(new Intl.DateTimeFormat("en-GB", { timeZone: order.customer_timezone || "UTC", dateStyle: "medium", timeStyle: "short" }).format(new Date(order.payment_verified_at)))} (${escape(order.customer_timezone || "UTC")})</p>`);
+    if (order.stripe_receipt_url) parts.push(`<p><a href="${escape(order.stripe_receipt_url)}">View Stripe payment receipt</a></p>`);
+    else parts.push("<p>The Stripe receipt link is not available yet. Your verified payment details are shown above and in your account.</p>");
+    parts.push("<p>This is a test payment; no real money moves.</p>");
+  }
+  if (kind === "refund" && job.refund_status === "succeeded") {
+    if (order.stripe_receipt_url) parts.push(`<p><a href="${escape(order.stripe_receipt_url)}">View Stripe receipt and refund details</a></p>`);
+    else parts.push("<p>The refund confirmation amount and reference are shown above. The Stripe receipt link is not currently available.</p>");
+  }
+  if (kind === "payment_received") parts.push(order.status === "awaiting_schedule"
+    ? "<p>Your payment is confirmed. Choose an available appointment time in your account. If no suitable time is available, contact support for help.</p>"
+    : `<p>This confirms your original payment. Current booking status: ${escape(order.status)}. Open your account for the latest appointment and payment details.</p>`);
+  if (order.format === "text" && kind === "customer")
     parts.push(
       "<p>Your payment has been received. The owner will personally contact you by email to discuss when to expect your reading, then email the completed reading to you.</p>",
     );
-  if (job.kind === "schedule_owner")
+  if (kind === "schedule_owner")
     parts.push("<p>Please contact the customer to arrange a call if no suitable time is available.</p>");
-  if (job.kind === "availability_customer")
+  if (kind === "availability_customer")
     parts.push("<p>Available times have been added. Open your booking to choose one.</p>");
   if (
     order.format === "voice_call" &&
     order.scheduled_at &&
-    job.kind !== "cancelled"
+    !["cancelled", "refund", "payment_received"].includes(kind)
   ) {
     const time = new Intl.DateTimeFormat("en-GB", {
       timeZone: order.customer_timezone,
@@ -82,9 +132,9 @@ export async function sendBookingEmail(order: BookingOrder, job: Job) {
         ? "<p>Google Calendar is disconnected, unavailable, or reports a conflict. Contact this customer promptly to share the call details and check your calendar.</p>"
         : "<p>The owner will contact you personally to share the call details.</p>");
   }
-  if (job.kind === "cancelled")
+  if (kind === "cancelled")
     parts.push(
-      "<p>Your appointment has been cancelled. This action does not automatically issue a refund. You may contact support about applicable withdrawal/refund rights.</p>",
+      isOwner ? `<p>This booking has been cancelled.${order.format === "voice_call" ? " Its reserved time has been released." : ""} This action did not issue a refund.</p>` : "<p>Your booking has been cancelled. This action did not issue a refund. Contact support if you need help.</p>",
     );
   if (isOwner)
     parts.push(
@@ -133,7 +183,7 @@ export async function sendBookingEmail(order: BookingOrder, job: Job) {
       subject: frozen.email_payload.subject,
       html: frozen.email_payload.html,
       replyTo: frozen.email_payload.reply_to,
-      messageId: `<booking-${job.id}@${process.env.SMTP_USER!.split("@")[1]}>`,
+      messageId: `<booking-${job.id}@${smtpUser.split("@")[1]}>`,
     });
   } catch (error) {
     if (!(error instanceof EmailDeliveryUncertain))

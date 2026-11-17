@@ -61,7 +61,7 @@ function toCatalogService(s: BookingService): CatalogService {
 
 export default function ServiceBookingModal() {
   const auth = useAuth();
-  if (!auth.bookingModalOpen || !auth.selectedBookingService) return null;
+  if (auth.isAdmin || auth.loading || !auth.bookingModalOpen || !auth.selectedBookingService) return null;
   return (
     <BookingDialog
       key={auth.selectedBookingService.id}
@@ -359,6 +359,7 @@ function BookingDialog({ selectedService }: { selectedService: BookingService })
                       Your booking includes a Google Meet link.
                     </p>
                   )}
+                  <p className="text-sm leading-relaxed">Bookings are non-refundable, except where required by law. Contact support if you need help. Cancelling a booking does not issue a refund.</p>
                   <label className="flex items-start gap-3 text-sm">
                     <Checkbox
 

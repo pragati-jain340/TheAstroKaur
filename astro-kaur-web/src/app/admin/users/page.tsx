@@ -5,7 +5,10 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { AlertDialog, AlertDialogContent, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
+import AvatarDisplay from "@/components/avatar/AvatarDisplay";
+import { useAuth } from "@/context/AuthContext";
+import { Plus, RotateCw, Search, UserRound } from "lucide-react";
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 
@@ -19,12 +22,21 @@ interface UserItem {
   readings_count: number;
   total_spent: number;
   created_at: string;
+  avatar_url?: string | null;
+  avatar_seed?: string | null;
 }
 
 type RoleFilter = "all" | "customer" | "admin";
 type StatusFilter = "all" | "active" | "suspended" | "deactivated";
 
 export default function AdminUsersPage() {
+  const { user: currentUser } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [pendingUser, setPendingUser] = useState<UserItem | null>(null);
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -44,20 +56,22 @@ export default function AdminUsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await fetch("/api/admin/users");
       const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Could not load users.");
       if (json.users) {
         setUsers(json.users);
       }
     } catch (err) {
-      console.error("Error fetching users:", err);
+      setError(err instanceof Error ? err.message : "Could not load users. Please retry.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchUsers();
+    void Promise.resolve().then(fetchUsers);
   }, []);
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -130,216 +144,101 @@ export default function AdminUsersPage() {
     });
   };
 
+  const pageCount = Math.max(1, Math.ceil(filteredUsers.length / 20));
+  const currentPage = Math.min(page, pageCount);
+  const visibleUsers = filteredUsers.slice((currentPage - 1) * 20, currentPage * 20);
+
+  const confirmStatusChange = async () => {
+    if (!pendingUser) return;
+    setSavingStatus(true);
+    setStatusError(null);
+    const accountStatus = pendingUser.account_status === "active" ? "deactivated" : "active";
+    try {
+      const response = await fetch("/api/admin/users", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: pendingUser.id, accountStatus }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not update this account.");
+      setNotice(`${pendingUser.display_name || pendingUser.email} ${accountStatus === "active" ? "reactivated" : "deactivated"}.`);
+      setPendingUser(null);
+      await fetchUsers();
+    } catch (error) {
+      setStatusError(error instanceof Error ? error.message : "Could not update this account.");
+    } finally {
+      setSavingStatus(false);
+    }
+  };
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-200">
-      {/* ─── Header ─── */}
-      <div className="border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 pb-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <div className="space-y-7 pb-10">
+      <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Link href="/admin" className="text-[10px] font-bold tracking-widest text-[#E5B842] uppercase hover:underline">
-              ADMIN
-            </Link>
-            <span className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40">/</span>
-            <span className="text-[10px] font-bold tracking-widest text-[#0F172A]/50 dark:text-[#FAF8F5]/50 uppercase">
-              USERS
-            </span>
-          </div>
-          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#0F172A] dark:text-[#FAF8F5] tracking-tight uppercase">
-            USER MANAGEMENT
-          </h1>
-          <p className="mt-1 text-sm text-[#0F172A]/60 dark:text-[#FAF8F5]/60">
-            Manage customer accounts, administrators, and account statuses.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
+          <p className="mt-2 text-sm text-muted-foreground">View profiles and manage access to customer accounts.</p>
+          <p className="mt-2 text-xs text-muted-foreground">{users.length} registered ? {users.filter(user => user.account_status === "active").length} active</p>
         </div>
-
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            onClick={() => setAddModalOpen(true)}
-            className="rounded-full px-5 py-2.5 text-xs font-semibold"
-          >
-            <span>+ Add User</span>
-          </Button>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={() => void fetchUsers()} disabled={loading}><RotateCw aria-hidden="true" className={`size-4 ${loading ? "animate-spin" : ""}`} />Refresh</Button>
+          <Button type="button" onClick={() => setAddModalOpen(true)}><Plus aria-hidden="true" className="size-4" />Add user</Button>
+        </div>
+      </header>
+      {notice && <p role="status" className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-300">{notice}</p>}
+      <div className="flex flex-col gap-3 xl:flex-row">
+        <label className="relative block flex-1">
+          <span className="sr-only">Search users by name or email</span>
+          <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input type="search" value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} placeholder="Search by name or email..." className="h-10 bg-card pl-9" />
+        </label>
+        <div className="grid grid-cols-2 gap-3 xl:w-80">
+          <NativeSelect aria-label="Filter by role" value={roleFilter} onChange={event => { setRoleFilter(event.target.value as RoleFilter); setPage(1); }} className="h-10 bg-card">
+            <option value="all">All roles</option><option value="customer">Customers</option><option value="admin">Administrators</option>
+          </NativeSelect>
+          <NativeSelect aria-label="Filter by account status" value={statusFilter} onChange={event => { setStatusFilter(event.target.value as StatusFilter); setPage(1); }} className="h-10 bg-card">
+            <option value="all">All statuses</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="deactivated">Deactivated</option>
+          </NativeSelect>
         </div>
       </div>
-
-      {/* ─── Filters & Search ─── */}
-      <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/20 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xs">
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-          {/* Search box */}
-          <div className="relative flex-1">
-            <Input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by customer name or email..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-[#131F33] border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 text-xs text-[#0F172A] dark:text-[#FAF8F5] placeholder:text-[#0F172A]/40 dark:placeholder:text-[#FAF8F5]/40 focus:outline-none focus:ring-2 focus:ring-[#E5B842]/40"
-            />
-            <span className="absolute left-3.5 top-3 text-[#0F172A]/40 dark:text-[#FAF8F5]/40 text-xs">
-              🔍
-            </span>
-          </div>
-
-          {/* Role Filter Pills */}
-          <div className="inline-flex gap-1 p-1 rounded-xl bg-white dark:bg-[#131F33] border border-[#0F172A]/10 dark:border-[#FAF8F5]/10 self-start md:self-auto">
-            {(
-              [
-                { key: "all", label: "All Roles" },
-                { key: "customer", label: "Customers" },
-                { key: "admin", label: "Admins" },
-              ] as { key: RoleFilter; label: string }[]
-            ).map((rf) => (
-              <Button
-                key={rf.key}
-                size="sm"
-                variant={roleFilter === rf.key ? "default" : "ghost"}
-                onClick={() => setRoleFilter(rf.key)}
-                className="h-7 text-xs font-medium"
-              >
-                {rf.label}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {/* Status Filter Tabs */}
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-[#0F172A]/8 dark:border-[#FAF8F5]/8">
-          {(
-            [
-              { key: "all", label: "All Statuses" },
-              { key: "active", label: "Active" },
-              { key: "suspended", label: "Suspended" },
-              { key: "deactivated", label: "Deactivated" },
-            ] as { key: StatusFilter; label: string }[]
-          ).map((sf) => (
-            <Button
-              key={sf.key}
-              size="sm"
-              variant={statusFilter === sf.key ? "default" : "outline"}
-              onClick={() => setStatusFilter(sf.key)}
-              className="h-7 text-xs capitalize"
-            >
-              {sf.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── Users Table ─── */}
-      {loading ? (
-        <div className="py-20 text-center text-xs text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
-          Loading user records…
-        </div>
-      ) : filteredUsers.length === 0 ? (
-        <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-dashed border-[#E5B842]/30 rounded-2xl p-12 text-center space-y-3">
-          <p className="text-2xl text-[#E5B842]">✦</p>
-          <p className="font-serif text-base text-[#0F172A] dark:text-[#FAF8F5]">
-            No users match the selected filters
-          </p>
-          <Button
-            variant="link"
-            size="sm"
-            onClick={() => {
-              setSearch("");
-              setRoleFilter("all");
-              setStatusFilter("all");
-            }}
-            className="text-xs font-semibold text-[#E5B842] underline"
-          >
-            Clear Filters
-          </Button>
-        </div>
-      ) : (
-        <div className="bg-[#FAF8F5] dark:bg-[#0D1829] border border-[#E5B842]/20 rounded-2xl shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table className="w-full text-left text-xs">
-              <TableHeader className="bg-[#0F172A]/5 dark:bg-[#FAF8F5]/5 border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 text-[10px] font-bold uppercase tracking-wider text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
-                <TableRow>
-                  <TableHead className="py-3.5 px-5">Name & Email</TableHead>
-                  <TableHead className="py-3.5 px-4">Role</TableHead>
-                  <TableHead className="py-3.5 px-4">Status</TableHead>
-                  <TableHead className="py-3.5 px-4 text-center">Readings</TableHead>
-                  <TableHead className="py-3.5 px-4">Total Paid</TableHead>
-                  <TableHead className="py-3.5 px-4">Joined Date</TableHead>
-                  <TableHead className="py-3.5 px-5 text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="divide-y divide-[#0F172A]/6 dark:divide-[#FAF8F5]/6">
-                {filteredUsers.map((u) => {
-                  const isSuspended = u.account_status === "suspended";
-                  const isDeactivated = u.account_status === "deactivated";
-
-                  return (
-                    <TableRow
-                      key={u.id}
-                      className="hover:bg-[#E5B842]/5 transition-colors group"
-                    >
-                      {/* Name & Email */}
-                      <TableCell className="py-4 px-5">
-                        <div className="font-semibold text-xs text-[#0F172A] dark:text-[#FAF8F5]">
-                          {u.display_name || "—"}
-                        </div>
-                        <div className="text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
-                          {u.email}
-                        </div>
-                      </TableCell>
-
-                      {/* Role */}
-                      <TableCell className="py-4 px-4">
-                        <Badge variant={u.role === "admin" ? "default" : "secondary"}>
-                          {u.role === "admin" ? "ADMIN" : "Customer"}
-                        </Badge>
-                      </TableCell>
-
-                      {/* Account Status */}
-                      <TableCell className="py-4 px-4">
-                        <Badge
-                          variant={isDeactivated ? "destructive" : isSuspended ? "secondary" : "default"}
-                          className={
-                            isDeactivated
-                              ? ""
-                              : isSuspended
-                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-transparent"
-                              : "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-transparent"
-                          }
-                        >
-                          {u.account_status || "active"}
-                        </Badge>
-                      </TableCell>
-
-                      {/* Readings Count */}
-                      <TableCell className="py-4 px-4 text-center font-medium text-xs text-[#0F172A] dark:text-[#FAF8F5]">
-                        {u.readings_count}
-                      </TableCell>
-
-                      {/* Total Paid */}
-                      <TableCell className="py-4 px-4 font-semibold text-xs text-[#0F172A] dark:text-[#FAF8F5]">
-                        {u.total_spent > 0 ? `€${u.total_spent.toFixed(2)}` : "€0.00"}
-                      </TableCell>
-
-                      {/* Joined Date */}
-                      <TableCell className="py-4 px-4 text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
-                        {formatDate(u.created_at)}
-                      </TableCell>
-
-                      {/* Action */}
-                      <TableCell className="py-4 px-5 text-right">
-                        <Button asChild variant="outline" size="sm" className="border-[#E5B842]/40 hover:bg-[#E5B842] hover:text-[#0F172A]">
-                          <Link href={`/admin/users/${u.id}`}>
-                            View User →
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      )}
-
-      {/* ─── ADD USER DRAWER / MODAL ─── */}
+      <section aria-label="Registered users" className="overflow-hidden rounded-xl border border-border/60 bg-card">
+        {error ? <div role="alert" className="p-6 text-sm text-destructive">{error}<Button type="button" variant="link" onClick={() => void fetchUsers()}>Try again</Button></div>
+          : loading ? <p role="status" className="p-8 text-sm text-muted-foreground">Loading users...</p>
+          : visibleUsers.length === 0 ? <div className="p-10 text-center"><UserRound aria-hidden="true" className="mx-auto mb-3 size-6 text-muted-foreground" /><p className="text-sm font-medium">{users.length ? "No users match these filters" : "No registered users yet"}</p><Button type="button" variant="link" onClick={() => { setSearch(""); setRoleFilter("all"); setStatusFilter("all"); setPage(1); }}>Clear filters</Button></div>
+          : <ul className="divide-y divide-border/60">
+            {visibleUsers.map(user => <li key={user.id} className="flex flex-col gap-4 p-5 xl:flex-row xl:items-center xl:gap-6">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <AvatarDisplay avatarUrl={user.avatar_url} avatarSeed={user.avatar_seed} name={user.display_name || user.email} size="md" />
+                <div className="min-w-0">
+                  <Link href={`/admin/users/${user.id}`} className="block truncate text-sm font-semibold hover:underline">{user.display_name || "Unnamed user"}</Link>
+                  <p className="break-all text-xs text-muted-foreground">{user.email}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Joined {formatDate(user.created_at)} ? {user.readings_count} readings ? ?{Number(user.total_spent).toFixed(2)} paid</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="font-normal">{user.role === "admin" ? "Administrator" : "Customer"}</Badge>
+                <Badge variant="outline" className={user.account_status === "active" ? "border-emerald-500/25 bg-emerald-500/5 text-emerald-800 dark:text-emerald-300" : "border-amber-500/25 bg-amber-500/5 text-amber-900 dark:text-amber-200"}>{user.account_status}</Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" asChild><Link href={`/admin/users/${user.id}`}>View profile</Link></Button>
+                {user.auth_user_id === currentUser?.id ? <span className="px-2 text-xs text-muted-foreground">Your account</span> : <Button type="button" variant="ghost" size="sm" onClick={() => { setStatusError(null); setPendingUser(user); }} className={user.account_status === "active" ? "text-destructive hover:bg-destructive/10 hover:text-destructive" : "text-primary"}>{user.account_status === "active" ? "Deactivate" : "Reactivate"}</Button>}
+              </div>
+            </li>)}
+          </ul>}
+        {!loading && !error && filteredUsers.length > 0 && <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 px-5 py-4">
+          <p className="text-xs text-muted-foreground">{(currentPage - 1) * 20 + 1}?{Math.min(currentPage * 20, filteredUsers.length)} of {filteredUsers.length} users</p>
+          <nav aria-label="User pages" className="flex items-center gap-2"><Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</Button><span className="text-xs text-muted-foreground">{currentPage} / {pageCount}</span><Button variant="outline" size="sm" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>Next</Button></nav>
+        </div>}
+      </section>
+      <AlertDialog open={!!pendingUser} onOpenChange={open => { if (!open && !savingStatus) setPendingUser(null); }}>
+        <AlertDialogContent>
+          <AlertDialogTitle>{pendingUser?.account_status === "active" ? "Deactivate this account?" : "Reactivate this account?"}</AlertDialogTitle>
+          <AlertDialogDescription>
+            <span className="mb-3 block font-medium text-foreground">{pendingUser?.display_name || pendingUser?.email}<span className="block break-all text-xs font-normal text-muted-foreground">{pendingUser?.email}</span></span>
+            {pendingUser?.account_status === "active" ? "The user will be blocked from signing in and making new bookings. Their profile and booking history will be retained. You can reactivate the account later." : "The user will be able to sign in and book readings again."}
+          </AlertDialogDescription>
+          {statusError && <p role="alert" className="text-sm text-destructive">{statusError}</p>}
+          <AlertDialogFooter><AlertDialogCancel disabled={savingStatus}>Cancel</AlertDialogCancel><Button type="button" variant={pendingUser?.account_status === "active" ? "destructive" : "default"} disabled={savingStatus} onClick={() => void confirmStatusChange()}>{savingStatus ? "Saving..." : pendingUser?.account_status === "active" ? "Deactivate account" : "Reactivate account"}</Button></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
         <DialogContent aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] space-y-5 overflow-y-auto rounded-2xl border-[#E5B842]/30 bg-[#FAF8F5] p-6 text-[#0F172A] dark:bg-[#0D1829] dark:text-[#FAF8F5] sm:max-w-md sm:p-8">
           <DialogTitle className="border-b border-[#0F172A]/10 pb-3 pr-8 font-serif text-xl dark:border-white/10">Create New User</DialogTitle>
@@ -405,7 +304,7 @@ export default function AdminUsersPage() {
 
               <div>
                 <label htmlFor="users-field-4" className="block text-xs font-semibold text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
-                  Password <span className="font-normal text-[#0F172A]/40 dark:text-[#FAF8F5]/40">(Optional — leave blank to auto-generate)</span>
+                  Password <span className="font-normal text-[#0F172A]/40 dark:text-[#FAF8F5]/65">(Optional — leave blank to auto-generate)</span>
                 </label>
                 <Input id="users-field-4"
                   type="password"

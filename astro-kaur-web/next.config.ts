@@ -11,6 +11,9 @@ const readingImageAliases = [
 ] as const;
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: __dirname,
+  },
   allowedDevOrigins: [
     "10.70.44.20",
     "10.*.*.*",

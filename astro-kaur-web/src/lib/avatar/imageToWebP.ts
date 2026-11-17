@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/types";
 
 export const BUCKET_NAME = "custom_profle_photo"; // Kept exact spelling per database bucket
 
@@ -176,6 +177,31 @@ export async function uploadUserAvatar(
       publicUrl: null,
       error: err instanceof Error ? err.message : "Unexpected upload error occurred.",
     };
+  }
+}
+
+/** Save against the authenticated ID returned by sign-in, without relying on React state. */
+export async function saveUserAvatar(supabase: SupabaseClient, userId: string, blob: Blob): Promise<{
+  profile: Database["public"]["Tables"]["customer_profiles"]["Row"] | null;
+  error: string | null;
+}> {
+  const upload = await uploadUserAvatar(supabase, userId, blob);
+  if (upload.error || !upload.publicUrl) {
+    return { profile: null, error: upload.error || "Photo upload did not return a URL." };
+  }
+
+  try {
+    const { data, error } = await supabase.from("customer_profiles")
+      .update({ avatar_url: upload.publicUrl, avatar_seed: null, updated_at: new Date().toISOString() })
+      .eq("auth_user_id", userId)
+      .select()
+      .single();
+    if (error || !data) {
+      return { profile: null, error: error?.message || "Could not save your profile photo." };
+    }
+    return { profile: data, error: null };
+  } catch (error) {
+    return { profile: null, error: error instanceof Error ? error.message : "Could not save your profile photo." };
   }
 }
 

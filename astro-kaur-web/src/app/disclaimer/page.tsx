@@ -1,3 +1,5 @@
+import PolicyContact from "@/components/legal/PolicyContact";
+import { POLICY_UPDATED_DATE } from "@/lib/legal/details";
 import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -28,7 +30,7 @@ export default function DisclaimerPage() {
               </h1>
               <div className="text-xs sm:text-sm text-[#0F172A]/60 dark:text-[#FAF8F5]/60 font-light flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span>
-                  <strong className="font-medium text-[#0F172A]/80 dark:text-[#FAF8F5]/80">Last updated:</strong> 15 October 2026
+                  <strong className="font-medium text-[#0F172A]/80 dark:text-[#FAF8F5]/80">Last updated:</strong> {POLICY_UPDATED_DATE}
                 </span>
               </div>
             </div>
@@ -159,7 +161,7 @@ export default function DisclaimerPage() {
                     You are responsible for providing information that is accurate to the best of your knowledge.
                   </p>
                   <p>
-                    Incomplete, incorrect, or approximate information may affect the interpretation or scope of a reading. We cannot guarantee that a reading will produce a particular result, even when the information supplied is accurate.
+                    Incomplete, incorrect or approximate information may affect the chart or interpretation. Birth-time uncertainty, birthplace coordinates, time-zone estimates, daylight-saving rules and different astrological conventions can change an ascendant or other chart placements. Check the inputs shown with your result and contact support about corrections before relying on an interpretation. The free rising-sign feature uses an external calculation service and general sign-based interpretation content; it is not an individual assessment of your whole birth chart. A saved or calculated result, including a result produced in an administrator verification session, is not a guarantee of factual accuracy or a future outcome. We cannot guarantee a particular result even when the supplied information is accurate.
                   </p>
                   <p>
                     Our handling of personal information is explained in the{" "}
@@ -223,7 +225,7 @@ export default function DisclaimerPage() {
                     Information published on TheAstroKaur, including general astrology-related content, is provided for informational and reflective purposes.
                   </p>
                   <p>
-                    It should not be treated as personalised professional advice unless the content expressly states otherwise, and even a personalised astrology reading remains subject to the limitations described in this Disclaimer.
+                    It does not become regulated professional advice because it is personalised or delivered in a paid consultation. Free charts, written readings and voice consultations remain subject to the limitations described in this Disclaimer.
                   </p>
                   <p>
                     External websites or resources referenced on our website may be governed by their own terms and policies.
@@ -241,7 +243,7 @@ export default function DisclaimerPage() {
                     This Disclaimer explains the nature and limitations of our astrology services. It does not exclude or limit any rights or liabilities that cannot lawfully be excluded or limited under applicable law.
                   </p>
                   <p>
-                    Nothing in this Disclaimer affects your mandatory consumer rights or any other legal protections available to you.
+                    Nothing in this Disclaimer removes your rights where a service is not provided as agreed, restricts a valid statutory withdrawal/refund right, or excuses fraud or other conduct for which liability cannot lawfully be excluded. The non-refundable booking policy concerns voluntary refunds and must be read subject to those rights.
                   </p>
                   <p>
                     For information about bookings, cancellations, refunds, and contractual terms, please refer to our{" "}
@@ -265,26 +267,8 @@ export default function DisclaimerPage() {
                   If you have questions about this Astrology Disclaimer or the nature of our services, please contact us.
                 </p>
 
-                <div className="mt-4 p-5 sm:p-6 rounded-2xl bg-[#FAF8F5] dark:bg-[#131F33] border border-[#E5B842]/25 space-y-1.5 text-sm sm:text-base text-[#0F172A]/85 dark:text-[#FAF8F5]/85">
-                  <p className="font-serif text-base sm:text-lg font-medium text-[#0F172A] dark:text-[#FAF8F5] mb-2">
-                    TheAstroKaur
-                  </p>
-                  <p>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Service Operator:</strong> Harvinder Kaur
-                  </p>
-                  <p>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Website:</strong> TheAstroKaur
-                  </p>
-                  <p>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Email:</strong>{" "}
-                    <a
-                      href="mailto:pragatiijain841@gmail.com"
-                      className="text-[#6B3448] dark:text-[#E5B842] underline hover:opacity-80 transition-opacity"
-                    >
-                      pragatiijain841@gmail.com
-                    </a>
-                  </p>
-                </div>
+                <PolicyContact />
+
               </section>
 
               {/* Closing Acknowledgment */}

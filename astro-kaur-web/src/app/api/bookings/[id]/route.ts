@@ -6,9 +6,9 @@ import {
   database,
   loadOrder,
   requireUser,
+  requireCustomer,
 } from "@/lib/booking/server";
 import { availability } from "@/lib/booking/availability";
-import { canReschedule, rescheduleDeadline } from "@/lib/booking/types";
 import { reconcileCheckout } from "@/lib/payments/stripe";
 type Context = { params: Promise<{ id: string }> };
 export async function GET(req: NextRequest, context: Context) {
@@ -39,8 +39,8 @@ export async function GET(req: NextRequest, context: Context) {
       {
         order,
         detail,
-        can_reschedule: canReschedule(order),
-        reschedule_deadline: rescheduleDeadline(order),
+        can_reschedule: false,
+        reschedule_deadline: 0,
         server_now: new Date().toISOString(),
       },
       { headers: { "Cache-Control": "no-store" } },
@@ -51,22 +51,19 @@ export async function GET(req: NextRequest, context: Context) {
 }
 export async function POST(req: NextRequest, context: Context) {
   try {
-    const { user } = await requireUser(),
+    const { user } = await requireCustomer(),
       { id } = await context.params,
       body = await req.json(),
       order = await loadOrder(id);
     if (order.auth_user_id !== user.id)
       throw new BookingError("Order not found.", 404);
-    if (!["schedule", "reschedule", "cancel", "withdrawal", "refund"].includes(body.action))
+    if (["withdrawal", "refund"].includes(body.action)) throw new BookingError("Please contact support about this booking, including any statutory withdrawal or refund request.", 409);
+    if (body.action === "reschedule") throw new BookingError("Please contact support to change your appointment time.", 403);
+    if (!["schedule", "cancel"].includes(body.action))
       throw new BookingError("Invalid action.");
     if (body.confirmed !== true)
       throw new BookingError("Please confirm this change.");
-    if (body.action === "schedule" || body.action === "reschedule") {
-      if (body.action === "reschedule" && !canReschedule(order))
-        throw new BookingError(
-          "Self-service rescheduling has closed. Please contact support.",
-          409,
-        );
+    if (body.action === "schedule") {
       const available = await availability(order.service_id!, order.id);
       if (!available.slots.some((s) => s.start === body.starts_at))
         throw new BookingError("Replacement time is unavailable.", 409);
@@ -86,7 +83,7 @@ export async function POST(req: NextRequest, context: Context) {
         p_order: id,
         p_actor: user.id,
         p_action: body.action,
-        p_start: body.action === "reschedule" ? body.starts_at : null,
+        p_start: null,
         p_reason:
           typeof body.reason === "string" ? body.reason.slice(0, 1000) : null,
         p_admin: false,

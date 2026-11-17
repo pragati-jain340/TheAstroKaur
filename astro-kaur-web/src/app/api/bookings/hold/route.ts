@@ -4,7 +4,7 @@ import {
   BookingError,
   check,
   database,
-  requireUser,
+  requireCustomer,
   uuid,
 } from "@/lib/booking/server";
 import { validateIntake } from "@/lib/booking/intake";
@@ -12,7 +12,7 @@ import { POLICY_VERSION } from "@/lib/booking/types";
 import { stripe } from "@/lib/payments/stripe";
 export async function POST(req: NextRequest) {
   try {
-    const { user } = await requireUser();
+    const { user } = await requireCustomer();
     stripe();
     const body = await req.json(),
       serviceId = uuid(body.service_id),
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       Date.now() - Date.parse(worker.worker_last_seen_at) > 120000
     )
       throw new BookingError(
-        "Checkout is temporarily unavailable while booking services reconnect. Please try again shortly.",
+        "Checkout is temporarily unavailable. Please try again shortly, or contact support if the problem continues.",
         503,
       );
     const existing = check(

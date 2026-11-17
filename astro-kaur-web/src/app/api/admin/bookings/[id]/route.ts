@@ -8,15 +8,16 @@ import {
   requireAdmin,
 } from "@/lib/booking/server";
 import { availability } from "@/lib/booking/availability";
-import { stripe } from "@/lib/payments/stripe";
+import { issueExceptionalRefund, reconcileRefunds, refundTracking } from "@/lib/payments/refunds";
 type Context = { params: Promise<{ id: string }> };
-export async function GET(_req: NextRequest, context: Context) {
+export async function GET(req: NextRequest, context: Context) {
   try {
     await requireAdmin();
     const { id } = await context.params,
       db = database();
-    const order = await loadOrder(id),
-      detail = check(
+    let order = await loadOrder(id);
+    if (req.nextUrl.searchParams.get("reconcile_refunds") === "1") { await reconcileRefunds(order); order = await loadOrder(id); }
+    const detail = check(
         await db
           .from("reading_details")
           .select("*")
@@ -43,7 +44,9 @@ export async function GET(_req: NextRequest, context: Context) {
         ? { ...detail, admin_notes: notes?.admin_notes || "" }
         : null,
       history,
-    });
+      ...await refundTracking(id),
+      payment_mode: "test",
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return apiError(error);
   }
@@ -64,35 +67,10 @@ export async function PATCH(req: NextRequest, context: Context) {
         }),
       );
     } else if (body.action === "refund_payment") {
-      if (
-        body.confirmed !== true ||
-        !order.payment_verified_at ||
-        !order.stripe_payment_intent_id ||
-        order.payment_status !== "paid"
-      )
-        throw new BookingError(
-          "A verified paid order and explicit confirmation are required.",
-        );
-      const refund = await stripe().refunds.create(
-        {
-          payment_intent: order.stripe_payment_intent_id,
-          metadata: { order_id: id },
-        },
-        { idempotencyKey: `full-refund-${id}` },
-      );
-      if (refund.status !== "succeeded")
-        throw new BookingError(
-          "The refund is pending at Stripe. Check the Stripe dashboard before retrying.",
-          409,
-        );
-      check(
-        await db.rpc("booking_record_refund", {
-          p_intent: order.stripe_payment_intent_id,
-          p_refund: refund.id,
-          p_amount: refund.amount,
-          p_actor: user.id,
-        }),
-      );
+      if (body.confirmed !== true) throw new BookingError("Please confirm this refund.");
+      if (!(await refundTracking(id)).refund_tracking_ready) throw new BookingError("Refund tracking must be installed before issuing refunds. Apply the exceptional refunds database migration.", 503);
+      const refund = await issueExceptionalRefund(order, user.id, body.reason, body.amount_cents);
+      return NextResponse.json({ saved: true, refund: { id: refund.id, status: refund.status, amount: refund.amount, currency: refund.currency } });
     } else if (body.action === "resolve_request") {
       check(
         await db
@@ -100,7 +78,10 @@ export async function PATCH(req: NextRequest, context: Context) {
           .update({ status: "resolved" })
           .eq("order_id", id),
       );
+      check(await db.from("orders").update({ refund_status: "reviewed" }).eq("id", id).eq("refund_status", "requested"));
     } else {
+      if (!["schedule", "reschedule", "cancel", "delivered", "pending", "birth_details_received", "in_progress"].includes(body.action)) throw new BookingError("Invalid booking action.");
+      if (body.action === "cancel" && body.confirmed !== true) throw new BookingError("Please confirm cancellation. No refund will be issued.");
       if (body.action === "reschedule" || body.action === "schedule") {
         const list = await availability(order.service_id!, order.id, body.action === "schedule");
         if (!list.slots.some((s) => s.start === body.starts_at))

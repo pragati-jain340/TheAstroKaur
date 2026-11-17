@@ -9,7 +9,7 @@ import { CELESTIAL_AVATARS } from "@/lib/avatar/celestialAvatars";
 import {
   validateImageFile,
   convertImageToWebP,
-  uploadUserAvatar,
+  saveUserAvatar,
   deleteUserAvatar,
 } from "@/lib/avatar/imageToWebP";
 
@@ -119,12 +119,13 @@ export default function AvatarPickerModal({
       // Case 1: User chose a custom photo
       if (selectedBlob) {
         // Upload new WebP file to storage: custom_profle_photo/{userId}/avatar.webp
-        const uploadRes = await uploadUserAvatar(supabase, userId, selectedBlob);
-        if (uploadRes.error) {
-          throw new Error(uploadRes.error);
+        const saved = await saveUserAvatar(supabase, userId, selectedBlob);
+        if (saved.error || !saved.profile) {
+          throw new Error(saved.error || "Failed to save your profile photo.");
         }
-        finalAvatarUrl = uploadRes.publicUrl;
-        finalAvatarSeed = null;
+        onSaved({ avatarUrl: saved.profile.avatar_url, avatarSeed: saved.profile.avatar_seed });
+        onClose();
+        return;
       } else if (selectedUrl && !selectedSeed) {
         // Existing custom photo retained without change
         finalAvatarUrl = selectedUrl;
@@ -237,7 +238,7 @@ export default function AvatarPickerModal({
             <span>📷</span>
             <span>{processingImage ? "Optimizing photo..." : "Upload Photo (PNG, JPG, JPEG)"}</span>
           </Button>
-          <p className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40 text-center">
+          <p className="text-[10px] text-[#0F172A]/40 dark:text-[#FAF8F5]/65 text-center">
             Automatically center-cropped and optimized for fast display.
           </p>
         </div>

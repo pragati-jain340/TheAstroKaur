@@ -1,3 +1,5 @@
+import PolicyContact from "@/components/legal/PolicyContact";
+import { legalDetails, POLICY_UPDATED_DATE } from "@/lib/legal/details";
 import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -28,7 +30,7 @@ export default function TermsOfServicePage() {
               </h1>
               <div className="text-xs sm:text-sm text-[#0F172A]/60 dark:text-[#FAF8F5]/60 font-light flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span>
-                  <strong className="font-medium text-[#0F172A]/80 dark:text-[#FAF8F5]/80">Last updated:</strong> 14 October 2026
+                  <strong className="font-medium text-[#0F172A]/80 dark:text-[#FAF8F5]/80">Last updated:</strong> {POLICY_UPDATED_DATE}
                 </span>
               </div>
             </div>
@@ -46,7 +48,7 @@ export default function TermsOfServicePage() {
                     These Terms of Service (“Terms”) govern your access to and use of the TheAstroKaur website, including its content, astrology readings, booking facilities, customer accounts, and related services.
                   </p>
                   <p>
-                    The website is operated by Harvinder Kaur (“we,” “us,” or “our”).
+                    The website is operated by {legalDetails.operator} (“we,” “us,” or “our”).
                   </p>
                   <p>
                     By accessing the website, creating an account, booking a reading, or purchasing a service, you agree to these Terms. If you do not agree, please refrain from using the relevant services.
@@ -80,7 +82,7 @@ export default function TermsOfServicePage() {
                     You must not impersonate another person, create fraudulent accounts, misuse the booking system, or attempt to access another customer&apos;s information.
                   </p>
                   <p>
-                    We may restrict or suspend access to an account where reasonably necessary because of misuse, security concerns, or a violation of these Terms, subject to applicable law.
+                    Authorised administrators may deactivate an account where reasonably necessary because of misuse, security concerns, or a violation of these Terms, subject to applicable law. Deactivation restricts access; it does not itself erase records, cancel a booking, remove an existing contractual obligation, or issue a refund. Contact support if you believe an access restriction is incorrect. Administrator accounts are for service management and verification and cannot purchase paid readings for themselves.
                   </p>
                 </div>
               </section>
@@ -103,7 +105,7 @@ export default function TermsOfServicePage() {
                     <li>Other astrology-related offerings described on the website.</li>
                   </ul>
                   <p>
-                    The available services, prices, delivery methods, and expected timeframes will be specified on the relevant service or booking page.
+                    The available services, prices, delivery methods and voice-call duration are shown on the relevant service or booking page. For written readings, the owner contacts you by email to discuss timing; no automatic delivery deadline is displayed or promised unless separately agreed.
                   </p>
                   <p>
                     We may update or discontinue services from time to time. Such changes will not override existing contractual obligations or mandatory consumer rights.
@@ -128,13 +130,13 @@ export default function TermsOfServicePage() {
                     <li>Reviewing the booking details before confirming your purchase.</li>
                   </ul>
                   <p>
-                    A booking is confirmed when the applicable confirmation is issued through the booking system or by email.
+                    Stripe must verify a payment before an order is treated as paid. For a voice reading, payment is followed by a separate choice of an available appointment time. A payment receipt alone does not confirm a call time. A call appointment is confirmed once the chosen time is accepted by the booking system. If no suitable time is available, contact support so the owner can help arrange the consultation.
                   </p>
                   <p>
-                    You should retain your booking confirmation and any relevant correspondence.
+                    Keep your order reference, confirmations and relevant correspondence. Times are displayed in the time zone indicated during booking; check the date, time, time zone and service duration before confirming. Voice-call times share the reader&apos;s availability across consultation types.
                   </p>
                   <p>
-                    If an appointment needs to be cancelled, rescheduled, or changed, the procedures described in our Cancellation &amp; Refund Policy will apply, without limiting any mandatory rights you may have under applicable law.
+                    Customers cannot reschedule an existing appointment directly. Use Get help with this booking in your account to request a different time; an administrator can arrange an available replacement where possible. Where a cancellation option is shown for a future confirmed call, cancelling releases the time but does not issue a refund. Other changes, including written-reading enquiries, are handled through support. Our Cancellation &amp; Refund Policy explains these procedures and your mandatory rights.
                   </p>
                   <p>
                     We will make reasonable efforts to deliver confirmed appointments as scheduled. If we need to change or cancel an appointment, we will communicate the available options in accordance with applicable law.
@@ -155,19 +157,19 @@ export default function TermsOfServicePage() {
                     Any applicable taxes and additional charges will be disclosed as required before you complete your purchase.
                   </p>
                   <p>
-                    Payments may be processed through third-party payment providers, including Stripe, using the payment methods made available at checkout.
+                    The current payment integration uses Stripe. It is configured for test mode: simulated payments and refunds do not move real money. Do not use real card details for testing. This test-mode notice does not limit statutory rights or any service commitments expressly made to you.
                   </p>
                   <p>
                     By placing an order, you agree to pay the amount displayed for your selected service.
                   </p>
                   <p>
-                    Your booking or purchase will be processed according to the confirmation provided by the booking and payment systems.
+                    After payment verification, customer and administrator emails confirm the relevant order or appointment. Payment confirmations include an amount/reference summary and a hosted Stripe receipt link where available. Appointment confirmations, administrator-arranged reschedules, cancellations and refund status changes also generate operational email updates. Delivery can be delayed; check your account and contact support if an expected message does not arrive.
                   </p>
                   <p>
                     Payment processing is subject to the relevant payment provider&apos;s terms and privacy practices. We do not intentionally store complete payment card details on our own systems.
                   </p>
                   <p>
-                    If a payment fails or is reversed, we may contact you to resolve the issue before delivering the service.
+                    If a payment fails or cannot be verified, the order is not treated as paid. A voluntary refund, when approved, is a separate payment action from booking cancellation. We may contact you about a payment problem, but an administrative refund does not by itself cancel a reading; the booking status and any agreed or legally required termination must be handled separately.
                   </p>
                 </div>
               </section>
@@ -191,7 +193,7 @@ export default function TermsOfServicePage() {
                     We may modify or discontinue a free offering, subject to applicable law and any commitments already made to customers.
                   </p>
                   <p>
-                    Where a free service is subject to specific conditions, those conditions will be communicated before the service is requested.
+                    The current complimentary rising-sign reading requires a signed-in account and is normally limited to one completed reading per customer account/email; you can revisit the saved result. It uses an automated chart calculation and general sign-based reading content, rather than a booked personal consultation. Administrative verification access is separate from customer eligibility and does not create a paid order or reserve a consultation slot.
                   </p>
                 </div>
               </section>
@@ -264,7 +266,7 @@ export default function TermsOfServicePage() {
                 </h2>
                 <div className="space-y-3">
                   <p>
-                    The delivery method and expected timeframe for a reading will be communicated on the relevant service page or during booking.
+                    Voice readings take place at a confirmed appointment time. Written readings are delivered personally by email after the owner contacts you about timing. A written reading does not include an appointment, Google Calendar invitation or Meet link. A delivery deadline applies only where expressly stated or agreed.
                   </p>
                   <p>Depending on the service purchased, a reading may be delivered through:</p>
                   <ul className="list-disc pl-5 space-y-1.5 mb-2 marker:text-[#6B3448] dark:marker:text-[#E5B842]">
@@ -332,7 +334,7 @@ export default function TermsOfServicePage() {
                     </h3>
                     <div className="space-y-2">
                       <p>
-                        Practical arrangements for cancellations, rescheduling, missed appointments, and refunds are described in our separate Cancellation &amp; Refund Policy.
+                        Bookings are non-refundable as a voluntary policy, subject to statutory rights and any exception expressly approved by the owner. Contact support with your booking reference for help. Cancellation does not automatically issue a refund, and issuing an administrative refund does not itself cancel an appointment. Refund status can be pending, succeeded, failed or cancelled; a submitted request is not proof of completed repayment. Successful refunds include a confirmation/reference and receipt link where Stripe provides one. Practical procedures are described in our separate Cancellation &amp; Refund Policy.
                       </p>
                       <p>
                         Where a customer exercises a valid statutory withdrawal right, the applicable legal requirements regarding refunds, deadlines, and payment methods will apply.
@@ -341,7 +343,7 @@ export default function TermsOfServicePage() {
                         Nothing in these Terms or our other policies excludes or restricts mandatory consumer rights.
                       </p>
                       <p>
-                        Customers may contact us using the details provided on our website to exercise their applicable rights. Where a specific withdrawal procedure or model withdrawal form is legally required, it will be made available as required by law.
+                        A statutory withdrawal notice must clearly express your decision to withdraw and identify the relevant contract. You do not need to give a reason or obtain discretionary approval to exercise a valid statutory right. You may use the contact details and optional notice template in the Cancellation &amp; Refund Policy. Any legally required online withdrawal facility and acknowledgment requirements apply separately; a general non-refundable statement does not replace them. Reviewing the booking terms at checkout is not presented as a waiver of those rights.
                       </p>
                     </div>
                   </div>
@@ -382,7 +384,7 @@ export default function TermsOfServicePage() {
                     If you submit a review, testimonial, or other content through the website, you confirm that:
                   </p>
                   <ul className="list-disc pl-5 space-y-1.5 mb-2 marker:text-[#6B3448] dark:marker:text-[#E5B842]">
-                    <li>The content reflects your genuine experience or is otherwise accurately represented.</li>
+                    <li>The content reflects your genuine experience or is otherwise accurately represented. Customer reviews are linked to completed readings and must not include another person&apos;s private information without an appropriate basis.</li>
                     <li>You have the necessary rights and permissions to submit it.</li>
                     <li>The content does not knowingly contain unlawful, defamatory, misleading, or infringing material.</li>
                   </ul>
@@ -390,7 +392,7 @@ export default function TermsOfServicePage() {
                     By submitting content, you grant us permission to display and reproduce it for operating and promoting TheAstroKaur, subject to applicable law and the scope of any permissions you have provided.
                   </p>
                   <p>
-                    We will not treat this permission as unrestricted authorisation to disclose private information or use identifying details beyond the permitted purpose.
+                    A published review can include your author/display name, rating, text, date, reading title and current profile photo. Please review what you submit and contact support if you need identifying information corrected or removed. We do not treat this permission as unrestricted authorisation to disclose private birth details or use identifying information beyond the permitted purpose.
                   </p>
                   <p>
                     We may decline to publish or remove content where reasonably necessary because it violates these Terms or applicable law.
@@ -555,23 +557,7 @@ export default function TermsOfServicePage() {
                   For questions about these Terms, our services, or your contractual rights, please contact us using the details below.
                 </p>
 
-                <div className="mt-4 p-5 sm:p-6 rounded-2xl bg-[#FAF8F5] dark:bg-[#131F33] border border-[#E5B842]/25 space-y-1.5 text-sm sm:text-base text-[#0F172A]/85 dark:text-[#FAF8F5]/85">
-                  <p className="font-serif text-base sm:text-lg font-medium text-[#0F172A] dark:text-[#FAF8F5] mb-2">
-                    TheAstroKaur
-                  </p>
-                  <p>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Service Operator:</strong> Harvinder Kaur
-                  </p>
-                  <p>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Website:</strong> TheAstroKaur
-                  </p>
-                  <p>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Email:</strong> [Official business contact email]
-                  </p>
-                  <p>
-                    <strong className="font-medium text-[#0F172A] dark:text-[#FAF8F5]">Business Address:</strong> [Official business address, where legally required]
-                  </p>
-                </div>
+                <PolicyContact />
 
                 <div className="mt-5 space-y-3">
                   <p>

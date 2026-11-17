@@ -22,7 +22,7 @@ export interface ReviewItem {
 const FALLBACK_REVIEWS: ReviewItem[] = [
   {
     id: "rev-1",
-    author_name: "Pragati J.",
+    author_name: "Anonymous",
     avatar_url: null,
     rating: 5,
     service_title: "Extensive Birth Chart Reading",
@@ -372,7 +372,7 @@ export default function ReviewsSection() {
                 <p className="text-xs text-[#0F172A]/65 dark:text-[#FAF8F5]/65 mt-0.5 font-light">
                   {activeModalReview.service_title}
                 </p>
-                <p className="text-[11px] text-[#0F172A]/45 dark:text-[#FAF8F5]/45 mt-0.5">
+                <p className="text-[11px] text-[#0F172A]/45 dark:text-[#FAF8F5]/65 mt-0.5">
                   {activeModalReview.formatted_date}
                 </p>
               </div>
@@ -454,7 +454,7 @@ function ReviewCard({
               <p className="text-[11.5px] text-[#0F172A]/60 dark:text-[#FAF8F5]/60 font-light leading-snug mt-0.5">
                 {review.service_title}
               </p>
-              <p className="text-[10.5px] text-[#0F172A]/40 dark:text-[#FAF8F5]/40 leading-snug mt-0.5">
+              <p className="text-[10.5px] text-[#0F172A]/40 dark:text-[#FAF8F5]/65 leading-snug mt-0.5">
                 {review.formatted_date}
               </p>
             </div>

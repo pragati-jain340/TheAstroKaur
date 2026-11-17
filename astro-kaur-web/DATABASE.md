@@ -1,11 +1,7 @@
 # TheAstroKaur — Database Schema & Live Content Reference
 
-> **Google schema update - 19 October 2026:** `migrations/20261019_google_accounts.sql` is applied. `google_user_connections` stores encrypted per-authenticated-user credentials, expiry, granted scopes and reconnect/disconnect state. Browser roles cannot read this table or execute its mutation functions. The existing organizer singleton references the selected user's connection. Organizer changes/disconnection protect verified calls, holds and calendar jobs; changing organizers disables new call booking. See [GOOGLE_CALENDAR_SETUP.md](GOOGLE_CALENDAR_SETUP.md). The older snapshot below predates this addition; no customer records were re-exported.
-
-> **Booking schema update - 19 October 2026:** `migrations/20261019_booking.sql` and `migrations/20261019_booking_payment_hardening.sql` have been applied. The older schema/content snapshot below predates these changes. Availability, reservations, webhook audit, private jobs, encrypted Google connection, booking requests/change logs and private reading notes now exist; orders/readings have payment, scheduling, policy, sync and fulfillment extensions. Customer order writes and private-note access are protected. See [BOOKING_SETUP.md](BOOKING_SETUP.md) for the schema/workflow changes. Call booking is disabled and weekly windows are empty. This update did not re-export customer records.
-
 > **Auto-Updated Documentation**  
-> Last synced: `2026-10-18T16:22:10.955652+00:00`  
+> Last synced: `2026-11-17T18:23:59.826825+00:00`  
 > To re-sync this file anytime you make database changes, run: `python scripts/sync-database-doc.py`
 
 ---
@@ -64,19 +60,32 @@ CONTENT & CATALOG TABLES
 ## Table of Contents
 
 1. [`public.ascendant_readings`](#1-publicascendantreadings)
-2. [`public.contact_messages`](#2-publiccontactmessages)
-3. [`public.customer_profiles`](#3-publiccustomerprofiles)
-4. [`public.free_reading_content`](#4-publicfreereadingcontent)
-5. [`public.free_reading_requests`](#5-publicfreereadingrequests)
-6. [`public.free_readings`](#6-publicfreereadings)
-7. [`public.orders`](#7-publicorders)
-8. [`public.profiles`](#8-publicprofiles)
-9. [`public.reading_details`](#9-publicreadingdetails)
-10. [`public.services`](#10-publicservices)
-11. [`public.testimonials`](#11-publictestimonials)
-12. [`public.website_notifications`](#12-publicwebsitenotifications)
-13. [Storage Buckets & Policies](#13-storage-buckets--policies)
-14. [Database Functions, Triggers & Security Policies](#14-database-functions-triggers--security-policies)
+2. [`public.availability_overrides`](#2-publicavailabilityoverrides)
+3. [`public.availability_settings`](#3-publicavailabilitysettings)
+4. [`public.availability_windows`](#4-publicavailabilitywindows)
+5. [`public.booking_change_log`](#5-publicbookingchangelog)
+6. [`public.booking_jobs`](#6-publicbookingjobs)
+7. [`public.booking_refunds`](#7-publicbookingrefunds)
+8. [`public.booking_requests`](#8-publicbookingrequests)
+9. [`public.booking_reservations`](#9-publicbookingreservations)
+10. [`public.contact_messages`](#10-publiccontactmessages)
+11. [`public.customer_profiles`](#11-publiccustomerprofiles)
+12. [`public.email_otp_verifications`](#12-publicemailotpverifications)
+13. [`public.free_reading_content`](#13-publicfreereadingcontent)
+14. [`public.free_reading_requests`](#14-publicfreereadingrequests)
+15. [`public.free_readings`](#15-publicfreereadings)
+16. [`public.google_calendar_connections`](#16-publicgooglecalendarconnections)
+17. [`public.google_user_connections`](#17-publicgoogleuserconnections)
+18. [`public.orders`](#18-publicorders)
+19. [`public.profiles`](#19-publicprofiles)
+20. [`public.reading_details`](#20-publicreadingdetails)
+21. [`public.reading_private_notes`](#21-publicreadingprivatenotes)
+22. [`public.services`](#22-publicservices)
+23. [`public.stripe_webhook_events`](#23-publicstripewebhookevents)
+24. [`public.testimonials`](#24-publictestimonials)
+25. [`public.website_notifications`](#25-publicwebsitenotifications)
+26. [Storage Buckets & Policies](#26-storage-buckets--policies)
+27. [Database Functions, Triggers & Security Policies](#27-database-functions-triggers--security-policies)
 
 ---
 
@@ -395,7 +404,720 @@ CONTENT & CATALOG TABLES
 
 ---
 
-### 2. `public.contact_messages` (12 rows)
+### 2. `public.availability_overrides` (6 rows)
+
+| Column | Data Type | Nullable | Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `uuid` | **No** | `gen_random_uuid()` |
+| `local_date` | `date` | **No** | — |
+| `mode` | `text` | **No** | — |
+| `start_local` | `time without time zone` | Yes | — |
+| `end_local` | `time without time zone` | Yes | — |
+| `note` | `text` | Yes | — |
+
+**Current Live Data:**
+
+```json
+[
+  {
+    "id": "94b910fd-5995-425e-a04f-ec28ef67112a",
+    "local_date": "2026-11-19",
+    "mode": "blocked",
+    "start_local": null,
+    "end_local": null,
+    "note": "Time off"
+  },
+  {
+    "id": "7b08e9fa-d510-4a98-9256-b8756d4fec81",
+    "local_date": "2026-11-20",
+    "mode": "blocked",
+    "start_local": "00:00:00",
+    "end_local": "13:40:00",
+    "note": "Custom hours"
+  },
+  {
+    "id": "f70e0c10-1d69-4cd2-b182-7bd495afb288",
+    "local_date": "2026-11-20",
+    "mode": "extra_open",
+    "start_local": "13:40:00",
+    "end_local": "16:40:00",
+    "note": "Custom hours"
+  },
+  {
+    "id": "345e8dcb-43ae-4ae2-8f27-06ae9ca6179c",
+    "local_date": "2026-11-20",
+    "mode": "blocked",
+    "start_local": "16:40:00",
+    "end_local": "19:00:00",
+    "note": "Custom hours"
+  },
+  {
+    "id": "b37eb290-3727-47a9-ac88-5dd734ace5b7",
+    "local_date": "2026-11-20",
+    "mode": "extra_open",
+    "start_local": "19:00:00",
+    "end_local": "20:40:00",
+    "note": "Custom hours"
+  },
+  {
+    "id": "8e09e535-8cee-46c0-9bf9-5a5a124eaff4",
+    "local_date": "2026-11-20",
+    "mode": "blocked",
+    "start_local": "20:40:00",
+    "end_local": "23:59:00",
+    "note": "Custom hours"
+  }
+]
+```
+
+---
+
+### 3. `public.availability_settings` (1 row)
+
+| Column | Data Type | Nullable | Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `boolean` | **No** | `true` |
+| `timezone` | `text` | **No** | `'Europe/Berlin'::text` |
+| `min_notice_minutes` | `integer` | **No** | `15` |
+| `advance_window_days` | `integer` | **No** | `30` |
+| `hold_minutes` | `integer` | **No** | `5` |
+| `buffer_minutes` | `integer` | **No** | `15` |
+| `slot_step_minutes` | `integer` | **No** | `15` |
+| `booking_enabled` | `boolean` | **No** | `false` |
+| `updated_at` | `timestamp with time zone` | **No** | `now()` |
+| `worker_last_seen_at` | `timestamp with time zone` | Yes | — |
+
+**Current Live Data:**
+
+```json
+[
+  {
+    "id": true,
+    "timezone": "Europe/Berlin",
+    "min_notice_minutes": 15,
+    "advance_window_days": 30,
+    "hold_minutes": 5,
+    "buffer_minutes": 15,
+    "slot_step_minutes": 20,
+    "booking_enabled": true,
+    "updated_at": "2026-11-17 17:07:28.85998+00",
+    "worker_last_seen_at": "2026-11-11 18:15:20.896+00"
+  }
+]
+```
+
+---
+
+### 4. `public.availability_windows` (5 rows)
+
+| Column | Data Type | Nullable | Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `uuid` | **No** | `gen_random_uuid()` |
+| `weekday` | `integer` | **No** | — |
+| `start_local` | `time without time zone` | **No** | — |
+| `end_local` | `time without time zone` | **No** | — |
+| `enabled` | `boolean` | **No** | `true` |
+
+**Current Live Data:**
+
+```json
+[
+  {
+    "id": "04e6a7e5-c3ad-4639-9b5c-ad4ba9b5fa39",
+    "weekday": 1,
+    "start_local": "18:00:00",
+    "end_local": "21:00:00",
+    "enabled": true
+  },
+  {
+    "id": "cd440f7e-d675-43fb-a711-ae776b2542d4",
+    "weekday": 2,
+    "start_local": "18:00:00",
+    "end_local": "21:00:00",
+    "enabled": true
+  },
+  {
+    "id": "a3d9f4d3-403a-4495-a13e-4e6564b6b1d6",
+    "weekday": 3,
+    "start_local": "18:00:00",
+    "end_local": "21:00:00",
+    "enabled": true
+  },
+  {
+    "id": "87273cfb-132b-452a-9245-14dab2902241",
+    "weekday": 4,
+    "start_local": "18:00:00",
+    "end_local": "21:00:00",
+    "enabled": true
+  },
+  {
+    "id": "17c08fa2-1aa2-43de-a254-0383b4451f22",
+    "weekday": 5,
+    "start_local": "18:00:00",
+    "end_local": "21:00:00",
+    "enabled": true
+  }
+]
+```
+
+---
+
+### 5. `public.booking_change_log` (2 rows)
+
+| Column | Data Type | Nullable | Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `uuid` | **No** | `gen_random_uuid()` |
+| ⭐ **order_id** | `uuid` | **No** | — |
+| `action` | `text` | **No** | — |
+| `actor` | `uuid` | Yes | — |
+| `previous_start` | `timestamp with time zone` | Yes | — |
+| `new_start` | `timestamp with time zone` | Yes | — |
+| `reason` | `text` | Yes | — |
+| `created_at` | `timestamp with time zone` | **No** | `now()` |
+
+**Current Live Data:**
+
+```json
+[
+  {
+    "id": "2e2a98b3-41c8-437c-bd07-55c3ff846b20",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "action": "schedule",
+    "actor": "02fe175d-562d-40ab-b6dd-084999bdc1e0",
+    "previous_start": null,
+    "new_start": "2026-11-11 17:00:00+00",
+    "reason": null,
+    "created_at": "2026-11-11 08:49:04.66848+00"
+  },
+  {
+    "id": "966e3bae-f181-4a6e-ac8b-d322e4b4aeec",
+    "order_id": "26d18fe5-2d75-4857-943a-678619e79cf6",
+    "action": "refund",
+    "actor": "e2c17b1e-de58-4758-8d71-0af11cd4c54e",
+    "previous_start": null,
+    "new_start": null,
+    "reason": "Stripe-verified refund of 2000 cents",
+    "created_at": "2026-11-17 17:22:41.38531+00"
+  }
+]
+```
+
+---
+
+### 6. `public.booking_jobs` (17 rows)
+
+| Column | Data Type | Nullable | Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `uuid` | **No** | `gen_random_uuid()` |
+| ⭐ **order_id** | `uuid` | **No** | — |
+| `kind` | `text` | **No** | — |
+| `dedupe_key` | `text` | **No** | — |
+| `version` | `integer` | **No** | `0` |
+| `status` | `text` | **No** | `'pending'::text` |
+| `run_at` | `timestamp with time zone` | **No** | `now()` |
+| `lease_until` | `timestamp with time zone` | Yes | — |
+| `lease_token` | `uuid` | Yes | — |
+| `attempts` | `integer` | **No** | `0` |
+| `last_error` | `text` | Yes | — |
+| `provider_id` | `text` | Yes | — |
+| `email_payload` | `jsonb` | Yes | — |
+| `created_at` | `timestamp with time zone` | **No** | `now()` |
+| `sent_at` | `timestamp with time zone` | Yes | — |
+| `email_started_at` | `timestamp with time zone` | Yes | — |
+| `refund_id` | `uuid` | Yes | — |
+| `refund_status` | `text` | Yes | — |
+
+**Current Live Data:**
+
+```json
+[
+  {
+    "id": "86feb242-cd75-4b64-a9dd-a1dd8fe08683",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "availability_customer",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:availability:2419",
+    "version": 0,
+    "status": "skipped",
+    "run_at": "2026-11-11 08:50:28.479+00",
+    "lease_until": null,
+    "lease_token": "db95b2e0-3eba-4552-b90c-2c9689c48640",
+    "attempts": 3,
+    "last_error": "Email provider returned 403.",
+    "provider_id": null,
+    "email_payload": {
+      "to": [
+        "ctrlxharsh@gmaill.com"
+      ],
+      "from": "onboarding@resend.dev",
+      "html": "<div style=\"background:#FAF8F5;color:#0F172A;padding:32px;max-width:600px;font-family:Arial,sans-serif;border-top:4px solid #E5B842\"><h1 style=\"font-family:Georgia,serif;font-weight:normal\">Times are available for your voice reading</h1><p>Relationship Karma</p><p>Order reference: B2547E65</p><p>Available times have been added. Open your booking to choose one.</p><p><a href=\"http://localhost:3000/account/readings/b2547e65-1e51-47ea-a349-b0e283c749d8\">View your order and booking details</a></p><p>With warmth,<br>TheAstroKaur</p></div>",
+      "subject": "Times are available for your voice reading"
+    },
+    "created_at": "2026-11-11 08:46:24.01725+00",
+    "sent_at": null,
+    "email_started_at": "2026-11-11 08:46:57.767+00",
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "e47355dd-bf57-4d00-bf45-62051e53f193",
+    "order_id": "26d18fe5-2d75-4857-943a-678619e79cf6",
+    "kind": "owner",
+    "dedupe_key": "26d18fe5-2d75-4857-943a-678619e79cf6:owner:0",
+    "version": 0,
+    "status": "sent",
+    "run_at": "2026-11-10 21:10:59.531123+00",
+    "lease_until": null,
+    "lease_token": "7a5d031f-674d-44e1-87ae-869c105723f9",
+    "attempts": 1,
+    "last_error": null,
+    "provider_id": "01a1c74d-a4d8-7cff-9bd0-d37aeaa4c162",
+    "email_payload": {
+      "to": [
+        "jainpragati4566@gmail.com"
+      ],
+      "from": "onboarding@resend.dev",
+      "html": "<div style=\"background:#FAF8F5;color:#0F172A;padding:32px;max-width:600px;font-family:Arial,sans-serif;border-top:4px solid #E5B842\"><h1 style=\"font-family:Georgia,serif;font-weight:normal\">New TheAstroKaur order</h1><p>Career &amp; Money Reading</p><p>Order reference: 26D18FE5</p><p>Customer contact: ctrlxharsh@gmaill.com</p><p>Payment: paid. Status: confirmed.</p><p><a href=\"http://localhost:3000/admin/readings/26d18fe5-2d75-4857-943a-678619e79cf6\">Open order in admin</a></p><p>With warmth,<br>TheAstroKaur</p></div>",
+      "subject": "New TheAstroKaur order"
+    },
+    "created_at": "2026-11-10 21:10:59.531123+00",
+    "sent_at": "2026-11-10 21:11:57.112+00",
+    "email_started_at": "2026-11-10 21:11:55.385+00",
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "334c3765-478d-4fc1-a98e-736ada98e27e",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "calendar",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:reconcile:1:2026-11-11-09",
+    "version": 1,
+    "status": "sent",
+    "run_at": "2026-11-11 09:00:21.123667+00",
+    "lease_until": null,
+    "lease_token": "cad427cf-3c96-4846-8adb-94ff60ea072d",
+    "attempts": 1,
+    "last_error": null,
+    "provider_id": null,
+    "email_payload": null,
+    "created_at": "2026-11-11 09:00:21.123667+00",
+    "sent_at": "2026-11-11 09:00:28.678+00",
+    "email_started_at": null,
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "6fa21ddf-6207-413b-8ae1-5ffce96941d3",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "calendar",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:reconcile:1:2026-11-11-04",
+    "version": 1,
+    "status": "pending",
+    "run_at": "2026-11-11 18:38:55.541+00",
+    "lease_until": null,
+    "lease_token": "61d6ed15-c06b-4171-a11d-721b6841abd0",
+    "attempts": 8,
+    "last_error": "Connect or reconnect your Google Calendar to continue.",
+    "provider_id": null,
+    "email_payload": null,
+    "created_at": "2026-11-11 16:00:21.581695+00",
+    "sent_at": null,
+    "email_started_at": null,
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "67e28612-01cc-4184-baec-8174bbc0aa3a",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "calendar",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:reconcile:1:2026-11-11-03",
+    "version": 1,
+    "status": "pending",
+    "run_at": "2026-11-11 18:39:23.325+00",
+    "lease_until": null,
+    "lease_token": "697e6239-a2b8-4aa6-88ca-1f771c15fcf1",
+    "attempts": 10,
+    "last_error": "Connect or reconnect your Google Calendar to continue.",
+    "provider_id": null,
+    "email_payload": null,
+    "created_at": "2026-11-11 15:04:22.679865+00",
+    "sent_at": null,
+    "email_started_at": null,
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "c53122df-5fb4-4654-9612-cd32baed999e",
+    "order_id": "26d18fe5-2d75-4857-943a-678619e79cf6",
+    "kind": "customer",
+    "dedupe_key": "26d18fe5-2d75-4857-943a-678619e79cf6:customer:0",
+    "version": 0,
+    "status": "sent",
+    "run_at": "2026-11-11 09:09:18.63+00",
+    "lease_until": null,
+    "lease_token": "59fe9d22-a778-4389-8768-346740403034",
+    "attempts": 1,
+    "last_error": null,
+    "provider_id": "<booking-c53122df-5fb4-4654-9612-cd32baed999e@gmail.com>",
+    "email_payload": {
+      "to": [
+        "ctrlxharsh@gmaill.com"
+      ],
+      "from": "onboarding@resend.dev",
+      "html": "<div style=\"background:#FAF8F5;color:#0F172A;padding:32px;max-width:600px;font-family:Arial,sans-serif;border-top:4px solid #E5B842\"><h1 style=\"font-family:Georgia,serif;font-weight:normal\">Your written reading order is confirmed</h1><p>Career &amp; Money Reading</p><p>Order reference: 26D18FE5</p><p>Your payment has been received. The owner will personally contact you by email to discuss when to expect your reading, then email the completed reading to you.</p><p><a href=\"http://localhost:3000/account/readings/26d18fe5-2d75-4857-943a-678619e79cf6\">View your order and booking details</a></p><p>With warmth,<br>TheAstroKaur</p></div>",
+      "subject": "Your written reading order is confirmed"
+    },
+    "created_at": "2026-11-10 21:10:59.531123+00",
+    "sent_at": "2026-11-11 09:09:25.067+00",
+    "email_started_at": "2026-11-11 09:09:22.343+00",
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "d586dee3-1321-42a0-83b4-0846f4b2de7f",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "calendar",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:reconcile:1:2026-11-11-10",
+    "version": 1,
+    "status": "sent",
+    "run_at": "2026-11-11 10:00:21.233884+00",
+    "lease_until": null,
+    "lease_token": "58c38629-d04e-4d79-b2ab-b7c70b6f47e0",
+    "attempts": 1,
+    "last_error": null,
+    "provider_id": null,
+    "email_payload": null,
+    "created_at": "2026-11-11 10:00:21.233884+00",
+    "sent_at": "2026-11-11 10:00:29.652+00",
+    "email_started_at": null,
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "41ee08b3-ee1e-441c-a27e-81b7060f1755",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "calendar",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:reconcile:1:2026-11-11-11",
+    "version": 1,
+    "status": "sent",
+    "run_at": "2026-11-11 11:00:21.590623+00",
+    "lease_until": null,
+    "lease_token": "56b87c35-eb51-4642-82c7-3d2dc4e9ef57",
+    "attempts": 1,
+    "last_error": null,
+    "provider_id": null,
+    "email_payload": null,
+    "created_at": "2026-11-11 11:00:21.590623+00",
+    "sent_at": "2026-11-11 11:00:28.891+00",
+    "email_started_at": null,
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "72912ceb-d63e-4bca-b2ca-a27030b6237d",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "calendar",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:reconcile:1:2026-11-11-12",
+    "version": 1,
+    "status": "sent",
+    "run_at": "2026-11-11 12:00:21.525478+00",
+    "lease_until": null,
+    "lease_token": "11eb6426-c081-44e4-848a-509376e265db",
+    "attempts": 1,
+    "last_error": null,
+    "provider_id": null,
+    "email_payload": null,
+    "created_at": "2026-11-11 12:00:21.525478+00",
+    "sent_at": "2026-11-11 12:00:29.999+00",
+    "email_started_at": null,
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "dcad2dbe-84b5-484f-a43c-c70859bea9b3",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "calendar",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:reconcile:1:2026-11-11-01",
+    "version": 1,
+    "status": "sent",
+    "run_at": "2026-11-11 13:00:16.306839+00",
+    "lease_until": null,
+    "lease_token": "8cfb087c-683a-4c17-85af-5355aa72e692",
+    "attempts": 1,
+    "last_error": null,
+    "provider_id": null,
+    "email_payload": null,
+    "created_at": "2026-11-11 13:00:16.306839+00",
+    "sent_at": "2026-11-11 13:00:24.404+00",
+    "email_started_at": null,
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "350aca95-285e-4a5a-b886-5df1ac6c9806",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "calendar",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:reconcile:1:2026-11-11-02",
+    "version": 1,
+    "status": "sent",
+    "run_at": "2026-11-11 14:00:17.352764+00",
+    "lease_until": null,
+    "lease_token": "c9770cd9-3ac8-4597-a2ba-9897dbb35f9e",
+    "attempts": 1,
+    "last_error": null,
+    "provider_id": null,
+    "email_payload": null,
+    "created_at": "2026-11-11 14:00:17.352764+00",
+    "sent_at": "2026-11-11 14:00:25.905+00",
+    "email_started_at": null,
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "7368c690-c3ef-4d78-b006-8923029a2c8a",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "schedule_owner",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:schedule_owner:0",
+    "version": 0,
+    "status": "sent",
+    "run_at": "2026-11-11 08:40:53.911436+00",
+    "lease_until": null,
+    "lease_token": "6b313f51-f1fd-4844-bf8a-3abc30d629e4",
+    "attempts": 1,
+    "last_error": null,
+    "provider_id": "01a1c9c4-db50-75fb-b4ea-acccab8f68bd",
+    "email_payload": {
+      "to": [
+        "jainpragati4566@gmail.com"
+      ],
+      "from": "onboarding@resend.dev",
+      "html": "<div style=\"background:#FAF8F5;color:#0F172A;padding:32px;max-width:600px;font-family:Arial,sans-serif;border-top:4px solid #E5B842\"><h1 style=\"font-family:Georgia,serif;font-weight:normal\">A paid voice reading needs scheduling</h1><p>Relationship Karma</p><p>Order reference: B2547E65</p><p>Please contact the customer to arrange a call if no suitable time is available.</p><p>Customer contact: ctrlxharsh@gmaill.com</p><p>Payment: paid. Status: awaiting_schedule.</p><p><a href=\"http://localhost:3000/admin/readings/b2547e65-1e51-47ea-a349-b0e283c749d8\">Open order in admin</a></p><p>With warmth,<br>TheAstroKaur</p></div>",
+      "subject": "A paid voice reading needs scheduling"
+    },
+    "created_at": "2026-11-11 08:40:53.911436+00",
+    "sent_at": "2026-11-11 08:41:24.205+00",
+    "email_started_at": "2026-11-11 08:41:22.592+00",
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "ad54d442-a1b6-4bcd-9876-9a11f8674305",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "calendar",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:calendar:1",
+    "version": 1,
+    "status": "sent",
+    "run_at": "2026-11-11 08:49:04.66848+00",
+    "lease_until": null,
+    "lease_token": "e7b5a58e-3e4c-49c8-8d21-f444a192d712",
+    "attempts": 1,
+    "last_error": null,
+    "provider_id": null,
+    "email_payload": null,
+    "created_at": "2026-11-11 08:49:04.66848+00",
+    "sent_at": "2026-11-11 08:49:59.176+00",
+    "email_started_at": null,
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "c4af10d3-1bcc-409b-9cd3-10eb094dc304",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "owner",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:owner:1",
+    "version": 1,
+    "status": "sent",
+    "run_at": "2026-11-11 08:49:04.66848+00",
+    "lease_until": null,
+    "lease_token": "c6ee4650-71b5-42b0-8ac8-4e012f1a3a00",
+    "attempts": 1,
+    "last_error": null,
+    "provider_id": "01a1c9cd-170b-7414-9e5e-c317db8dab64",
+    "email_payload": {
+      "to": [
+        "jainpragati4566@gmail.com"
+      ],
+      "from": "onboarding@resend.dev",
+      "html": "<div style=\"background:#FAF8F5;color:#0F172A;padding:32px;max-width:600px;font-family:Arial,sans-serif;border-top:4px solid #E5B842\"><h1 style=\"font-family:Georgia,serif;font-weight:normal\">New TheAstroKaur order</h1><p>Relationship Karma</p><p>Order reference: B2547E65</p><p>Wednesday, 11 November 2026 at 22:30 (Asia/Calcutta)</p><p><a href=\"https://meet.google.com/cre-mrtz-rfa\">Join your Google Meet consultation</a></p><p>Customer contact: ctrlxharsh@gmaill.com</p><p>Payment: paid. Status: confirmed.</p><p><a href=\"http://localhost:3000/admin/readings/b2547e65-1e51-47ea-a349-b0e283c749d8\">Open order in admin</a></p><p>With warmth,<br>TheAstroKaur</p></div>",
+      "subject": "New TheAstroKaur order"
+    },
+    "created_at": "2026-11-11 08:49:04.66848+00",
+    "sent_at": "2026-11-11 08:50:23.809+00",
+    "email_started_at": "2026-11-11 08:50:22.733+00",
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "dc1ca407-8a75-4e77-af65-5fd1f0dd5a9b",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "calendar",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:reconcile:1:2026-11-11-08",
+    "version": 1,
+    "status": "sent",
+    "run_at": "2026-11-11 08:49:21.046449+00",
+    "lease_until": null,
+    "lease_token": "b9117b7e-446a-49e7-ad18-fa95c36c5e68",
+    "attempts": 1,
+    "last_error": null,
+    "provider_id": null,
+    "email_payload": null,
+    "created_at": "2026-11-11 08:49:21.046449+00",
+    "sent_at": "2026-11-11 08:50:58.065+00",
+    "email_started_at": null,
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "9f925dd0-7473-4ec9-be24-76c6ef8dfd4a",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "customer",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:customer:1",
+    "version": 1,
+    "status": "sent",
+    "run_at": "2026-11-11 09:09:18.166+00",
+    "lease_until": null,
+    "lease_token": "80527fa5-40fb-439e-a4ff-10b53136114e",
+    "attempts": 1,
+    "last_error": null,
+    "provider_id": "<booking-9f925dd0-7473-4ec9-be24-76c6ef8dfd4a@gmail.com>",
+    "email_payload": {
+      "to": [
+        "ctrlxharsh@gmaill.com"
+      ],
+      "from": "onboarding@resend.dev",
+      "html": "<div style=\"background:#FAF8F5;color:#0F172A;padding:32px;max-width:600px;font-family:Arial,sans-serif;border-top:4px solid #E5B842\"><h1 style=\"font-family:Georgia,serif;font-weight:normal\">Your consultation is confirmed</h1><p>Relationship Karma</p><p>Order reference: B2547E65</p><p>Wednesday, 11 November 2026 at 22:30 (Asia/Calcutta)</p><p><a href=\"https://meet.google.com/cre-mrtz-rfa\">Join your Google Meet consultation</a></p><p><a href=\"http://localhost:3000/account/readings/b2547e65-1e51-47ea-a349-b0e283c749d8\">View your order and booking details</a></p><p>With warmth,<br>TheAstroKaur</p></div>",
+      "subject": "Your consultation is confirmed"
+    },
+    "created_at": "2026-11-11 08:49:04.66848+00",
+    "sent_at": "2026-11-11 09:09:29.753+00",
+    "email_started_at": "2026-11-11 09:09:26.927+00",
+    "refund_id": null,
+    "refund_status": null
+  },
+  {
+    "id": "7ad4f8df-cede-4197-9df8-2a73e0dbbee6",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "kind": "reminder",
+    "dedupe_key": "b2547e65-1e51-47ea-a349-b0e283c749d8:reminder:1",
+    "version": 1,
+    "status": "sent",
+    "run_at": "2026-11-11 16:00:00+00",
+    "lease_until": null,
+    "lease_token": "ed1b992f-bb33-4b65-a48a-fcbfc7eca6ca",
+    "attempts": 1,
+    "last_error": null,
+    "provider_id": "<booking-7ad4f8df-cede-4197-9df8-2a73e0dbbee6@gmail.com>",
+    "email_payload": {
+      "to": [
+        "ctrlxharsh@gmail.com"
+      ],
+      "html": "<div style=\"background:#FAF8F5;color:#0F172A;padding:32px;max-width:600px;font-family:Arial,sans-serif;border-top:4px solid #E5B842\"><h1 style=\"font-family:Georgia,serif;font-weight:normal\">Your consultation reminder</h1><p>Relationship Karma</p><p>Order reference: B2547E65</p><p>Wednesday, 11 November 2026 at 22:30 (Asia/Calcutta)</p><p>The owner will contact you personally to share the call details.</p><p><a href=\"http://localhost:3000/account/readings/b2547e65-1e51-47ea-a349-b0e283c749d8\">View your order and booking details</a></p><p>With warmth,<br>TheAstroKaur</p></div>",
+      "subject": "Your consultation reminder",
+      "reply_to": "pragatijain841@gmail.com"
+    },
+    "created_at": "2026-11-11 08:49:04.66848+00",
+    "sent_at": "2026-11-11 16:00:27.168+00",
+    "email_started_at": "2026-11-11 16:00:23.839+00",
+    "refund_id": null,
+    "refund_status": null
+  }
+]
+```
+
+---
+
+### 7. `public.booking_refunds` (1 row)
+
+| Column | Data Type | Nullable | Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `uuid` | **No** | `gen_random_uuid()` |
+| ⭐ **order_id** | `uuid` | **No** | — |
+| `stripe_refund_id` | `text` | Yes | — |
+| `amount_cents` | `integer` | **No** | — |
+| `currency` | `text` | **No** | — |
+| `status` | `text` | **No** | — |
+| `reason` | `text` | **No** | — |
+| `actor` | `uuid` | Yes | — |
+| `failure_reason` | `text` | Yes | — |
+| `created_at` | `timestamp with time zone` | **No** | `now()` |
+| `updated_at` | `timestamp with time zone` | **No** | `now()` |
+
+**Current Live Data:**
+
+```json
+[
+  {
+    "id": "7ca60bce-7643-496a-ab77-511a58c94499",
+    "order_id": "26d18fe5-2d75-4857-943a-678619e79cf6",
+    "stripe_refund_id": "re_3UaMJO9UM1YXl2IE1voFgLSW",
+    "amount_cents": 2000,
+    "currency": "eur",
+    "status": "succeeded",
+    "reason": "Previously recorded Stripe refund",
+    "actor": null,
+    "failure_reason": null,
+    "created_at": "2026-11-17 18:02:56.258616+00",
+    "updated_at": "2026-11-17 18:02:56.258616+00"
+  }
+]
+```
+
+---
+
+### 8. `public.booking_requests` (0 rows)
+
+| Column | Data Type | Nullable | Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `uuid` | **No** | `gen_random_uuid()` |
+| ⭐ **order_id** | `uuid` | **No** | — |
+| `actor` | `uuid` | **No** | — |
+| `kind` | `text` | **No** | — |
+| `reason` | `text` | **No** | — |
+| `status` | `text` | **No** | `'pending'::text` |
+| `created_at` | `timestamp with time zone` | **No** | `now()` |
+
+**Current Live Data:**
+
+*(Table is currently empty / 0 rows)*
+
+---
+
+### 9. `public.booking_reservations` (1 row)
+
+| Column | Data Type | Nullable | Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `uuid` | **No** | `gen_random_uuid()` |
+| ⭐ **order_id** | `uuid` | **No** | — |
+| `owner_id` | `text` | **No** | `'primary'::text` |
+| `starts_at` | `timestamp with time zone` | **No** | — |
+| `ends_at` | `timestamp with time zone` | **No** | — |
+| `blocked_until` | `timestamp with time zone` | **No** | — |
+| `state` | `text` | **No** | — |
+| `hold_expires_at` | `timestamp with time zone` | Yes | — |
+| `created_at` | `timestamp with time zone` | **No** | `now()` |
+| `updated_at` | `timestamp with time zone` | **No** | `now()` |
+
+**Current Live Data:**
+
+```json
+[
+  {
+    "id": "98182b4b-4b86-44bc-b58b-6272883a2e7c",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "owner_id": "primary",
+    "starts_at": "2026-11-11 17:00:00+00",
+    "ends_at": "2026-11-11 17:30:00+00",
+    "blocked_until": "2026-11-11 17:45:00+00",
+    "state": "confirmed",
+    "hold_expires_at": null,
+    "created_at": "2026-11-11 08:49:04.66848+00",
+    "updated_at": "2026-11-11 08:49:04.66848+00"
+  }
+]
+```
+
+---
+
+### 10. `public.contact_messages` (13 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -531,13 +1253,23 @@ CONTENT & CATALOG TABLES
     "status": "unread",
     "created_at": "2026-10-14 07:25:27.929+00",
     "updated_at": "2026-10-14 07:25:27.929+00"
+  },
+  {
+    "id": "6ffe5976-b782-43d4-a373-3d45c65fb2d9",
+    "sender_name": "yashi",
+    "email": "jainpragati4566@gmail.com",
+    "subject": "Booking Enquiry",
+    "message": "can we do it at lower price",
+    "status": "unread",
+    "created_at": "2026-11-17 12:52:34.617+00",
+    "updated_at": "2026-11-17 12:52:34.617+00"
   }
 ]
 ```
 
 ---
 
-### 3. `public.customer_profiles` (6 rows)
+### 11. `public.customer_profiles` (8 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -597,29 +1329,8 @@ CONTENT & CATALOG TABLES
     "place_of_birth": "Aligarh, Koil, Aligarh, Uttar Pradesh, 202001, India",
     "avatar_seed": null,
     "created_at": "2026-10-03 18:20:01.629501+00",
-    "updated_at": "2026-10-17 04:08:17.455834+00",
+    "updated_at": "2026-10-22 17:38:24.261733+00",
     "role": "admin",
-    "partner_name": null,
-    "partner_date_of_birth": null,
-    "partner_time_of_birth": null,
-    "partner_time_uncertain": false,
-    "partner_place_of_birth": null,
-    "account_status": "active",
-    "avatar_url": null
-  },
-  {
-    "id": "9d90f4dd-17e5-46d8-b497-e1f37b37b9d8",
-    "auth_user_id": "54d730b2-150b-4100-b5e6-5fccc6a5809e",
-    "display_name": "Priya Sharma",
-    "email": "priya.sharma91@gmail.com",
-    "date_of_birth": "1993-11-20",
-    "time_of_birth": "08:45:00",
-    "time_uncertain": false,
-    "place_of_birth": "London, UK",
-    "avatar_seed": null,
-    "created_at": "2026-10-11 15:09:46.36498+00",
-    "updated_at": "2026-10-11 15:09:47.156645+00",
-    "role": "customer",
     "partner_name": null,
     "partner_date_of_birth": null,
     "partner_time_of_birth": null,
@@ -675,13 +1386,13 @@ CONTENT & CATALOG TABLES
     "auth_user_id": "e34a4077-eaac-4a33-9c8b-6ee3f13b3077",
     "display_name": null,
     "email": "kaurharvinder92@gmail.com",
-    "date_of_birth": null,
-    "time_of_birth": null,
+    "date_of_birth": "1993-08-16",
+    "time_of_birth": "03:00:00",
     "time_uncertain": false,
-    "place_of_birth": null,
+    "place_of_birth": "Mumbai, Mumbai Suburban District, Maharashtra, 400051, India",
     "avatar_seed": null,
     "created_at": "2026-10-14 07:52:51.084467+00",
-    "updated_at": "2026-10-14 08:15:38.398985+00",
+    "updated_at": "2026-10-22 19:01:41.681961+00",
     "role": "admin",
     "partner_name": null,
     "partner_date_of_birth": null,
@@ -690,13 +1401,108 @@ CONTENT & CATALOG TABLES
     "partner_place_of_birth": null,
     "account_status": "active",
     "avatar_url": null
+  },
+  {
+    "id": "9d90f4dd-17e5-46d8-b497-e1f37b37b9d8",
+    "auth_user_id": "54d730b2-150b-4100-b5e6-5fccc6a5809e",
+    "display_name": "Priya Sharma",
+    "email": "priya.sharma91@gmail.com",
+    "date_of_birth": "1993-11-20",
+    "time_of_birth": "08:45:00",
+    "time_uncertain": false,
+    "place_of_birth": "London, UK",
+    "avatar_seed": null,
+    "created_at": "2026-10-11 15:09:46.36498+00",
+    "updated_at": "2026-11-10 19:48:42.415136+00",
+    "role": "customer",
+    "partner_name": null,
+    "partner_date_of_birth": null,
+    "partner_time_of_birth": null,
+    "partner_time_uncertain": false,
+    "partner_place_of_birth": null,
+    "account_status": "active",
+    "avatar_url": null
+  },
+  {
+    "id": "6f31accf-6b8a-4f64-a3e5-c1ae48a7b39d",
+    "auth_user_id": "02fe175d-562d-40ab-b6dd-084999bdc1e0",
+    "display_name": null,
+    "email": "ctrlxharsh@gmail.com",
+    "date_of_birth": null,
+    "time_of_birth": null,
+    "time_uncertain": false,
+    "place_of_birth": null,
+    "avatar_seed": null,
+    "created_at": "2026-11-10 19:53:19.186962+00",
+    "updated_at": "2026-11-11 11:33:24.743321+00",
+    "role": "customer",
+    "partner_name": null,
+    "partner_date_of_birth": null,
+    "partner_time_of_birth": null,
+    "partner_time_uncertain": false,
+    "partner_place_of_birth": null,
+    "account_status": "active",
+    "avatar_url": null
+  },
+  {
+    "id": "04a631bf-4b84-4688-a9c7-9eb652d84573",
+    "auth_user_id": "23e7b478-9cd7-40c9-add2-25d82b5fc9d6",
+    "display_name": "Manas Jain",
+    "email": "jjyes90@gmail.com",
+    "date_of_birth": "2026-11-17",
+    "time_of_birth": "18:35:00",
+    "time_uncertain": false,
+    "place_of_birth": "New Delhi",
+    "avatar_seed": null,
+    "created_at": "2026-11-17 13:07:54.148789+00",
+    "updated_at": "2026-11-17 13:43:07.94774+00",
+    "role": "customer",
+    "partner_name": null,
+    "partner_date_of_birth": null,
+    "partner_time_of_birth": null,
+    "partner_time_uncertain": false,
+    "partner_place_of_birth": null,
+    "account_status": "active",
+    "avatar_url": "https://qdnwmfriilknnwqrepuy.supabase.co/storage/v1/object/public/custom_profle_photo/23e7b478-9cd7-40c9-add2-25d82b5fc9d6/avatar.webp?t=1794922987105"
   }
 ]
 ```
 
 ---
 
-### 4. `public.free_reading_content` (1 row)
+### 12. `public.email_otp_verifications` (1 row)
+
+| Column | Data Type | Nullable | Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `uuid` | **No** | `gen_random_uuid()` |
+| `email` | `text` | **No** | — |
+| `otp_hash` | `text` | **No** | — |
+| `purpose` | `text` | **No** | — |
+| `attempts` | `integer` | **No** | `0` |
+| `metadata` | `jsonb` | Yes | — |
+| `expires_at` | `timestamp with time zone` | **No** | — |
+| `created_at` | `timestamp with time zone` | **No** | `now()` |
+
+**Current Live Data:**
+
+```json
+[
+  {
+    "id": "14c2bcd5-4645-4aac-a305-f887d9fd49de",
+    "email": "testadmin999@gmail.com",
+    "otp_hash": "7f3531e200d0de2bb433810ea92c8cde603a5656c468398459f224a7de69c6e0",
+    "purpose": "reset_password",
+    "attempts": 0,
+    "metadata": null,
+    "expires_at": "2026-11-11 11:39:18.243+00",
+    "created_at": "2026-11-11 11:29:18.409115+00"
+  }
+]
+```
+
+---
+
+### 13. `public.free_reading_content` (1 row)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -733,7 +1539,7 @@ CONTENT & CATALOG TABLES
 
 ---
 
-### 5. `public.free_reading_requests` (3 rows)
+### 14. `public.free_reading_requests` (3 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -797,7 +1603,7 @@ CONTENT & CATALOG TABLES
 
 ---
 
-### 6. `public.free_readings` (2 rows)
+### 15. `public.free_readings` (5 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -853,14 +1659,147 @@ CONTENT & CATALOG TABLES
     "reading_source_id": "a84f2998-46ef-494a-a7d6-fa9e8eeabcd9",
     "status": "completed",
     "created_at": "2026-10-15 05:37:38.932037+00",
-    "updated_at": "2026-10-17 04:08:16.443+00"
+    "updated_at": "2026-10-22 17:38:23.369+00"
+  },
+  {
+    "id": "18555bef-7916-4af3-8049-50bfa2c0182c",
+    "user_id": "e34a4077-eaac-4a33-9c8b-6ee3f13b3077",
+    "email": "kaurharvinder92@gmail.com",
+    "date_of_birth": "1993-08-16",
+    "time_of_birth": "03:00:00",
+    "place_of_birth": "Mumbai, Mumbai Suburban District, Maharashtra, 400051, India",
+    "latitude": "19.054999",
+    "longitude": "72.869204",
+    "timezone": "5.50",
+    "ascendant": "Gemini",
+    "reading_content": "{\"sign\":\"Gemini\",\"sanskritName\":\"Mithuna\",\"ruler\":\"Mercury (Budha)\",\"element\":\"Air\",\"quality\":\"Mutable\",\"glyph\":\"\u264a\",\"iconPath\":\"/zodiac/gemini.svg\",\"overview\":\"Rising in Gemini, your soul's lens is illuminated by Mercury, the planet of intellect, language, and curiosity. You are an agile thinker, gifted communicator, and natural weaver of ideas, perspectives, and human connections.\",\"personalityTraits\":\"You exude a youthful, vibrant, and intellectually curious aura. Your mind moves with remarkable speed, continuously absorbing information and spotting innovative linkages that others miss. You are versatile, witty, and naturally diplomatic, capable of relating to people from all walks of life.\",\"lifePathGuidance\":\"Your primary life lessons center on depth over breadth. While your capacity for learning is boundless, your greatest breakthroughs will arrive when you channel your brilliant mind into committed mastery of your chosen craft.\",\"strengths\":[\"Exceptional verbal and written communication abilities\",\"High cognitive adaptability and lightning-fast learning curve\",\"Engaging conversationalist who naturally builds social bridges\",\"Curious, open-minded approach to diverse philosophies\"],\"growthAreas\":[\"Guarding against mental exhaustion by incorporating grounding silent practices\",\"Following through on core endeavors before jumping to the next inspiring concept\",\"Trusting intuitive feeling as much as analytical rationalization\"],\"coreEnergy\":{\"emoji\":\"\ud83c\udf2c\ufe0f\",\"title\":\"Your Core Energy\",\"paragraphs\":[\"You are naturally curious, mentally agile and energized by ideas, conversations and new experiences.\",\"You often feel best when your mind is engaged rather than stagnant. You may be someone who loves learning, asking questions, connecting diverse people and spotting angles others miss.\",\"You can have a natural gift for communication\u2014whether speaking, writing, sharing knowledge or simply bringing lightness into a room.\"],\"challenge\":\"Your challenge? Your mind can move in so many directions at once that you may feel scattered, restless or easily bored when something requires prolonged repetition.\",\"quote\":\"\u00ab\\\"Curiosity opens doors\u2014but commitment builds the room you want to live in.\\\"\u00bb\"},\"careerSuccess\":{\"title\":\"Career & Success\",\"paragraphs\":[\"You are unlikely to stay engaged in work that feels monotonous, rigid or mentally stifling.\",\"You may thrive where you can communicate, synthesize information, network, write, teach, trade or navigate fast-moving environments.\",\"There is often a natural adaptability in you: you can wear multiple hats with remarkable ease.\",\"Your real professional breakthrough happens when you choose one or two core domains to master deeply rather than staying at the surface of ten.\"],\"lessonQuote\":\"Your versatility is your superpower\u2014when paired with patience, you become virtually unstoppable.\"},\"loveRelationships\":{\"title\":\"Love & Relationships\",\"paragraphs\":[\"You need a partner who can meet you mentally as well as emotionally.\",\"If there is no intellectual stimulation, laughter or genuine dialogue, the connection can quickly lose its spark.\"],\"values\":[\"mental connection\",\"humor\",\"open dialogue\",\"shared curiosity\",\"emotional lightness\"],\"questionOrLesson\":\"One of your deepest relationship lessons is moving from surface curiosity to authentic vulnerability:\\n\\n\u00ab\\\"Can I allow someone to know the quiet parts of me, not just the quick and clever parts?\\\"\u00bb\\n\\nWhen you find a partner who appreciates both your lively mind and your sensitive heart, intimacy becomes your safest anchor.\"},\"moneySecurity\":{\"title\":\"Money & Security\",\"paragraphs\":[\"You may have the capacity to generate income from diverse channels or adaptable skills.\",\"Your natural instinct can be flexible and opportunistic, but you benefit immensely from establishing consistent financial habits and automated saving structures.\",\"When you channel your quick intellect into long-term financial planning, you create security without feeling restricted.\"],\"quote\":\"\u00ab\\\"Financial freedom comes from focused discipline, not endless multitasking.\\\"\u00bb\"},\"emotionalWorld\":{\"title\":\"Your Emotional World\",\"paragraphs\":[\"You may instinctively rationalize or analyze your feelings before allowing yourself to actually feel them.\",\"When emotions become intense, your impulse might be to talk through them, distract yourself with information, or brush them off with humor.\",\"One of your most profound lessons is slowing down enough to sit in quiet reflection and give your heart the same attention you give your mind.\",\"Your personal birth chart reveals how your Moon and Mercury interact to shape your emotional balance.\"]},\"hiddenPotential\":{\"emoji\":\"\u2728\",\"title\":\"Your Hidden Potential\",\"paragraphs\":[\"You have the rare gift of the bridge-builder.\",\"You can translate complex ideas into clear language, bridge misunderstandings between different worlds, and breathe new life into stagnant situations.\",\"When you focus your brilliant mind onto a singular purposeful mission, you don't just share knowledge\u2014you inspire transformation.\"]},\"firstLayerBullets\":[{\"emoji\":\"\u2764\ufe0f\",\"text\":\"Your relationship patterns and what you truly need in love\"},{\"emoji\":\"\ud83d\udcbc\",\"text\":\"Your career direction and where your intellectual gifts thrive\"},{\"emoji\":\"\ud83d\udcb0\",\"text\":\"Your financial habits and creating sustainable stability\"},{\"emoji\":\"\ud83c\udf19\",\"text\":\"Your emotional needs and inner mental peace\"},{\"emoji\":\"\ud83d\udd25\",\"text\":\"How you handle decision-making and avoid overwhelm\"},{\"emoji\":\"\ud83e\uddff\",\"text\":\"Recurring life patterns and deeper karmic themes\"},{\"emoji\":\"\u23f3\",\"text\":\"When important planetary cycles and life shifts become active\"}]}",
+    "reading_source_id": "bd794537-5f2c-4c4f-a45e-b91c13867e63",
+    "status": "completed",
+    "created_at": "2026-10-22 17:40:13.765545+00",
+    "updated_at": "2026-10-22 19:01:41.012+00"
+  },
+  {
+    "id": "7cafa820-980a-4465-9108-fc8a4c26115f",
+    "user_id": "54d730b2-150b-4100-b5e6-5fccc6a5809e",
+    "email": "priya.sharma91@gmail.com",
+    "date_of_birth": "1993-11-20",
+    "time_of_birth": "08:45:00",
+    "place_of_birth": "London, UK",
+    "latitude": "51.507446",
+    "longitude": "-0.127765",
+    "timezone": "0.00",
+    "ascendant": "Scorpio",
+    "reading_content": "{\"sign\":\"Scorpio\",\"sanskritName\":\"Vrischika\",\"ruler\":\"Mars & Ketu (Mangal & Ketu)\",\"element\":\"Water\",\"quality\":\"Fixed\",\"glyph\":\"\u264f\",\"iconPath\":\"/zodiac/scorpio.svg\",\"overview\":\"With Scorpio on the Ascendant, your chart is governed by Mars and co-ruled by Ketu in Vedic astrology. You are a soul of extraordinary psychological depth, transformative power, and unwavering spiritual determination.\",\"personalityTraits\":\"You carry an intense, magnetic, and perceptive presence that pierces beneath surface illusions. You rarely engage in superficial chatter; you seek truth, authenticity, and profound connection. Resilient beyond measure, you have an innate capacity to rise from adversity transformed and stronger.\",\"lifePathGuidance\":\"Your life is an alchemical journey of emotional mastery and spiritual rebirth. Learning to surrender control, trust the natural rhythm of life, and transmute intensity into healing wisdom is your highest destiny.\",\"strengths\":[\"Incredible psychological insight and radar for authenticity\",\"Unmatched resilience, inner courage, and transformative power\",\"Fierce, lifelong loyalty to those who earn your sacred trust\",\"Deep focus and investigative ability to master complex mysteries\"],\"growthAreas\":[\"Practicing conscious emotional forgiveness to release old grudges\",\"Opening up gradually to trust worthy individuals without guarded suspicion\",\"Channeling intense emotional energy into creative, spiritual regeneration\"],\"coreEnergy\":{\"emoji\":\"\ud83e\udd82\",\"title\":\"Your Core Energy\",\"paragraphs\":[\"You are intensely perceptive, emotionally profound, private and magnetically resilient.\",\"You do not navigate life on the surface. You instinctively read between the lines, sense hidden motives, and perceive what is left unsaid.\",\"You possess immense inner strength\u2014when life brings crises or radical changes, you do not crumble; you endure, adapt, and transform.\"],\"challenge\":\"Your challenge? Trust and control. Because you feel so deeply and remember every wound, you can build impenetrable emotional fortresses, harbor suspicion, or struggle to let go.\",\"quote\":\"\u00ab\\\"True power is not holding on to control; it is trusting your ability to rise after whatever falls away.\\\"\u00bb\"},\"careerSuccess\":{\"title\":\"Career & Success\",\"paragraphs\":[\"You are drawn to work that requires depth, strategy, investigative intellect and real substance.\",\"You thrive in psychology, medicine, surgery, finance, investigative research, crisis management, occult/astrology, strategy, and transformative leadership.\",\"You have exceptional focus and tenacity: once you commit to a mission, you work quietly in the dark until victory is secured.\",\"Your greatest career achievements occur when you use your strategic depth to solve problems others are afraid to touch.\"],\"lessonQuote\":\"Your silence is your strategic advantage\u2014when you move, you move with decisive precision.\"},\"loveRelationships\":{\"title\":\"Love & Relationships\",\"paragraphs\":[\"For you, love is a sacred, all-or-nothing union. Casual connections do not interest your soul.\",\"You demand absolute honesty, emotional transparency, and unbreakable loyalty. In return, you offer fierce devotion that endures through every storm.\"],\"values\":[\"absolute loyalty\",\"emotional depth\",\"unwavering honesty\",\"mutual protection\",\"soul-level intimacy\"],\"questionOrLesson\":\"Your deepest relationship test is learning the courage of vulnerability:\\n\\n\u00ab\\\"Can I lower my armor and let myself be truly seen without fearing that love will be used against me?\\\"\u00bb\\n\\nWhen you dare to trust the right partner, love becomes your most profound vehicle of healing.\"},\"moneySecurity\":{\"title\":\"Money & Material Security\",\"paragraphs\":[\"You have sharp financial instincts and a natural understanding of shared resources, investments, and wealth regeneration.\",\"You keep your financial affairs private and strategic, preferring to build quiet independence rather than ostentatious display.\",\"Your wealth expands when you channel your natural discipline into long-term compounding and transformative ventures.\"],\"quote\":\"\u00ab\\\"Real wealth is self-sufficiency and the wisdom to turn adversity into asset.\\\"\u00bb\"},\"emotionalWorld\":{\"title\":\"Your Emotional World\",\"paragraphs\":[\"Beneath your composed, enigmatic exterior lies an ocean of deep emotional currents.\",\"You process feelings internally, rarely letting the world see your pain until you have fully metabolized it.\",\"Learning to release emotional toxins\u2014forgiving without forgetting\u2014is essential for your vitality and mental lightness.\",\"Your individual birth chart reveals how Mars, Ketu, and your Moon navigate your emotional rebirths.\"]},\"hiddenPotential\":{\"emoji\":\"\u2728\",\"title\":\"Your Hidden Potential\",\"paragraphs\":[\"You have the rare energy of the Phoenix.\",\"No matter what challenges, betrayals, or upheavals you encounter, you possess an uncanny ability to burn down the obsolete and rise stronger, wiser, and more radiant.\",\"When you channel your immense intensity into healing and purposeful creation, you become an unstoppable catalyst for transformation.\"]},\"firstLayerBullets\":[{\"emoji\":\"\u2764\ufe0f\",\"text\":\"Your deep relationship karma and finding genuine soul-aligned trust\"},{\"emoji\":\"\ud83d\udcbc\",\"text\":\"Your career destiny and leveraging your investigative and strategic power\"},{\"emoji\":\"\ud83d\udcb0\",\"text\":\"Your financial transformation cycles and wealth regeneration\"},{\"emoji\":\"\ud83c\udf19\",\"text\":\"Your emotional underworld and releasing subconscious self-protective walls\"},{\"emoji\":\"\ud83d\udd25\",\"text\":\"Mastering your personal power without fear of loss or betrayal\"},{\"emoji\":\"\ud83e\uddff\",\"text\":\"Karmic initiations, ancestral patterns, and occult sensitivities\"},{\"emoji\":\"\u23f3\",\"text\":\"Timing of major evolutionary rebirths and planetary milestones\"}]}",
+    "reading_source_id": "cfd35db8-a621-4ad0-a209-042268802d7b",
+    "status": "completed",
+    "created_at": "2026-11-10 19:48:42.204865+00",
+    "updated_at": "2026-11-10 19:48:41.888+00"
+  },
+  {
+    "id": "c42a4a6f-7125-4399-9ce7-5a8449c05d6f",
+    "user_id": "23e7b478-9cd7-40c9-add2-25d82b5fc9d6",
+    "email": "jjyes90@gmail.com",
+    "date_of_birth": "2026-11-17",
+    "time_of_birth": "18:35:00",
+    "place_of_birth": "New Delhi",
+    "latitude": "28.613895",
+    "longitude": "77.209006",
+    "timezone": "5.50",
+    "ascendant": "Taurus",
+    "reading_content": "{\"sign\":\"Taurus\",\"sanskritName\":\"Vrishabha\",\"ruler\":\"Venus (Shukra)\",\"element\":\"Earth\",\"quality\":\"Fixed\",\"glyph\":\"\u2649\",\"iconPath\":\"/zodiac/taurus.svg\",\"overview\":\"With Taurus rising, your chart is anchored by Venus, the planet of harmony, beauty, value, and devotion. You embody grounded grace, unwavering loyalty, and an organic connection to material and emotional security.\",\"personalityTraits\":\"You carry a calm, soothing, and reassuring presence that immediately puts others at ease. Methodical and thoughtful, you do not rush your choices; you build your life brick by brick with enduring craftsmanship. You possess refined aesthetic discernment and deeply appreciate sensory harmony, natural beauty, and tranquil environments.\",\"lifePathGuidance\":\"Your life path is one of steady cultivation, building enduring prosperity, and finding authentic self-worth. Cultivating flexibility and allowing room for healthy transformation will help you release resistance to change when life invites you to evolve.\",\"strengths\":[\"Unshakable dependability and steadfast loyalty\",\"Deeply grounded practical intellect and financial prudence\",\"Sophisticated eye for aesthetics, balance, and artistic beauty\",\"Calming emotional presence that anchors those around you\"],\"growthAreas\":[\"Embracing necessary life transitions without excessive attachment to the familiar\",\"Remaining open to alternate viewpoints and agile compromises\",\"Balancing physical comfort with active renewal and mindful movement\"],\"coreEnergy\":{\"emoji\":\"\ud83c\udf3f\",\"title\":\"Your Core Energy\",\"paragraphs\":[\"You naturally seek stability, comfort, security and something you can rely on.\",\"You may not be someone who wants to rush into everything. You often prefer to observe, understand the situation and then move when you feel ready.\",\"Once you make up your mind, however, you can be extremely difficult to move.\",\"You may have a strong sense of your own values and dislike being pressured into doing something that doesn't feel right to you.\"],\"challenge\":\"Your greatest strength is consistency.\\n\\nYour challenge can be becoming too comfortable, resistant to change or staying somewhere simply because it feels familiar.\",\"quote\":\"\u00ab\\\"Security is important\u2014but don't let comfort stop your growth.\\\"\u00bb\"},\"careerSuccess\":{\"title\":\"Career & Success\",\"paragraphs\":[\"You tend to do best when you can build something gradually and see tangible results.\",\"You may prefer stability over constant unpredictability and can have a natural ability to stay with something long enough for it to grow.\",\"You may be drawn toward areas involving finance, beauty, design, food, luxury, nature, property, creativity or building valuable resources, although your individual chart determines the specific direction.\",\"Your success often comes through patience rather than shortcuts.\"],\"lessonQuote\":\"You may not always be the fastest person in the room\u2014but once you establish momentum, you can be incredibly persistent.\"},\"loveRelationships\":{\"title\":\"Love & Relationships\",\"paragraphs\":[\"You generally don't want relationships that feel chaotic or unstable.\",\"You may take time to fully open up, but once you genuinely commit, you can be deeply loyal.\",\"You may also have strong expectations around how a partner treats you.\"],\"values\":[\"loyalty\",\"consistency\",\"physical affection\",\"trust\",\"emotional security\"],\"questionOrLesson\":\"Because you value stability so much, one of your relationship lessons can be recognising the difference between:\\n\\n\\\"This feels safe\\\"\\nand\\n\\\"This is actually healthy for me.\\\"\\n\\nSometimes you may stay longer than necessary because letting go feels more uncomfortable than staying.\\n\\nYour personal chart can reveal much more about the kind of partner you attract, what you need emotionally and how your relationship patterns develop.\"},\"moneySecurity\":{\"title\":\"Money & Material Security\",\"paragraphs\":[\"Creating financial stability can be particularly important to you.\",\"You may enjoy having beautiful things, good food, comfort and a lifestyle that feels secure\u2014but you may also have the ability to build wealth patiently when you have a clear goal.\",\"You tend to benefit from consistent accumulation rather than impulsive decisions.\",\"There can also be a strong connection between your sense of self-worth and your material security.\"],\"quote\":\"\u00ab\\\"My value is greater than what I own, earn or achieve.\\\"\u00bb\"},\"emotionalWorld\":{\"title\":\"Your Emotional World\",\"paragraphs\":[\"You may appear calm, grounded and composed even when a lot is happening internally.\",\"You usually don't enjoy emotional chaos.\",\"You may need time to process your feelings rather than reacting immediately, and once emotionally attached, you can find it difficult to simply switch your feelings off.\",\"You may crave predictability, physical closeness and a peaceful environment when you're emotionally overwhelmed.\",\"But your emotional needs are unique. Your individual chart can reveal what actually makes you feel safe, loved and emotionally fulfilled.\"]},\"hiddenPotential\":{\"emoji\":\"\ud83c\udf31\",\"title\":\"Your Hidden Potential\",\"paragraphs\":[\"One of your greatest gifts is the ability to turn something small into something lasting.\",\"You don't necessarily need dramatic beginnings.\"],\"buildSteps\":[{\"label\":\"a career\",\"pacing\":\"slowly\"},{\"label\":\"wealth\",\"pacing\":\"steadily\"},{\"label\":\"relationships\",\"pacing\":\"deeply\"},{\"label\":\"a life\",\"pacing\":\"intentionally\"}],\"conclusion\":[\"You have the potential to become someone who creates a life that feels stable, beautiful and genuinely yours.\",\"But life may periodically force you out of your comfort zone. Those moments can feel disruptive\u2014but they can also prevent you from becoming stuck.\"]},\"firstLayerBullets\":[{\"emoji\":\"\u2764\ufe0f\",\"text\":\"Your relationship patterns and what you truly need in love\"},{\"emoji\":\"\ud83d\udcbc\",\"text\":\"Your career direction and where your potential can develop\"},{\"emoji\":\"\ud83d\udcb0\",\"text\":\"Your financial patterns and relationship with security\"},{\"emoji\":\"\ud83c\udf19\",\"text\":\"Your emotional needs and inner world\"},{\"emoji\":\"\ud83d\udd25\",\"text\":\"How you pursue your goals and handle challenges\"},{\"emoji\":\"\ud83e\uddff\",\"text\":\"Recurring patterns and deeper life lessons\"},{\"emoji\":\"\u23f3\",\"text\":\"When important changes, opportunities and relationship themes become activated\"}]}",
+    "reading_source_id": "fba0a639-d52c-4ea0-9926-00eec3beefa8",
+    "status": "completed",
+    "created_at": "2026-11-17 13:08:13.830964+00",
+    "updated_at": "2026-11-17 13:08:13.105+00"
   }
 ]
 ```
 
 ---
 
-### 7. `public.orders` (4 rows)
+### 16. `public.google_calendar_connections` (1 row)
+
+| Column | Data Type | Nullable | Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `boolean` | **No** | `true` |
+| `organizer_email` | `text` | Yes | — |
+| `calendar_id` | `text` | **No** | `'primary'::text` |
+| `busy_calendar_ids` | `ARRAY` | **No** | `ARRAY['primary'::text]` |
+| `encrypted_refresh_token` | `text` | **No** | — |
+| `status` | `text` | **No** | `'connected'::text` |
+| `last_success_at` | `timestamp with time zone` | Yes | — |
+| `last_error` | `text` | Yes | — |
+| `updated_at` | `timestamp with time zone` | **No** | `now()` |
+| `auth_user_id` | `uuid` | Yes | — |
+
+**Current Live Data:**
+
+```json
+[
+  {
+    "id": true,
+    "organizer_email": "pragatijain841@gmail.com",
+    "calendar_id": "pragatijain841@gmail.com",
+    "busy_calendar_ids": [
+      "pragatijain841@gmail.com",
+      "en-in.indian#holiday@group.v.calendar.google.com",
+      "en.indian#holiday@group.v.calendar.google.com"
+    ],
+    "encrypted_refresh_token": "",
+    "status": "connected",
+    "last_success_at": "2026-11-11 14:00:25.567+00",
+    "last_error": null,
+    "updated_at": "2026-11-17 16:33:44.112832+00",
+    "auth_user_id": "e2c17b1e-de58-4758-8d71-0af11cd4c54e"
+  }
+]
+```
+
+---
+
+### 17. `public.google_user_connections` (1 row)
+
+| Column | Data Type | Nullable | Default |
+| :--- | :--- | :--- | :--- |
+| `auth_user_id` | `uuid` | **No** | — |
+| `google_primary_calendar_id` | `text` | **No** | — |
+| `encrypted_refresh_token` | `text` | Yes | — |
+| `encrypted_access_token` | `text` | Yes | — |
+| `access_expires_at` | `timestamp with time zone` | Yes | — |
+| `granted_scopes` | `ARRAY` | **No** | `'{}'::text[]` |
+| `token_version` | `uuid` | **No** | `gen_random_uuid()` |
+| `status` | `text` | **No** | `'connected'::text` |
+| `connected_at` | `timestamp with time zone` | **No** | `now()` |
+| `updated_at` | `timestamp with time zone` | **No** | `now()` |
+| `last_error` | `text` | Yes | — |
+
+**Current Live Data:**
+
+```json
+[
+  {
+    "auth_user_id": "e2c17b1e-de58-4758-8d71-0af11cd4c54e",
+    "google_primary_calendar_id": "pragatijain841@gmail.com",
+    "encrypted_refresh_token": "g1.lsHlETzgTTv6wDStfscoKgLCGNMomDmfUq/qmTEAk46TcB1ShhfXbxZOmceTA3AI8h7fLmBt/tLpr/eTxg3/dNu3FmoEj1W9jh85XxVnf7VklSGMz4xNYMieLUkkkcHG845PoKkKKQUsynueAUWBy9o2lexfCH/TNL9EcBEhOAaPrkykzP4BYaAnBsWFza4zbirncVDpcD+3CYs=",
+    "encrypted_access_token": "g1.YLYZMJf/Vn7cmLclay8Ttk1UXzQcYc5VZIL1X3TY6Gt5qplnsWdkQtxxHGrJ4gsTy/oBSMn0+0uPS2rqzkJTJY0nXywLwNToqAzHy1HicSgSzhMCnwKub9cle98xquw8UueIzMrk+3tmabs3R7QJ4hrOzYEu7gp/W2Z2YonZZugGFIrO5rX+RmXeNCPbFxDyPPll+8BnktUiS6Xb/qUpT34OiAMKKIROC8wq7E63bEHTWsGuDCfknkcx6G8qMDo3dI0Qvv3MHMM2hMNwOKOTyymP1Np5fkr+yF5z4EtfIMJ7xp2lHsViwwVX3GYiJRV00rsolIYTOd7f6zhqqpLbIicXo4oUwQT1IDbsFGJrZwYmFykwV/NsmQA=",
+    "access_expires_at": "2026-11-17 17:33:18.08+00",
+    "granted_scopes": [
+      "https://www.googleapis.com/auth/calendar.readonly",
+      "https://www.googleapis.com/auth/calendar.events",
+      "https://www.googleapis.com/auth/calendar.freebusy"
+    ],
+    "token_version": "3b432607-624a-4d0e-ad95-b75bf68217c6",
+    "status": "connected",
+    "connected_at": "2026-11-17 16:33:19.42601+00",
+    "updated_at": "2026-11-17 16:33:19.42601+00",
+    "last_error": null
+  }
+]
+```
+
+---
+
+### 18. `public.orders` (7 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -869,7 +1808,7 @@ CONTENT & CATALOG TABLES
 | `service_title` | `text` | **No** | — |
 | `format` | `text` | **No** | `'text'::text` |
 | `price_eur` | `numeric` | **No** | `0.00` |
-| `status` | `text` | **No** | `'confirmed'::text` |
+| `status` | `text` | **No** | `'pending_payment'::text` |
 | `scheduled_at` | `timestamp with time zone` | Yes | — |
 | `stripe_receipt_url` | `text` | Yes | — |
 | ⭐ **client_name** | `text` | Yes | — |
@@ -891,6 +1830,32 @@ CONTENT & CATALOG TABLES
 | ⭐ **review_created_at** | `timestamp with time zone` | Yes | — |
 | `payment_status` | `text` | **No** | `'pending'::text` |
 | ⭐ **stripe_payment_intent_id** | `text` | Yes | — |
+| `service_id` | `uuid` | Yes | — |
+| `scheduled_end_at` | `timestamp with time zone` | Yes | — |
+| `original_scheduled_at` | `timestamp with time zone` | Yes | — |
+| `customer_timezone` | `text` | **No** | `'Europe/Berlin'::text` |
+| `customer_email_snapshot` | `text` | Yes | — |
+| `price_cents_snapshot` | `integer` | Yes | — |
+| `currency_snapshot` | `text` | Yes | — |
+| `stripe_checkout_session_id` | `text` | Yes | — |
+| `checkout_key` | `uuid` | Yes | — |
+| `checkout_created_at` | `timestamp with time zone` | Yes | — |
+| `hold_expires_at` | `timestamp with time zone` | Yes | — |
+| `payment_verified_at` | `timestamp with time zone` | Yes | — |
+| `booking_confirmed_at` | `timestamp with time zone` | Yes | — |
+| `reschedule_count` | `integer` | **No** | `0` |
+| `booking_version` | `integer` | **No** | `0` |
+| `cancelled_at` | `timestamp with time zone` | Yes | — |
+| `cancelled_by` | `uuid` | Yes | — |
+| `cancellation_reason` | `text` | Yes | — |
+| `refund_status` | `text` | **No** | `'none'::text` |
+| `stripe_refund_id` | `text` | Yes | — |
+| `refunded_amount_cents` | `integer` | **No** | `0` |
+| `policy_version` | `text` | Yes | — |
+| `policy_acknowledged_at` | `timestamp with time zone` | Yes | — |
+| `booking_flow` | `text` | **No** | `'slot_first'::text` |
+| `duration_minutes_snapshot` | `integer` | Yes | — |
+| `availability_notified_at` | `timestamp with time zone` | Yes | — |
 
 **Current Live Data:**
 
@@ -923,7 +1888,33 @@ CONTENT & CATALOG TABLES
     "review_text": null,
     "review_created_at": null,
     "payment_status": "paid",
-    "stripe_payment_intent_id": null
+    "stripe_payment_intent_id": null,
+    "service_id": null,
+    "scheduled_end_at": null,
+    "original_scheduled_at": null,
+    "customer_timezone": "Europe/Berlin",
+    "customer_email_snapshot": null,
+    "price_cents_snapshot": null,
+    "currency_snapshot": null,
+    "stripe_checkout_session_id": null,
+    "checkout_key": null,
+    "checkout_created_at": null,
+    "hold_expires_at": null,
+    "payment_verified_at": null,
+    "booking_confirmed_at": null,
+    "reschedule_count": 0,
+    "booking_version": 0,
+    "cancelled_at": null,
+    "cancelled_by": null,
+    "cancellation_reason": null,
+    "refund_status": "none",
+    "stripe_refund_id": null,
+    "refunded_amount_cents": 0,
+    "policy_version": null,
+    "policy_acknowledged_at": null,
+    "booking_flow": "slot_first",
+    "duration_minutes_snapshot": null,
+    "availability_notified_at": null
   },
   {
     "id": "3709228c-cea8-493b-929c-d9cc5a5f2ede",
@@ -952,7 +1943,33 @@ CONTENT & CATALOG TABLES
     "review_text": "The extensive birth chart reading was deeply insightful and accurate. Astrologer Kaur identified life themes and transition periods that felt so true to my journey. I left the session with profound clarity and peace.",
     "review_created_at": "2026-10-08 15:09:43.909+00",
     "payment_status": "paid",
-    "stripe_payment_intent_id": null
+    "stripe_payment_intent_id": null,
+    "service_id": null,
+    "scheduled_end_at": null,
+    "original_scheduled_at": null,
+    "customer_timezone": "Europe/Berlin",
+    "customer_email_snapshot": null,
+    "price_cents_snapshot": null,
+    "currency_snapshot": null,
+    "stripe_checkout_session_id": null,
+    "checkout_key": null,
+    "checkout_created_at": null,
+    "hold_expires_at": null,
+    "payment_verified_at": null,
+    "booking_confirmed_at": null,
+    "reschedule_count": 0,
+    "booking_version": 0,
+    "cancelled_at": null,
+    "cancelled_by": null,
+    "cancellation_reason": null,
+    "refund_status": "none",
+    "stripe_refund_id": null,
+    "refunded_amount_cents": 0,
+    "policy_version": null,
+    "policy_acknowledged_at": null,
+    "booking_flow": "slot_first",
+    "duration_minutes_snapshot": null,
+    "availability_notified_at": null
   },
   {
     "id": "e1a9ff91-a8d8-4edb-8557-d1b3570079cf",
@@ -981,7 +1998,33 @@ CONTENT & CATALOG TABLES
     "review_text": "I was amazed by the depth of detail in the written reading. Everything about relationship timing and partner characteristics resonated so strongly. Highly recommended for anyone seeking sincere Vedic guidance!",
     "review_created_at": "2026-10-05 15:09:47.196+00",
     "payment_status": "paid",
-    "stripe_payment_intent_id": null
+    "stripe_payment_intent_id": null,
+    "service_id": null,
+    "scheduled_end_at": null,
+    "original_scheduled_at": null,
+    "customer_timezone": "Europe/Berlin",
+    "customer_email_snapshot": null,
+    "price_cents_snapshot": null,
+    "currency_snapshot": null,
+    "stripe_checkout_session_id": null,
+    "checkout_key": null,
+    "checkout_created_at": null,
+    "hold_expires_at": null,
+    "payment_verified_at": null,
+    "booking_confirmed_at": null,
+    "reschedule_count": 0,
+    "booking_version": 0,
+    "cancelled_at": null,
+    "cancelled_by": null,
+    "cancellation_reason": null,
+    "refund_status": "none",
+    "stripe_refund_id": null,
+    "refunded_amount_cents": 0,
+    "policy_version": null,
+    "policy_acknowledged_at": null,
+    "booking_flow": "slot_first",
+    "duration_minutes_snapshot": null,
+    "availability_notified_at": null
   },
   {
     "id": "a03b6392-ab7b-4e38-b87f-afdfcc963d2b",
@@ -1010,14 +2053,205 @@ CONTENT & CATALOG TABLES
     "review_text": "Astrologer Kaur has a rare gift for combining analytical clarity with compassionate wisdom. The career guidance helped me navigate a critical transition with confidence.",
     "review_created_at": "2026-10-02 15:09:50.411+00",
     "payment_status": "paid",
-    "stripe_payment_intent_id": null
+    "stripe_payment_intent_id": null,
+    "service_id": null,
+    "scheduled_end_at": null,
+    "original_scheduled_at": null,
+    "customer_timezone": "Europe/Berlin",
+    "customer_email_snapshot": null,
+    "price_cents_snapshot": null,
+    "currency_snapshot": null,
+    "stripe_checkout_session_id": null,
+    "checkout_key": null,
+    "checkout_created_at": null,
+    "hold_expires_at": null,
+    "payment_verified_at": null,
+    "booking_confirmed_at": null,
+    "reschedule_count": 0,
+    "booking_version": 0,
+    "cancelled_at": null,
+    "cancelled_by": null,
+    "cancellation_reason": null,
+    "refund_status": "none",
+    "stripe_refund_id": null,
+    "refunded_amount_cents": 0,
+    "policy_version": null,
+    "policy_acknowledged_at": null,
+    "booking_flow": "slot_first",
+    "duration_minutes_snapshot": null,
+    "availability_notified_at": null
+  },
+  {
+    "id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "auth_user_id": "02fe175d-562d-40ab-b6dd-084999bdc1e0",
+    "service_title": "Relationship Karma",
+    "format": "voice_call",
+    "price_eur": "40.00",
+    "status": "confirmed",
+    "scheduled_at": "2026-11-11 17:00:00+00",
+    "stripe_receipt_url": "https://pay.stripe.com/receipts/payment/CAcaFwoVYWNjdF8xVWFLajE5VU0xWVhsMklFKJXU0NcGMgZ0A3bdVAw6LBYUach4m2SQXC6djfD7LthdBCtWL0d1d4zs8jQ5ImzqfdnDC5OAp-B2p_Lp",
+    "client_name": "Harsh",
+    "client_dob": "2005-09-24",
+    "client_tob": "02:22:00",
+    "client_pob": "Unnao",
+    "client_time_uncertain": false,
+    "requires_partner": false,
+    "partner_name": null,
+    "partner_dob": null,
+    "partner_tob": null,
+    "partner_pob": null,
+    "partner_time_uncertain": false,
+    "notes": null,
+    "created_at": "2026-11-11 08:40:16.131069+00",
+    "updated_at": "2026-11-11 08:49:04.66848+00",
+    "review_rating": null,
+    "review_text": null,
+    "review_created_at": null,
+    "payment_status": "paid",
+    "stripe_payment_intent_id": "pi_3UaX569UM1YXl2IE0NHrQ2nQ",
+    "service_id": "5efed3e1-c7fb-4cf5-bc85-201c05606d66",
+    "scheduled_end_at": "2026-11-11 17:30:00+00",
+    "original_scheduled_at": "2026-11-11 17:00:00+00",
+    "customer_timezone": "Asia/Calcutta",
+    "customer_email_snapshot": "ctrlxharsh@gmail.com",
+    "price_cents_snapshot": 4000,
+    "currency_snapshot": "eur",
+    "stripe_checkout_session_id": "cs_test_a01x1OTedQStBiuqxr5IWXJxibXZ5bsyv7Bjbkmaqo9zJQSQvPiDrOjxc4",
+    "checkout_key": "ba13b915-5769-4816-bc39-7b1c583bc8c1",
+    "checkout_created_at": "2026-11-11 08:40:22.214066+00",
+    "hold_expires_at": "2026-11-12 08:40:16.131069+00",
+    "payment_verified_at": "2026-11-11 08:40:53.911436+00",
+    "booking_confirmed_at": "2026-11-11 08:49:04.66848+00",
+    "reschedule_count": 0,
+    "booking_version": 1,
+    "cancelled_at": null,
+    "cancelled_by": null,
+    "cancellation_reason": null,
+    "refund_status": "none",
+    "stripe_refund_id": null,
+    "refunded_amount_cents": 0,
+    "policy_version": "2026-10-19-test-v1",
+    "policy_acknowledged_at": "2026-11-11 08:40:16.131069+00",
+    "booking_flow": "payment_first",
+    "duration_minutes_snapshot": 30,
+    "availability_notified_at": null
+  },
+  {
+    "id": "9c2ba143-5550-4025-827c-cd2ce96f2bf1",
+    "auth_user_id": "02fe175d-562d-40ab-b6dd-084999bdc1e0",
+    "service_title": "Career & Money Reading",
+    "format": "text",
+    "price_eur": "20.00",
+    "status": "pending_payment",
+    "scheduled_at": null,
+    "stripe_receipt_url": null,
+    "client_name": "Harsh Awathi",
+    "client_dob": "2004-04-04",
+    "client_tob": null,
+    "client_pob": "unnao",
+    "client_time_uncertain": true,
+    "requires_partner": false,
+    "partner_name": null,
+    "partner_dob": null,
+    "partner_tob": null,
+    "partner_pob": null,
+    "partner_time_uncertain": false,
+    "notes": null,
+    "created_at": "2026-11-11 10:23:33.525127+00",
+    "updated_at": "2026-11-11 10:23:33.525127+00",
+    "review_rating": null,
+    "review_text": null,
+    "review_created_at": null,
+    "payment_status": "pending",
+    "stripe_payment_intent_id": null,
+    "service_id": "928ea98f-8b60-49b0-8452-909ace47804c",
+    "scheduled_end_at": null,
+    "original_scheduled_at": null,
+    "customer_timezone": "Asia/Calcutta",
+    "customer_email_snapshot": "ctrlxharsh@gmail.com",
+    "price_cents_snapshot": 2000,
+    "currency_snapshot": "eur",
+    "stripe_checkout_session_id": null,
+    "checkout_key": "03b1a384-d3ad-41b3-bda7-4868cb4db0fb",
+    "checkout_created_at": null,
+    "hold_expires_at": "2026-11-12 10:23:33.525127+00",
+    "payment_verified_at": null,
+    "booking_confirmed_at": null,
+    "reschedule_count": 0,
+    "booking_version": 0,
+    "cancelled_at": null,
+    "cancelled_by": null,
+    "cancellation_reason": null,
+    "refund_status": "none",
+    "stripe_refund_id": null,
+    "refunded_amount_cents": 0,
+    "policy_version": "2026-10-19-test-v1",
+    "policy_acknowledged_at": "2026-11-11 10:23:33.525127+00",
+    "booking_flow": "payment_first",
+    "duration_minutes_snapshot": null,
+    "availability_notified_at": null
+  },
+  {
+    "id": "26d18fe5-2d75-4857-943a-678619e79cf6",
+    "auth_user_id": "02fe175d-562d-40ab-b6dd-084999bdc1e0",
+    "service_title": "Career & Money Reading",
+    "format": "text",
+    "price_eur": "20.00",
+    "status": "confirmed",
+    "scheduled_at": null,
+    "stripe_receipt_url": "https://pay.stripe.com/receipts/payment/CAcaFwoVYWNjdF8xVWFLajE5VU0xWVhsMklFKOOQztcGMgZz2k6u_kc6LBbI-NiYBOh9wlD5ajiPpyO1q4rDD90V86vjHJiW_eIUmb4ToGem9cqKWIXO",
+    "client_name": "harsh",
+    "client_dob": "2005-09-24",
+    "client_tob": null,
+    "client_pob": "Unnao",
+    "client_time_uncertain": true,
+    "requires_partner": false,
+    "partner_name": null,
+    "partner_dob": null,
+    "partner_tob": null,
+    "partner_pob": null,
+    "partner_time_uncertain": false,
+    "notes": null,
+    "created_at": "2026-11-10 21:09:19.830236+00",
+    "updated_at": "2026-11-17 17:22:41.38531+00",
+    "review_rating": null,
+    "review_text": null,
+    "review_created_at": null,
+    "payment_status": "refunded",
+    "stripe_payment_intent_id": "pi_3UaMJO9UM1YXl2IE1VA42UE3",
+    "service_id": "928ea98f-8b60-49b0-8452-909ace47804c",
+    "scheduled_end_at": null,
+    "original_scheduled_at": null,
+    "customer_timezone": "Asia/Calcutta",
+    "customer_email_snapshot": "ctrlxharsh@gmail.com",
+    "price_cents_snapshot": 2000,
+    "currency_snapshot": "eur",
+    "stripe_checkout_session_id": "cs_test_a05pJWR0j2gW0B9ZIRqTEi1IIM3t3A8FsO8ONhfrKWXWSY55hk9ZOI38lu",
+    "checkout_key": "abcbd49f-f26a-4d94-80fb-82bdfe196ae1",
+    "checkout_created_at": "2026-11-10 21:09:27.658881+00",
+    "hold_expires_at": "2026-11-11 21:09:19.830236+00",
+    "payment_verified_at": "2026-11-10 21:10:59.531123+00",
+    "booking_confirmed_at": "2026-11-10 21:10:59.531123+00",
+    "reschedule_count": 0,
+    "booking_version": 0,
+    "cancelled_at": null,
+    "cancelled_by": null,
+    "cancellation_reason": null,
+    "refund_status": "refunded",
+    "stripe_refund_id": "re_3UaMJO9UM1YXl2IE1voFgLSW",
+    "refunded_amount_cents": 2000,
+    "policy_version": "2026-10-19-test-v1",
+    "policy_acknowledged_at": "2026-11-10 21:09:19.830236+00",
+    "booking_flow": "payment_first",
+    "duration_minutes_snapshot": null,
+    "availability_notified_at": null
   }
 ]
 ```
 
 ---
 
-### 8. `public.profiles` (1 row)
+### 19. `public.profiles` (1 row)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -1051,14 +2285,14 @@ CONTENT & CATALOG TABLES
 
 ---
 
-### 9. `public.reading_details` (4 rows)
+### 20. `public.reading_details` (7 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
 | `id` | `uuid` | **No** | `gen_random_uuid()` |
 | `customer_id` | `uuid` | Yes | — |
 | `service_id` | `uuid` | Yes | — |
-| `google_calendar_event_id` | `text` | **No** | — |
+| `google_calendar_event_id` | `text` | Yes | — |
 | `status` | `text` | **No** | `'pending'::text` |
 | `admin_notes` | `text` | Yes | — |
 | ⭐ **partner_name** | `text` | Yes | — |
@@ -1074,32 +2308,16 @@ CONTENT & CATALOG TABLES
 | `client_time_of_birth` | `time without time zone` | Yes | — |
 | `client_time_uncertain` | `boolean` | Yes | `false` |
 | `client_place_of_birth` | `text` | Yes | — |
+| `meet_url` | `text` | Yes | — |
+| `calendar_sync_status` | `text` | **No** | `'not_required'::text` |
+| `calendar_invitation_status` | `text` | **No** | `'not_required'::text` |
+| `calendar_synced_version` | `integer` | **No** | `'-1'::integer` |
+| `delivered_at` | `timestamp with time zone` | Yes | — |
 
 **Current Live Data:**
 
 ```json
 [
-  {
-    "id": "1d4464b9-2182-4c72-b79b-15b2f0708b71",
-    "customer_id": "0bd2fa94-a01d-4f58-8802-c2a55edc7e93",
-    "service_id": "928ea98f-8b60-49b0-8452-909ace47804c",
-    "google_calendar_event_id": "",
-    "status": "pending",
-    "admin_notes": "hii iam pragati\n",
-    "partner_name": null,
-    "partner_date_of_birth": null,
-    "partner_time_of_birth": null,
-    "partner_time_uncertain": false,
-    "partner_place_of_birth": null,
-    "created_at": "2026-10-05 18:20:28.473726+00",
-    "updated_at": "2026-10-06 14:55:04.039988+00",
-    "order_id": "51c98188-c2cd-424a-95bb-22960193fdb1",
-    "client_name": "Pragati Jain",
-    "client_date_of_birth": "1995-05-15",
-    "client_time_of_birth": "14:30:00",
-    "client_time_uncertain": false,
-    "client_place_of_birth": "New Delhi, India"
-  },
   {
     "id": "fe53f9a8-047e-4c38-b519-f3f610fcd8e6",
     "customer_id": "885847c9-0413-4b37-b6b1-cb205a808487",
@@ -1119,7 +2337,12 @@ CONTENT & CATALOG TABLES
     "client_date_of_birth": "1998-05-14",
     "client_time_of_birth": "14:30:00",
     "client_time_uncertain": false,
-    "client_place_of_birth": "Delhi, India"
+    "client_place_of_birth": "Delhi, India",
+    "meet_url": null,
+    "calendar_sync_status": "not_required",
+    "calendar_invitation_status": "not_required",
+    "calendar_synced_version": -1,
+    "delivered_at": null
   },
   {
     "id": "4681dcb5-f699-4149-b51d-4b7d51e3b775",
@@ -1140,7 +2363,12 @@ CONTENT & CATALOG TABLES
     "client_date_of_birth": "1993-11-20",
     "client_time_of_birth": "08:45:00",
     "client_time_uncertain": false,
-    "client_place_of_birth": "London, UK"
+    "client_place_of_birth": "London, UK",
+    "meet_url": null,
+    "calendar_sync_status": "not_required",
+    "calendar_invitation_status": "not_required",
+    "calendar_synced_version": -1,
+    "delivered_at": null
   },
   {
     "id": "195abcc3-f7c4-4f5f-bdf3-4530ee159c0e",
@@ -1161,14 +2389,145 @@ CONTENT & CATALOG TABLES
     "client_date_of_birth": "1988-03-08",
     "client_time_of_birth": "18:15:00",
     "client_time_uncertain": false,
-    "client_place_of_birth": "Berlin, Germany"
+    "client_place_of_birth": "Berlin, Germany",
+    "meet_url": null,
+    "calendar_sync_status": "not_required",
+    "calendar_invitation_status": "not_required",
+    "calendar_synced_version": -1,
+    "delivered_at": null
+  },
+  {
+    "id": "1d4464b9-2182-4c72-b79b-15b2f0708b71",
+    "customer_id": "0bd2fa94-a01d-4f58-8802-c2a55edc7e93",
+    "service_id": "928ea98f-8b60-49b0-8452-909ace47804c",
+    "google_calendar_event_id": "",
+    "status": "pending",
+    "admin_notes": null,
+    "partner_name": null,
+    "partner_date_of_birth": null,
+    "partner_time_of_birth": null,
+    "partner_time_uncertain": false,
+    "partner_place_of_birth": null,
+    "created_at": "2026-10-05 18:20:28.473726+00",
+    "updated_at": "2026-10-19 11:26:52.95852+00",
+    "order_id": "51c98188-c2cd-424a-95bb-22960193fdb1",
+    "client_name": "Pragati Jain",
+    "client_date_of_birth": "1995-05-15",
+    "client_time_of_birth": "14:30:00",
+    "client_time_uncertain": false,
+    "client_place_of_birth": "New Delhi, India",
+    "meet_url": null,
+    "calendar_sync_status": "not_required",
+    "calendar_invitation_status": "not_required",
+    "calendar_synced_version": -1,
+    "delivered_at": null
+  },
+  {
+    "id": "c3632b35-890d-449f-89d8-78dd14f7424c",
+    "customer_id": "6f31accf-6b8a-4f64-a3e5-c1ae48a7b39d",
+    "service_id": "928ea98f-8b60-49b0-8452-909ace47804c",
+    "google_calendar_event_id": null,
+    "status": "pending",
+    "admin_notes": null,
+    "partner_name": null,
+    "partner_date_of_birth": null,
+    "partner_time_of_birth": null,
+    "partner_time_uncertain": false,
+    "partner_place_of_birth": null,
+    "created_at": "2026-11-10 21:09:19.830236+00",
+    "updated_at": "2026-11-10 21:10:59.531123+00",
+    "order_id": "26d18fe5-2d75-4857-943a-678619e79cf6",
+    "client_name": "harsh",
+    "client_date_of_birth": "2005-09-24",
+    "client_time_of_birth": null,
+    "client_time_uncertain": true,
+    "client_place_of_birth": "Unnao",
+    "meet_url": null,
+    "calendar_sync_status": "not_required",
+    "calendar_invitation_status": "not_required",
+    "calendar_synced_version": -1,
+    "delivered_at": null
+  },
+  {
+    "id": "c97bd28d-8d2a-4549-bbab-c902314a12e8",
+    "customer_id": "6f31accf-6b8a-4f64-a3e5-c1ae48a7b39d",
+    "service_id": "928ea98f-8b60-49b0-8452-909ace47804c",
+    "google_calendar_event_id": null,
+    "status": "pending",
+    "admin_notes": null,
+    "partner_name": null,
+    "partner_date_of_birth": null,
+    "partner_time_of_birth": null,
+    "partner_time_uncertain": false,
+    "partner_place_of_birth": null,
+    "created_at": "2026-11-11 10:23:33.525127+00",
+    "updated_at": "2026-11-11 10:23:33.525127+00",
+    "order_id": "9c2ba143-5550-4025-827c-cd2ce96f2bf1",
+    "client_name": "Harsh Awathi",
+    "client_date_of_birth": "2004-04-04",
+    "client_time_of_birth": null,
+    "client_time_uncertain": true,
+    "client_place_of_birth": "unnao",
+    "meet_url": null,
+    "calendar_sync_status": "not_required",
+    "calendar_invitation_status": "not_required",
+    "calendar_synced_version": -1,
+    "delivered_at": null
+  },
+  {
+    "id": "fc1eb2c6-a358-4ff9-b728-e9b541d0c536",
+    "customer_id": "6f31accf-6b8a-4f64-a3e5-c1ae48a7b39d",
+    "service_id": "5efed3e1-c7fb-4cf5-bc85-201c05606d66",
+    "google_calendar_event_id": "takb2547e651e5147eaa349b0e283c749d8",
+    "status": "pending",
+    "admin_notes": null,
+    "partner_name": null,
+    "partner_date_of_birth": null,
+    "partner_time_of_birth": null,
+    "partner_time_uncertain": false,
+    "partner_place_of_birth": null,
+    "created_at": "2026-11-11 08:40:16.131069+00",
+    "updated_at": "2026-11-11 18:09:24.110812+00",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "client_name": "Harsh",
+    "client_date_of_birth": "2005-09-24",
+    "client_time_of_birth": "02:22:00",
+    "client_time_uncertain": false,
+    "client_place_of_birth": "Unnao",
+    "meet_url": "https://meet.google.com/cre-mrtz-rfa",
+    "calendar_sync_status": "error",
+    "calendar_invitation_status": "sent",
+    "calendar_synced_version": 1,
+    "delivered_at": null
   }
 ]
 ```
 
 ---
 
-### 10. `public.services` (6 rows)
+### 21. `public.reading_private_notes` (1 row)
+
+| Column | Data Type | Nullable | Default |
+| :--- | :--- | :--- | :--- |
+| ⭐ **order_id** | `uuid` | **No** | — |
+| `admin_notes` | `text` | Yes | — |
+| `updated_at` | `timestamp with time zone` | **No** | `now()` |
+
+**Current Live Data:**
+
+```json
+[
+  {
+    "order_id": "51c98188-c2cd-424a-95bb-22960193fdb1",
+    "admin_notes": "hii iam pragati\n",
+    "updated_at": "2026-10-19 11:26:52.95852+00"
+  }
+]
+```
+
+---
+
+### 22. `public.services` (6 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -1299,7 +2658,37 @@ CONTENT & CATALOG TABLES
 
 ---
 
-### 11. `public.testimonials` (3 rows)
+### 23. `public.stripe_webhook_events` (2 rows)
+
+| Column | Data Type | Nullable | Default |
+| :--- | :--- | :--- | :--- |
+| `id` | `text` | **No** | — |
+| ⭐ **order_id** | `uuid` | Yes | — |
+| `outcome` | `text` | **No** | — |
+| `processed_at` | `timestamp with time zone` | **No** | `now()` |
+
+**Current Live Data:**
+
+```json
+[
+  {
+    "id": "evt_1UaMJh9UM1YXl2IEui8I6XT7",
+    "order_id": "26d18fe5-2d75-4857-943a-678619e79cf6",
+    "outcome": "paid",
+    "processed_at": "2026-11-10 21:10:59.531123+00"
+  },
+  {
+    "id": "evt_1UaX5M9UM1YXl2IEh6peVGdC",
+    "order_id": "b2547e65-1e51-47ea-a349-b0e283c749d8",
+    "outcome": "paid_awaiting_schedule",
+    "processed_at": "2026-11-11 08:40:53.911436+00"
+  }
+]
+```
+
+---
+
+### 24. `public.testimonials` (3 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -1363,7 +2752,7 @@ CONTENT & CATALOG TABLES
 
 ---
 
-### 12. `public.website_notifications` (0 rows)
+### 25. `public.website_notifications` (0 rows)
 
 | Column | Data Type | Nullable | Default |
 | :--- | :--- | :--- | :--- |
@@ -1384,7 +2773,7 @@ CONTENT & CATALOG TABLES
 
 ---
 
-### 13. Storage Buckets & Policies
+### 26. Storage Buckets & Policies
 
 #### Storage Buckets (`storage.buckets`)
 
@@ -1404,7 +2793,7 @@ CONTENT & CATALOG TABLES
 
 ---
 
-## 14. Database Functions, Triggers & Security Policies
+## 27. Database Functions, Triggers & Security Policies
 
 ### 1. Helper Function: `public.is_admin()`
 
@@ -1443,7 +2832,7 @@ Automatically populates `reading_details` with full client and partner snapshots
 | :--- | :--- | :--- | :--- | :--- |
 | `public.ascendant_readings` | `Admins full access on ascendant_readings` | `ALL` | `{authenticated}` | `is_admin()` |
 | `public.ascendant_readings` | `Allow public read on ascendant_readings` | `SELECT` | `{anon,authenticated}` | `true` |
-| `public.contact_messages` | `Admin full access on contact_messages` | `ALL` | `{public}` | `(auth.email() = 'theastrokaur@gmail.com'::text)` |
+| `public.contact_messages` | `Admin full access on contact_messages` | `ALL` | `{authenticated}` | `is_admin()` |
 | `public.contact_messages` | `Public can submit contact messages` | `INSERT` | `{public}` | `true` |
 | `public.customer_profiles` | `Admins full access on customer_profiles` | `ALL` | `{authenticated}` | `is_admin()` |
 | `public.customer_profiles` | `Customer inserts own profile` | `INSERT` | `{authenticated}` | `(auth.uid() = auth_user_id)` |
@@ -1460,16 +2849,16 @@ Automatically populates `reading_details` with full client and partner snapshots
 | `public.orders` | `Users can insert their own orders` | `INSERT` | `{authenticated}` | `(auth.uid() = auth_user_id)` |
 | `public.orders` | `Users can view their own orders` | `SELECT` | `{authenticated}` | `(auth.uid() = auth_user_id)` |
 | `public.orders` | `Users can update their own orders` | `UPDATE` | `{authenticated}` | `(auth.uid() = auth_user_id)` |
-| `public.profiles` | `Admin full access on profiles` | `ALL` | `{public}` | `(auth.email() = 'theastrokaur@gmail.com'::text)` |
+| `public.profiles` | `Admin full access on profiles` | `ALL` | `{authenticated}` | `is_admin()` |
 | `public.profiles` | `Public can read published profiles` | `SELECT` | `{public}` | `(is_published = true)` |
-| `public.reading_details` | `Admin full access on reading_details` | `ALL` | `{public}` | `(auth.email() = 'theastrokaur@gmail.com'::text)` |
+| `public.reading_details` | `Admin full access on reading_details` | `ALL` | `{authenticated}` | `is_admin()` |
 | `public.reading_details` | `Admins can do everything on reading details` | `ALL` | `{authenticated}` | `is_admin()` |
 | `public.reading_details` | `Customer reads own reading_details` | `SELECT` | `{public}` | `(customer_id = ( SELECT customer_profiles.id  FROM customer_profiles  WHERE (customer_profiles.auth_user_id = auth.uid())))` |
 | `public.reading_details` | `Customers can view own reading details` | `SELECT` | `{authenticated}` | `((EXISTS ( SELECT 1  FROM orders o  WHERE ((o.id = reading_details.order_id) AND (o.auth_user_id = auth.uid())))) OR (EXISTS ( SELECT 1  FROM customer_profiles cp  WHERE ((cp.id = reading_details.customer_id) AND (cp.auth_user_id = auth.uid())))) OR is_admin())` |
-| `public.services` | `Admin full access on services` | `ALL` | `{public}` | `(auth.email() = 'theastrokaur@gmail.com'::text)` |
+| `public.services` | `Admin full access on services` | `ALL` | `{authenticated}` | `is_admin()` |
 | `public.services` | `Public can read active services` | `SELECT` | `{public}` | `(is_active = true)` |
 | `public.testimonials` | `Admin full access on testimonials` | `ALL` | `{authenticated}` | `is_admin()` |
 | `public.testimonials` | `Authenticated users can insert testimonials` | `INSERT` | `{authenticated}` | `(auth.uid() = customer_id)` |
 | `public.testimonials` | `Public can read published testimonials` | `SELECT` | `{public}` | `(is_published = true)` |
-| `public.website_notifications` | `Admin full access on website_notifications` | `ALL` | `{public}` | `(auth.email() = 'theastrokaur@gmail.com'::text)` |
+| `public.website_notifications` | `Admin full access on website_notifications` | `ALL` | `{authenticated}` | `is_admin()` |
 

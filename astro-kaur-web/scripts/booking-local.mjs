@@ -1,6 +1,7 @@
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { parseEnv } from "node:util";
 
 const envFile = new URL("../.env.local", import.meta.url);
@@ -39,12 +40,20 @@ function saveSetting(name, value) {
 
 if (!env.BOOKING_WORKER_SECRET) saveSetting("BOOKING_WORKER_SECRET", workerSecret);
 
-const stripe = spawn("npx", [
+const webhookOnly = process.argv.includes("--webhook-only");
+const npxPath = [
+  process.env.npm_execpath && join(dirname(process.env.npm_execpath), "npx-cli.js"),
+  join(dirname(process.execPath), "node_modules/npm/bin/npx-cli.js"),
+].find(path => path && existsSync(path));
+if (!npxPath) {
+  console.error("Cannot find the npm launcher. Start this helper with npm run booking:local.");
+  process.exit(1);
+}
+const stripe = spawn(process.execPath, [npxPath,
   "--yes", "@stripe/cli", "listen",
-  "--api-key", env.STRIPE_SECRET_KEY,
-  "--events", "checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired,charge.refunded",
+  "--events", "checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired,charge.refunded,refund.created,refund.updated,refund.failed",
   "--forward-to", new URL("/api/stripe/webhook", site).href,
-], { stdio: ["ignore", "pipe", "pipe"] });
+], { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, STRIPE_API_KEY: env.STRIPE_SECRET_KEY }, windowsHide: true });
 
 let stripeOutput = "";
 let ready = false;
@@ -75,9 +84,11 @@ function onStripeOutput(chunk) {
   if (!secret) return;
   ready = true;
   saveSetting("STRIPE_WEBHOOK_SECRET", secret);
-  console.log("Stripe test webhook connected. Starting the local booking worker.");
-  void runWorker();
-  timer = setInterval(() => void runWorker(), 30000);
+  console.log(webhookOnly ? "Stripe test webhook connected. Worker is disabled for this session." : "Stripe test webhook connected. Starting the local booking worker.");
+  if (!webhookOnly) {
+    void runWorker();
+    timer = setInterval(() => void runWorker(), 30000);
+  }
 }
 stripe.stdout.on("data", onStripeOutput);
 stripe.stderr.on("data", onStripeOutput);
@@ -87,10 +98,29 @@ stripe.on("error", () => {
 });
 stripe.on("exit", (code) => {
   if (timer) clearInterval(timer);
-  if (code) console.error(`Stripe test listener stopped with exit code ${code}.`);
-  process.exitCode = code || 0;
+  if (code || !ready) {
+    console.error(`Stripe test listener stopped before booking services were ready (exit ${code}).`);
+    const safeOutput = stripeOutput.replace(/(?:sk|rk|pk)_(?:test|live)_[A-Za-z0-9]+|whsec_[A-Za-z0-9]+/g, "[redacted]");
+    if (safeOutput.trim()) console.error(safeOutput.trim().split(/\r?\n/).slice(-6).join("\n"));
+  }
+  process.exitCode = code || (ready ? 0 : 1);
 });
 
+function stop() {
+  if (timer) clearInterval(timer);
+  if (stripe.pid) {
+    if (process.platform === "win32") {
+      try { execFileSync("taskkill.exe", ["/PID", String(stripe.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true }); } catch { /* Already stopped. */ }
+    } else stripe.kill("SIGTERM");
+  }
+  process.exit(0);
+}
 for (const signal of ["SIGINT", "SIGTERM"]) {
-  process.on(signal, () => stripe.kill(signal));
+  process.on(signal, stop);
+}
+const parentPid = Number(process.env.BOOKING_DEV_PARENT_PID);
+if (Number.isSafeInteger(parentPid) && parentPid > 0) {
+  setInterval(() => {
+    try { process.kill(parentPid, 0); } catch { stop(); }
+  }, 2000).unref();
 }

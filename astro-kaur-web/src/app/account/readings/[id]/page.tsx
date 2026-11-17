@@ -400,7 +400,7 @@ export default function ReadingDetailPage() {
                         "{order.review_text}"
                       </p>
                     )}
-                    <p className="text-xs text-[#0F172A]/40 dark:text-[#FAF8F5]/40">
+                    <p className="text-xs text-[#0F172A]/40 dark:text-[#FAF8F5]/65">
                       Submitted · {formatDate(order.review_created_at)}
                     </p>
                   </>

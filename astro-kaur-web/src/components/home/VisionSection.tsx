@@ -1,206 +1,87 @@
-"use client";
+﻿"use client";
 
-import { useRef } from "react";
-import { motion, useInView, useScroll, useTransform } from "motion/react";
-import { COMPACT_MOTION_QUERY, useMediaQuery } from "@/components/ui/use-media-query";
+import { motion, type Variants } from "motion/react";
+import { useMediaQuery } from "@/components/ui/use-media-query";
 import { DEFAULT_VISION, type VisionContent } from "@/lib/homeContent";
 
+function GoldFrame({ side, reduceMotion }: { side: "left" | "right"; reduceMotion: boolean }) {
+  return (
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, scaleY: reduceMotion ? 1 : 0.25 },
+        visible: { opacity: 1, scaleY: 1, transition: { duration: reduceMotion ? 0.9 : 1.25, delay: 0.4, ease: [0.22, 1, 0.36, 1] } },
+      }}
+      className={`pointer-events-none absolute top-3 bottom-3 hidden w-4 origin-center flex-col items-center text-[#C89B3C] sm:flex dark:text-[#E5B842] ${side === "left" ? "left-0 sm:left-2 md:left-4 lg:left-6" : "right-0 sm:right-2 md:right-4 lg:right-6"}`}
+      aria-hidden="true"
+    >
+      <span className="size-1.5 shrink-0 rounded-full bg-current opacity-80" />
+      <span className="w-px flex-1 bg-linear-to-b from-transparent to-current opacity-60" />
+      <div className="my-2.5 flex shrink-0 flex-col items-center gap-1.5">
+        <span className="size-1 rounded-full bg-current opacity-75" />
+        <svg className="size-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.4 9.6L24 12L14.4 14.4L12 24L9.6 14.4L0 12L9.6 9.6L12 0Z" />
+        </svg>
+        <span className="size-1 rounded-full bg-current opacity-75" />
+      </div>
+      <span className="w-px flex-1 bg-linear-to-b from-current to-transparent opacity-60" />
+      <span className="size-1.5 shrink-0 rounded-full bg-current opacity-80" />
+    </motion.div>
+  );
+}
+
 export default function VisionSection({ initialContent }: { initialContent?: Partial<VisionContent> }) {
-  const containerRef = useRef<HTMLElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const compactMotion = useMediaQuery(COMPACT_MOTION_QUERY);
-  const contentInView = useInView(contentRef, { amount: 0.2 });
-  // Key animated nodes by layout below: switching from scroll-bound style values
-  // to entrance animations needs fresh Motion nodes when the viewport rotates.
-  const reveal = compactMotion
-    ? { opacity: contentInView ? 1 : 0, y: contentInView ? 0 : 16 }
-    : undefined;
-  // Content is fully resolved server-side and passed as a prop — no client fetch, no flash
-  const content: VisionContent = {
-    ...DEFAULT_VISION,
-    ...initialContent,
+  const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const content: VisionContent = { ...DEFAULT_VISION, ...initialContent };
+  const ease = [0.22, 1, 0.36, 1] as const;
+  const reveal: Variants = {
+    hidden: { opacity: 0, y: reduceMotion ? 0 : 16 },
+    visible: (delay: number = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.95, delay, ease } }),
   };
-
-  // Track scroll progress while the Vision section is pinned in the viewport
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"],
-  });
-
-  // ── Stage Progression Linked to Scroll ──
-  // Stage 1 (0.00 - 0.25): Initial View - Eyebrow label & partial zoomed-in headline ("There Is More Than One Way")
-  // Stage 2 (0.25 - 0.50): Mid-scroll - Headline smoothly zooms down into view, side lines extend vertically
-  // Stage 3 (0.50 - 0.75): Focused View - Full headline at peak focal scale, lines frame it, Paragraph 1 enters
-  // Stage 4 (0.75 - 1.00): Final View - Full composition settled and readable with Paragraph 1 & 2 before next section
-
-  // Heading scroll-linked zoom effect: restrained scale (1.35 down to 1.0) so it stays comfortably framed
-  const headingScale = useTransform(scrollYProgress, [0, 0.35, 0.65, 1], [1.35, 1.15, 1.0, 1.0]);
-  const headingY = useTransform(scrollYProgress, [0, 0.35, 0.65, 1], [12, 6, 0, 0]);
-
-  // Eyebrow label
-  const eyebrowOpacity = useTransform(scrollYProgress, [0, 0.2, 1], [0.85, 1, 1]);
-  const eyebrowScale = useTransform(scrollYProgress, [0, 0.35, 1], [1.08, 1, 1]);
-
-  // Decorative side lines: extend vertically from compact to full height & settle outward
-  const lineScaleY = useTransform(scrollYProgress, [0, 0.3, 0.65, 1], [0.4, 0.75, 1.0, 1.0]);
-  const lineOpacity = useTransform(scrollYProgress, [0, 0.2, 0.5, 1], [0.4, 0.75, 1.0, 1.0]);
-  const leftLineX = useTransform(scrollYProgress, [0, 0.35, 0.65], [16, 6, 0]);
-  const rightLineX = useTransform(scrollYProgress, [0, 0.35, 0.65], [-16, -6, 0]);
-
-  // Paragraphs (crisp, readable, stable, NO blur)
-  const p1Opacity = useTransform(scrollYProgress, [0, 0.45, 0.7, 1], [0, 0.2, 1, 1]);
-  const p1Y = useTransform(scrollYProgress, [0, 0.45, 0.7, 1], [24, 20, 0, 0]);
-
-  const p2Opacity = useTransform(scrollYProgress, [0, 0.58, 0.82, 1], [0, 0.1, 1, 1]);
-  const p2Y = useTransform(scrollYProgress, [0, 0.58, 0.82, 1], [28, 24, 0, 0]);
+  const headingReveal: Variants = {
+    hidden: { opacity: 0, y: reduceMotion ? 0 : "105%" },
+    visible: (delay: number = 0) => ({ opacity: 1, y: 0, transition: { duration: 1.15, delay, ease } }),
+  };
 
   return (
     <section
       id="vision"
-      ref={containerRef}
-      className="vision-section relative scroll-mt-20 sm:scroll-mt-24 py-12 sm:py-0 sm:h-[280vh] bg-transparent"
+      aria-labelledby="vision-heading"
+      className="vision-section relative scroll-mt-24 bg-transparent px-5 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-32"
     >
-      {/* Sticky viewport frame: keeps the content centered in view during scroll progress without trapping window */}
-      <div className="sm:sticky top-0 sm:h-screen w-full flex items-center justify-center overflow-hidden px-5 sm:px-6 lg:px-8">
-        <div className="relative w-full max-w-5xl lg:max-w-[1180px] mx-auto sm:px-14 md:px-20 lg:px-28 text-center">
-          
-          {/* ── Left Animated Decorative Gold Line ── */}
-          <motion.div
-            style={{
-              scaleY: lineScaleY,
-              opacity: lineOpacity,
-              x: leftLineX,
-            }}
-            className="absolute left-0 sm:left-2 md:left-4 lg:left-6 top-6 bottom-6 w-4 hidden sm:flex flex-col items-center pointer-events-none origin-center"
-            aria-hidden="true"
-          >
-            {/* Top Dot */}
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-80 shrink-0" />
-            
-            {/* Upper Line Segment */}
-            <span className="w-px flex-1 bg-gradient-to-b from-transparent via-[#C89B3C]/60 dark:via-[#E5B842]/60 to-[#C89B3C] dark:to-[#E5B842]" />
-            
-            {/* Celestial Star & Dot Accents */}
-            <div className="my-2.5 flex flex-col items-center gap-1.5 shrink-0 text-[#C89B3C] dark:text-[#E5B842]">
-              <span className="w-1 h-1 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-75" />
-              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0L14.4 9.6L24 12L14.4 14.4L12 24L9.6 14.4L0 12L9.6 9.6L12 0Z" />
-              </svg>
-              <span className="w-1 h-1 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-75" />
-            </div>
-            
-            {/* Lower Line Segment */}
-            <span className="w-px flex-1 bg-gradient-to-b from-[#C89B3C] dark:from-[#E5B842] via-[#C89B3C]/60 dark:via-[#E5B842]/60 to-transparent" />
-            
-            {/* Bottom Dot */}
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-80 shrink-0" />
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: false, amount: 0.4, margin: "0px 0px -60px 0px" }}
+        className="relative mx-auto w-full max-w-5xl text-center sm:px-14 md:px-20 lg:max-w-[1180px] lg:px-28"
+      >
+        <GoldFrame side="left" reduceMotion={reduceMotion} />
+        <GoldFrame side="right" reduceMotion={reduceMotion} />
+        <div className="relative z-10 flex flex-col items-center">
+          <motion.div variants={reveal} custom={0} className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-[#E5B842]/25 bg-[#E5B842]/10 px-3.5 py-1 text-[11px] font-semibold tracking-widest text-[#6B3448] uppercase sm:mb-6 sm:text-xs dark:text-[#E5B842]">
+            {content.tag || DEFAULT_VISION.tag}
           </motion.div>
-
-          {/* ── Right Animated Decorative Gold Line ── */}
-          <motion.div
-            style={{
-              scaleY: lineScaleY,
-              opacity: lineOpacity,
-              x: rightLineX,
-            }}
-            className="absolute right-0 sm:right-2 md:right-4 lg:right-6 top-6 bottom-6 w-4 hidden sm:flex flex-col items-center pointer-events-none origin-center"
-            aria-hidden="true"
-          >
-            {/* Top Dot */}
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-80 shrink-0" />
-            
-            {/* Upper Line Segment */}
-            <span className="w-px flex-1 bg-gradient-to-b from-transparent via-[#C89B3C]/60 dark:via-[#E5B842]/60 to-[#C89B3C] dark:to-[#E5B842]" />
-            
-            {/* Celestial Star & Dot Accents */}
-            <div className="my-2.5 flex flex-col items-center gap-1.5 shrink-0 text-[#C89B3C] dark:text-[#E5B842]">
-              <span className="w-1 h-1 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-75" />
-              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0L14.4 9.6L24 12L14.4 14.4L12 24L9.6 14.4L0 12L9.6 9.6L12 0Z" />
-              </svg>
-              <span className="w-1 h-1 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-75" />
-            </div>
-            
-            {/* Lower Line Segment */}
-            <span className="w-px flex-1 bg-gradient-to-b from-[#C89B3C] dark:from-[#E5B842] via-[#C89B3C]/60 dark:via-[#E5B842]/60 to-transparent" />
-            
-            {/* Bottom Dot */}
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C89B3C] dark:bg-[#E5B842] opacity-80 shrink-0" />
-          </motion.div>
-
-          {/* ── Section Content ── */}
-          <div ref={contentRef} className="relative z-10 flex flex-col items-center">
-            
-            {/* Eyebrow Label */}
-            <motion.div
-              key={compactMotion ? "compact-label" : "desktop-label"}
-              initial={compactMotion ? { opacity: 0, y: 16 } : false}
-              animate={reveal}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              style={compactMotion ? undefined : {
-                opacity: eyebrowOpacity,
-                scale: eyebrowScale,
-              }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold tracking-widest uppercase bg-[#E5B842]/10 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/25 mb-4 sm:mb-6"
-            >
-              {content.tag || DEFAULT_VISION.tag}
-            </motion.div>
-
-            {/* Scroll-Linked Zoom Heading */}
-            <motion.h2
-              key={compactMotion ? "compact-heading" : "desktop-heading"}
-              initial={compactMotion ? { opacity: 0, y: 16 } : false}
-              animate={reveal}
-              transition={{ duration: 0.6, delay: 0.08, ease: "easeOut" }}
-              style={compactMotion ? undefined : {
-                scale: headingScale,
-                y: headingY,
-              }}
-              className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-[2.65rem] text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight leading-[1.2] sm:leading-[1.18] mb-6 sm:mb-8 origin-center will-change-transform max-w-3xl lg:max-w-4xl"
-            >
-              <span className="block">{content.heading_line_1 || DEFAULT_VISION.heading_line_1}</span>
-              {content.heading_line_2 && (
-                <span className="block mt-1">{content.heading_line_2}</span>
-              )}
-            </motion.h2>
-
-            {/* Paragraph 1 */}
-            {content.paragraph_1 && (
-              <motion.p
-                key={compactMotion ? "compact-paragraph-1" : "desktop-paragraph-1"}
-                initial={compactMotion ? { opacity: 0, y: 16 } : false}
-                animate={reveal}
-                transition={{ duration: 0.6, delay: 0.16, ease: "easeOut" }}
-                style={compactMotion ? undefined : {
-                  opacity: p1Opacity,
-                  y: p1Y,
-                }}
-                className="text-sm sm:text-base lg:text-[1.05rem] text-[#0F172A]/75 dark:text-[#FAF8F5]/80 font-light leading-relaxed max-w-2xl sm:max-w-3xl lg:max-w-4xl mx-auto mb-4 sm:mb-5"
-              >
-                {content.paragraph_1}
-              </motion.p>
+          <h2 id="vision-heading" className="mb-6 max-w-3xl font-serif text-2xl leading-[1.2] font-normal tracking-tight text-[#0F172A] sm:mb-8 sm:text-3xl sm:leading-[1.18] md:text-4xl lg:max-w-4xl lg:text-[2.65rem] dark:text-[#FAF8F5]">
+            <span className="block overflow-hidden pb-1">
+              <motion.span variants={headingReveal} custom={0.18} className="block">{content.heading_line_1 || DEFAULT_VISION.heading_line_1}</motion.span>
+            </span>
+            {content.heading_line_2 && (
+              <span className="block overflow-hidden pb-1">
+                <motion.span variants={headingReveal} custom={0.42} className="block">{content.heading_line_2}</motion.span>
+              </span>
             )}
-
-            {/* Paragraph 2 */}
-            {content.paragraph_2 && (
-              <motion.p
-                key={compactMotion ? "compact-paragraph-2" : "desktop-paragraph-2"}
-                initial={compactMotion ? { opacity: 0, y: 16 } : false}
-                animate={reveal}
-                transition={{ duration: 0.6, delay: 0.24, ease: "easeOut" }}
-                style={compactMotion ? undefined : {
-                  opacity: p2Opacity,
-                  y: p2Y,
-                }}
-              className="text-sm lg:text-[0.95rem] text-[#0F172A]/65 dark:text-[#FAF8F5]/70 font-light leading-relaxed max-w-2xl sm:max-w-3xl lg:max-w-4xl mx-auto"
-              >
-                {content.paragraph_2}
-              </motion.p>
-            )}
-
-          </div>
+          </h2>
+          {content.paragraph_1 && (
+            <motion.p variants={reveal} custom={0.75} className="mx-auto mb-4 max-w-2xl text-sm leading-relaxed font-light text-[#0F172A]/75 sm:mb-5 sm:max-w-3xl sm:text-base lg:max-w-4xl lg:text-[1.05rem] dark:text-[#FAF8F5]/80">
+              {content.paragraph_1}
+            </motion.p>
+          )}
+          {content.paragraph_2 && (
+            <motion.p variants={reveal} custom={0.95} className="mx-auto max-w-2xl text-sm leading-relaxed font-light text-[#0F172A]/65 sm:max-w-3xl lg:max-w-4xl lg:text-[0.95rem] dark:text-[#FAF8F5]/70">
+              {content.paragraph_2}
+            </motion.p>
+          )}
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

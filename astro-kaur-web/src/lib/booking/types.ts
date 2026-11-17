@@ -18,6 +18,8 @@ export interface BookingOrder extends Omit<Order, "status"> {
   reschedule_count: number;
   booking_version: number;
   refund_status: string;
+  stripe_refund_id?: string | null;
+  refunded_amount_cents?: number;
   duration_minutes_snapshot: number | null;
   availability_notified_at: string | null;
 }
@@ -66,6 +68,8 @@ export interface Job {
   lease_token: string;
   created_at: string;
   email_started_at: string | null;
+  refund_id?: string | null;
+  refund_status?: string | null;
 }
 export interface Connection {
   auth_user_id: string;
@@ -77,24 +81,4 @@ export interface Connection {
   last_success_at: string | null;
   last_error: string | null;
 }
-export const POLICY_VERSION = "2026-10-19-test-v1";
-
-export function rescheduleDeadline(
-  order: Pick<BookingOrder, "booking_confirmed_at" | "original_scheduled_at">,
-): number {
-  if (!order.booking_confirmed_at || !order.original_scheduled_at) return 0;
-  return Math.min(
-    Date.parse(order.booking_confirmed_at) + 12 * 3600000,
-    Date.parse(order.original_scheduled_at),
-  );
-}
-export function canReschedule(order: BookingOrder, now = Date.now()): boolean {
-  return (
-    order.format === "voice_call" &&
-    order.status === "confirmed" &&
-    order.payment_status === "paid" &&
-    !!order.payment_verified_at &&
-    order.reschedule_count === 0 &&
-    now < rescheduleDeadline(order)
-  );
-}
+export const POLICY_VERSION = "2026-11-18-test-v4";

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe, settleSession } from "@/lib/payments/stripe";
-import { apiError, BookingError, check, database } from "@/lib/booking/server";
+import { apiError, BookingError } from "@/lib/booking/server";
+import { handleRefundWebhook } from "@/lib/payments/refunds";
 import type Stripe from "stripe";
 export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
@@ -24,31 +25,8 @@ export async function POST(req: NextRequest) {
     }
     if (event.livemode)
       throw new BookingError("Live payments are disabled.", 400);
-    if (event.type === "charge.refunded") {
-      const snapshot = event.data.object as Stripe.Charge;
-      const charge = await stripe().charges.retrieve(snapshot.id);
-      const intent =
-        typeof charge.payment_intent === "string"
-          ? charge.payment_intent
-          : charge.payment_intent?.id;
-      if (intent) {
-        const order = check(
-          await database()
-            .from("orders")
-            .select("id")
-            .eq("stripe_payment_intent_id", intent)
-            .not("payment_verified_at", "is", null)
-            .maybeSingle(),
-        );
-        if (order)
-          check(
-            await database().rpc("booking_record_refund", {
-              p_intent: intent,
-              p_refund: charge.refunds?.data[0]?.id || charge.id,
-              p_amount: charge.amount_refunded,
-            }),
-          );
-      }
+    if (["charge.refunded", "refund.created", "refund.updated", "refund.failed"].includes(event.type)) {
+      await handleRefundWebhook(event);
     }
     if (
       [

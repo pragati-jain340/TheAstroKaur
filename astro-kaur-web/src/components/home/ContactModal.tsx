@@ -37,13 +37,13 @@ export default function ContactModal() {
 }
 
 function ContactForm() {
-  const { closeContactModal } = useAuth();
+  const { closeContactModal, contactBookingId, user, profile } = useAuth();
 
   const [formData, setFormData] = useState<ContactFormData>({
-    name: "",
-    email: "",
-    subject: "Choosing a Reading",
-    message: "",
+    name: contactBookingId ? profile?.display_name || "" : "",
+    email: contactBookingId ? user?.email || "" : "",
+    subject: contactBookingId ? "Booking Enquiry" : "Choosing a Reading",
+    message: contactBookingId ? `Booking reference: ${contactBookingId}\n\nI need help with this booking: ` : "",
     _hp: "",
   });
 
@@ -168,34 +168,6 @@ function ContactForm() {
           </p>
         </div>
 
-        {/* ── Direct Email Banner ── */}
-        <div className="mb-6 p-4 rounded-2xl bg-white/80 dark:bg-[#162133] border border-[#E5B842]/25 dark:border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#E5B842]/10 border border-[#E5B842]/30 text-[#E5B842] flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"
-                />
-              </svg>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-[#0F172A] dark:text-white leading-tight">Email</p>
-              <p className="text-[11px] text-[#0F172A]/60 dark:text-[#94A3B8] font-light">
-                For questions about readings or bookings.
-              </p>
-            </div>
-          </div>
-
-          <a
-            href="mailto:pragatiijain841@gmail.com"
-            className="text-xs break-all font-semibold text-[#E5B842] hover:text-[#d8ab34] transition-colors"
-          >
-            pragatiijain841@gmail.com ↗
-          </a>
-        </div>
-
         {/* ── Success Banner ── */}
         {submitSuccess && (
           <div
@@ -261,10 +233,10 @@ function ContactForm() {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="e.g. Pragati Jain"
+                placeholder="Your full name"
                 required
                 aria-invalid={!!errors.name}
-                className={`w-full text-sm px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#1E293B]/70 border transition-all text-[#0F172A] dark:text-white placeholder:text-[#0F172A]/35 dark:placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#E5B842]/35 ${
+                className={`w-full text-sm px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#1E293B]/70 border transition-all text-[#0F172A] dark:text-white placeholder:text-[#0F172A]/35 dark:placeholder:text-[#BCC4D0] focus:outline-none focus:ring-2 focus:ring-[#E5B842]/35 ${
                   errors.name
                     ? "border-rose-500/60 focus:border-rose-500"
                     : "border-[#0F172A]/15 dark:border-white/10 hover:border-[#0F172A]/30 dark:hover:border-white/20 focus:border-[#E5B842]"
@@ -292,7 +264,7 @@ function ContactForm() {
                 placeholder="you@example.com"
                 required
                 aria-invalid={!!errors.email}
-                className={`w-full text-sm px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#1E293B]/70 border transition-all text-[#0F172A] dark:text-white placeholder:text-[#0F172A]/35 dark:placeholder:text-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#E5B842]/35 ${
+                className={`w-full text-sm px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#1E293B]/70 border transition-all text-[#0F172A] dark:text-white placeholder:text-[#0F172A]/35 dark:placeholder:text-[#BCC4D0] focus:outline-none focus:ring-2 focus:ring-[#E5B842]/35 ${
                   errors.email
                     ? "border-rose-500/60 focus:border-rose-500"
                     : "border-[#0F172A]/15 dark:border-white/10 hover:border-[#0F172A]/30 dark:hover:border-white/20 focus:border-[#E5B842]"
@@ -343,7 +315,7 @@ function ContactForm() {
               >
                 Message <span className="text-[#E5B842]">*</span>
               </label>
-              <span className="text-[10px] text-[#0F172A]/40 dark:text-[#64748B]">
+              <span className="text-[10px] text-[#0F172A]/40 dark:text-[#BCC4D0]">
                 {formData.message.length} / 5000
               </span>
             </div>
@@ -355,7 +327,7 @@ function ContactForm() {
               onChange={handleChange}
               placeholder="Tell us what guidance you're seeking, questions about birth times, or anything else you'd like to ask..."
               required
-              className={`w-full text-sm p-3.5 rounded-xl bg-white dark:bg-[#1E293B]/70 border transition-all text-[#0F172A] dark:text-white placeholder:text-[#0F172A]/35 dark:placeholder:text-[#64748B] resize-none focus:outline-none focus:ring-2 focus:ring-[#E5B842]/35 ${
+              className={`w-full text-sm p-3.5 rounded-xl bg-white dark:bg-[#1E293B]/70 border transition-all text-[#0F172A] dark:text-white placeholder:text-[#0F172A]/35 dark:placeholder:text-[#BCC4D0] resize-none focus:outline-none focus:ring-2 focus:ring-[#E5B842]/35 ${
                 errors.message
                   ? "border-rose-500/60 focus:border-rose-500"
                   : "border-[#0F172A]/15 dark:border-white/10 hover:border-[#0F172A]/30 dark:hover:border-white/20 focus:border-[#E5B842]"
@@ -386,8 +358,8 @@ function ContactForm() {
               )}
             </Button>
 
-            <p className="text-[11px] text-[#0F172A]/50 dark:text-[#64748B] text-center sm:text-right font-light">
-              🔒 Confidential · Will never be shared.
+            <p className="text-[11px] text-[#0F172A]/50 dark:text-[#BCC4D0] text-center sm:text-right font-light">
+              🔒 Used to respond to your enquiry.
             </p>
           </div>
         </form>

@@ -3,6 +3,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import { Plus, RotateCw, Search } from "lucide-react";
 import { ASCENDANT_READINGS, AscendantReading } from "@/lib/astrology/ascendantData";
 import { DEFAULT_VISION, type VisionContent } from "@/lib/homeContent";
 import AdminTestimonialsManager from "@/components/admin/AdminTestimonialsManager";
@@ -52,6 +53,8 @@ function getServiceSlug(title?: string): string {
 export default function AdminContentPage() {
   const [activeTab, setActiveTab] = useState<"testimonials" | "about" | "vision" | "free-reading" | "readings">("testimonials");
   const [loading, setLoading] = useState(true);
+  const [readingSearch, setReadingSearch] = useState("");
+  const [readingVisibility, setReadingVisibility] = useState("all");
   const [savingAbout, setSavingAbout] = useState(false);
   const [savingVision, setSavingVision] = useState(false);
   const [savingService, setSavingService] = useState(false);
@@ -651,6 +654,12 @@ export default function AdminContentPage() {
     }
   };
 
+  const visibleServices = services.filter(service =>
+    `${service.title} ${service.description}`.toLowerCase().includes(readingSearch.trim().toLowerCase()) &&
+    (readingVisibility === "all" || (readingVisibility === "active" ? service.is_active : !service.is_active))
+  );
+  const contentTabClassName = "h-11 flex-none rounded-none border-0 px-1 text-sm font-medium text-muted-foreground shadow-none hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-primary after:bg-primary";
+
   const readingSectionKeys = [
     ["Core Energy", "coreEnergy"],
     ["Career & Success", "careerSuccess"],
@@ -661,11 +670,11 @@ export default function AdminContentPage() {
   ] as const;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-200 pb-16">
+    <div className="space-y-8 pb-12">
       {/* ─── Header matching Admin Dashboard design ─── */}
-      <div className="border-b border-[#0F172A]/8 dark:border-[#FAF8F5]/8 pb-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
-          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">Website Content</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Website content</h1>
           <p className="mt-2 text-sm text-[#46505F] dark:text-[#BCC4D0]">Manage testimonials and the content customers see on the site.</p>
         </div>
 
@@ -677,7 +686,7 @@ export default function AdminContentPage() {
           disabled={loading}
           className="gap-2 self-start sm:self-auto"
         >
-          <span className={loading ? "animate-spin" : ""}>↻</span>
+          <RotateCw aria-hidden="true" className={`size-3.5 ${loading ? "animate-spin" : ""}`} />
           <span>Refresh</span>
         </Button>
       </div>
@@ -741,28 +750,16 @@ export default function AdminContentPage() {
         </div>
       )}
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)} className="gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <TabsList aria-label="Website content sections" className="grid !h-auto w-full grid-cols-2 gap-1 bg-secondary p-1 sm:flex sm:w-fit">
-          <TabsTrigger className="min-h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground" value="testimonials">Testimonials</TabsTrigger>
-          <TabsTrigger className="min-h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground" value="about">About Me Section</TabsTrigger>
-          <TabsTrigger className="min-h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground" value="vision">Vision Section</TabsTrigger>
-          <TabsTrigger className="min-h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground" value="free-reading">Free Reading</TabsTrigger>
-          <TabsTrigger className="min-h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground" value="readings">Readings &amp; Services ({services.length})</TabsTrigger>
-        </TabsList>
-
-        {/* Action Button for Readings Tab */}
-        {activeTab === "readings" && (
-          <Button
-            type="button"
-            size="sm"
-            onClick={openCreateService}
-            className="rounded-full px-5 py-2.5 text-xs font-semibold self-start sm:self-auto"
-          >
-            <span>+ Add New Reading</span>
-          </Button>
-        )}
-      </div>
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)} className="min-w-0 gap-8">
+        <div className="overflow-x-auto overflow-y-hidden border-b border-border/60 pb-2">
+          <TabsList variant="line" aria-label="Website content sections" className="h-auto min-h-11 w-max justify-start gap-6 px-1 py-0">
+            <TabsTrigger className={contentTabClassName} value="testimonials">Testimonials</TabsTrigger>
+            <TabsTrigger className={contentTabClassName} value="about">About</TabsTrigger>
+            <TabsTrigger className={contentTabClassName} value="vision">Vision</TabsTrigger>
+            <TabsTrigger className={contentTabClassName} value="free-reading">Free reading</TabsTrigger>
+            <TabsTrigger className={contentTabClassName} value="readings">Readings &amp; services</TabsTrigger>
+          </TabsList>
+        </div>
 
       <TabsContent value="testimonials"><AdminTestimonialsManager /></TabsContent>
 
@@ -1238,9 +1235,40 @@ export default function AdminContentPage() {
 
       <TabsContent value="readings">
         <div className="space-y-6">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <h2 className="text-lg font-semibold">Readings &amp; services</h2>
+              <p className="mt-1 text-sm text-muted-foreground">These cards preview how your readings appear on the website.</p>
+            </div>
+            <Button type="button" onClick={openCreateService} className="self-start rounded-lg sm:self-auto">
+              <Plus aria-hidden="true" className="size-4" />Add reading
+            </Button>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <label className="relative block w-full sm:max-w-xs">
+              <span className="sr-only">Find a reading</span>
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input type="search" placeholder="Find a reading..." value={readingSearch} onChange={event => setReadingSearch(event.target.value)} className="h-10 bg-card pl-9" />
+            </label>
+            <div className="w-full sm:w-40">
+              <NativeSelect aria-label="Reading visibility" value={readingVisibility} onChange={event => setReadingVisibility(event.target.value)} className="h-10 bg-card">
+                <option value="all">All readings</option>
+                <option value="active">Active only</option>
+                <option value="hidden">Hidden only</option>
+              </NativeSelect>
+            </div>
+            <p aria-live="polite" className="text-xs text-muted-foreground sm:ml-auto">{visibleServices.length} of {services.length} readings</p>
+          </div>
+          {!loading && visibleServices.length === 0 && (
+            <div className="rounded-xl border border-dashed border-border py-12 text-center">
+              <p className="text-sm font-medium">{services.length ? "No readings match your search" : "No readings yet"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{services.length ? "Try a different title or visibility filter." : "Add your first reading to preview it here."}</p>
+              {services.length > 0 && <Button type="button" variant="link" size="sm" onClick={() => { setReadingSearch(""); setReadingVisibility("all"); }}>Clear filters</Button>}
+            </div>
+          )}
           {/* Services Cards Grid: Spacious & Breathable */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
-            {services.map((service) => {
+          <div className="grid grid-cols-1 gap-8 min-[900px]:grid-cols-2 2xl:grid-cols-3 2xl:gap-10">
+            {visibleServices.map((service) => {
               const slug = getServiceSlug(service.title);
               return (
                 <div
