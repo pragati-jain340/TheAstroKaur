@@ -45,7 +45,7 @@ export function InView({
       initial="hidden"
       animate={isInView ? "visible" : "hidden"}
       variants={variants}
-      transition={transition}
+      transition={isInView ? transition : { duration: 0, delay: 0 }}
       className={className}
     >
       {children}

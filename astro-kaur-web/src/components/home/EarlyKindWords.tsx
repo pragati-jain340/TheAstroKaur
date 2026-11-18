@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, Heart, Sparkles, X } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { Dialog, DialogClose, DialogPortal, DialogTitle } from "@/components/ui/dialog";
 import { useMediaQuery } from "@/components/ui/use-media-query";
+import styles from "./EarlyKindWords.module.css";
 
 const messages = [
   { width: 493, height: 521 },
@@ -29,17 +30,18 @@ const arrowClass = "flex size-11 shrink-0 items-center justify-center rounded-fu
 const columns = ["md:col-span-4", "md:col-span-5", "md:col-span-3", "md:col-span-3", "md:col-span-4", "md:col-span-5"];
 
 function MessageCard({ message, index, reduceMotion, onOpen }: { message: typeof messages[number]; index: number; reduceMotion: boolean; onOpen: () => void }) {
+  const finePointer = useMediaQuery("(hover: hover) and (pointer: fine)");
   const rotation = (index % 2 === 0 ? -1 : 1) * (reduceMotion ? 0.75 : 2);
 
   return (
     <div className="relative h-full hover:z-10 focus-within:z-10">
       <motion.button type="button" onClick={onOpen}
         style={{ transformOrigin: "50% 65%" }}
-        initial="rest" animate="rest" whileHover="hover" whileFocus="hover"
-        variants={{ rest: { rotate: 0, y: 0, boxShadow: "0px 2px 5px rgba(70,42,52,0.06)" }, hover: { rotate: rotation, y: reduceMotion ? 0 : -3, boxShadow: "0px 10px 24px rgba(70,42,52,0.16)" } }} transition={reduceMotion ? { duration: 0.25, ease: "easeOut" } : { type: "spring", stiffness: 160, damping: 19, mass: 0.8 }}
+        initial="rest" animate="rest" whileHover={finePointer ? "hover" : undefined} whileFocus={finePointer ? "hover" : undefined} whileTap={finePointer ? "hover" : "pressed"}
+        variants={{ rest: { rotate: 0, y: 0, scale: 1, boxShadow: "0px 2px 5px rgba(70,42,52,0.06)" }, pressed: { scale: reduceMotion ? 1 : 0.98 }, hover: { rotate: rotation, y: reduceMotion ? 0 : -3, boxShadow: "0px 10px 24px rgba(70,42,52,0.16)" } }} transition={reduceMotion ? { duration: 0.25, ease: "easeOut" } : { type: "spring", stiffness: 160, damping: 19, mass: 0.8 }}
         aria-label={`Read original message ${index + 1} in full`}
-        className="relative flex h-[210px] w-full cursor-zoom-in items-center justify-center overflow-hidden rounded-2xl border border-[#B88B56]/20 bg-white p-2 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#B88B56] sm:h-[280px] md:h-[300px] lg:h-[320px]">
-        <Image src={message.src} alt={message.alt} width={message.width} height={message.height} loading="eager" sizes="(max-width: 767px) 45vw, 400px" className="h-full w-full rounded-xl object-contain" />
+        className={`${styles.message} relative flex h-[210px] w-full cursor-zoom-in items-center justify-center overflow-hidden rounded-2xl border border-[#B88B56]/20 bg-white p-2 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#B88B56] sm:h-[280px] md:h-[300px] lg:h-[320px]`}>
+        <Image src={message.src} alt={message.alt} width={message.width} height={message.height} loading="eager" sizes="(max-width: 639px) 80vw, (max-width: 767px) 45vw, 400px" className="h-full w-full rounded-xl object-contain" />
         <motion.span aria-hidden="true" variants={{ rest: { opacity: 0 }, hover: { opacity: 1 } }} transition={{ duration: 0.25 }} className="pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-inset ring-[#B88B56]/75 dark:ring-[#DEC58F]/85" />
       </motion.button>
     </div>
@@ -50,9 +52,15 @@ export default function EarlyKindWords() {
   const [page, setPage] = useState(0);
   const [activeMessage, setActiveMessage] = useState<number | null>(null);
   const imageTrigger = useRef<HTMLElement | null>(null);
+  const swipeStart = useRef<{ x: number; y: number; pointerId: number } | null>(null);
+  const suppressSwipeClick = useRef(false);
   // The media-query hook uses the same snapshot on the server and during
   // hydration, then subscribes to the browser's accessibility preference.
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const phoneLayout = useMediaQuery("(max-width: 639px)");
+  const collections = phoneLayout ? [[0, 3], [3, 6], [6, 10]] : [[0, 5], [5, 10]];
+  const pageCount = collections.length;
+  const currentPage = Math.min(page, pageCount - 1);
   const duration = reduceMotion ? 0 : 0.45;
 
   function changePage(nextPage: number) {
@@ -64,31 +72,69 @@ export default function EarlyKindWords() {
   }
 
   return (
-    <section id="early-kind-words" aria-labelledby="early-kind-words-title" className="relative px-4 py-16 sm:px-6 lg:px-16 lg:py-24">
-      <div className="mx-auto max-w-6xl rounded-[2rem] border border-[#B88B56]/15 bg-[#F8F5EF]/95 p-4 shadow-[0_16px_70px_-45px_#6B344840] sm:p-8 lg:p-12 dark:bg-[#172231]/95">
-        <motion.div initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration }} className="mx-auto mb-2 max-w-2xl text-center">
-          <p className="mb-4 text-[10px] font-semibold tracking-[0.2em] text-[#956A37] sm:text-xs dark:text-[#E5B842]">✦ WORDS FROM PAST READINGS ✦</p>
-          <h2 id="early-kind-words-title" className="font-serif text-3xl font-normal leading-tight tracking-tight text-[#302731] sm:text-4xl lg:text-5xl dark:text-[#FAF8F5]">In Their Own Words</h2>
+    <section id="early-kind-words" aria-labelledby="early-kind-words-title" className={`${styles.section} relative px-4 py-16 sm:px-6 lg:px-16 lg:py-24`}>
+      <div className={`${styles.panel} mx-auto max-w-6xl rounded-[2rem] border border-[#B88B56]/15 bg-[#F8F5EF]/95 p-4 shadow-[0_16px_70px_-45px_#6B344840] sm:p-8 lg:p-12 dark:bg-[#172231]/95`}>
+        <motion.div initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration }} className={`${styles.header} mx-auto mb-2 max-w-2xl text-center`}>
+          <p className={`${styles.eyebrow} mb-4 text-[10px] font-semibold tracking-[0.2em] text-[#956A37] sm:text-xs dark:text-[#E5B842]`}>✦ WORDS FROM PAST READINGS ✦</p>
+          <h2 id="early-kind-words-title" className={`${styles.heading} font-serif text-3xl font-normal leading-tight tracking-tight text-[#302731] sm:text-4xl lg:text-5xl dark:text-[#FAF8F5]`}>In Their Own Words</h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#77695E] sm:text-base dark:text-[#FAF8F5]/65">A little collection of heartfelt messages and kind words shared along the way.</p>
         </motion.div>
 
         <div role="region" aria-roledescription="carousel" aria-label="Early client messages">
-          <motion.div id="early-messages-grid" initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration }} className="overflow-hidden rounded-2xl">
-            {/* Keep both grids mounted so navigation never waits for a reveal
+          <motion.div id="early-messages-grid"
+            onPointerDown={event => {
+              suppressSwipeClick.current = false;
+              const mouseDrag = !phoneLayout && event.pointerType === "mouse" && event.button === 0;
+              const touchSwipe = phoneLayout && event.pointerType !== "mouse";
+              if (!event.isPrimary || (!mouseDrag && !touchSwipe)) return;
+              swipeStart.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+            }}
+            onPointerMove={event => {
+              const start = swipeStart.current;
+              if (!start || start.pointerId !== event.pointerId || event.pointerType !== "mouse") return;
+              const distanceX = Math.abs(event.clientX - start.x);
+              const distanceY = Math.abs(event.clientY - start.y);
+              if (distanceX < 8 || distanceX < distanceY * 1.25) return;
+              suppressSwipeClick.current = true;
+              event.currentTarget.setPointerCapture(event.pointerId);
+            }}
+            onDragStartCapture={event => {
+              if (!phoneLayout) event.preventDefault();
+            }}
+            onPointerUp={event => {
+              const start = swipeStart.current;
+              swipeStart.current = null;
+              if (!start || start.pointerId !== event.pointerId) return;
+              const distanceX = event.clientX - start.x;
+              const distanceY = event.clientY - start.y;
+              if (Math.abs(distanceX) < 48 || Math.abs(distanceX) < Math.abs(distanceY) * 1.25) return;
+              suppressSwipeClick.current = true;
+              changePage((currentPage + (distanceX < 0 ? 1 : -1) + pageCount) % pageCount);
+            }}
+            onPointerCancel={() => { swipeStart.current = null; }}
+            onClickCapture={event => {
+              if (!suppressSwipeClick.current) return;
+              suppressSwipeClick.current = false;
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration }} className={`${styles.gallery} overflow-hidden rounded-2xl`}>
+            {/* Keep all grids mounted so navigation never waits for a reveal
                 sequence or newly mounted images, and the viewport stays stable. */}
-            <motion.div initial={false} animate={{ x: reduceMotion ? "0%" : `${page * -50}%` }} transition={{ duration: reduceMotion ? 0 : 0.85, ease: [0.65, 0, 0.35, 1] }} className={reduceMotion ? "grid" : "grid w-[200%] grid-cols-2 will-change-transform"}>
-              {[0, 1].map(slide => (
-              <motion.div key={slide} initial={false} animate={{ opacity: reduceMotion && slide !== page ? 0 : 1 }} transition={{ duration: 0.65, ease: "easeInOut" }} inert={slide !== page} aria-hidden={slide !== page} role="group" aria-roledescription="slide" aria-label={`Collection ${slide + 1} of 2`} className={`grid min-w-0 grid-cols-2 gap-3 p-2 pt-14 md:grid-cols-12 md:gap-4 md:pt-16 ${reduceMotion ? "col-start-1 row-start-1" : ""}`}>
-                {messages.slice(slide * 5, slide * 5 + 5).map((message, index) => {
-                  const messageIndex = slide * 5 + index;
+            <motion.div initial={false} animate={{ x: reduceMotion ? "0%" : `${currentPage * -100 / pageCount}%` }} transition={{ duration: reduceMotion ? 0 : 0.85, ease: [0.65, 0, 0.35, 1] }} className={reduceMotion ? "grid" : "grid will-change-transform"} style={reduceMotion ? undefined : { width: `${pageCount * 100}%`, gridTemplateColumns: `repeat(${pageCount}, minmax(0, 1fr))` }}>
+              {collections.map(([start, end], slide) => (
+              <motion.div key={slide} initial={false} animate={{ opacity: reduceMotion && slide !== currentPage ? 0 : 1 }} transition={{ duration: 0.65, ease: "easeInOut" }} inert={slide !== currentPage} aria-hidden={slide !== currentPage} role="group" aria-roledescription="slide" aria-label={`Collection ${slide + 1} of ${pageCount}`} className={`${styles.collection} grid min-w-0 grid-cols-2 gap-3 p-2 pt-14 md:grid-cols-12 md:gap-4 md:pt-16 ${reduceMotion ? "col-start-1 row-start-1" : ""}`}>
+                {messages.slice(start, end).map((message, index) => {
+                  const messageIndex = start + index;
                   return (
-                    <div key={message.src} className={`min-w-0 ${columns[index + slide]}`}>
+                    <div key={message.src} className={`${styles.tile} min-w-0 ${columns[index + slide]}`}>
                       <MessageCard message={message} index={messageIndex} reduceMotion={reduceMotion} onOpen={() => setActiveMessage(messageIndex)} />
                     </div>
                   );
                 })}
-                <motion.div whileHover={reduceMotion ? undefined : { y: -3 }} transition={{ duration: 0.25 }} className={`relative isolate z-20 h-[210px] rounded-2xl border border-[#B88B56]/25 p-3 shadow-[0_4px_20px_-12px_#6B344830] sm:h-[280px] sm:p-4 md:h-[300px] lg:h-[320px] dark:border-[#D1B880]/30 dark:shadow-[0_8px_30px_-12px_#00000060] ${slide === 1 ? `order-first ${columns[0]} bg-[#F5ECEB] dark:bg-[#243C42]` : `${columns[5]} bg-[#F5F0E5] dark:bg-[#24344B]`}`}>
-                  <Image src="/early-feedback/dream-card-character.png" alt="" aria-hidden="true" width={1776} height={888} sizes="(max-width: 767px) 120px, 144px" className="pointer-events-none absolute -top-[50px] left-1/2 z-10 h-auto w-[120px] -translate-x-1/2 select-none md:-top-[60px] md:w-36" />
+                {(phoneLayout ? (slide < 2 ? [slide] : []) : [slide]).map(quoteIndex => (
+                <motion.div key={`quote-${quoteIndex}`} whileHover={reduceMotion ? undefined : { y: -3 }} transition={{ duration: 0.25 }} className={`${styles.tile} ${styles.quote} ${quoteIndex === 1 ? styles.quoteFirst : ""} relative isolate z-20 h-[210px] rounded-2xl border border-[#B88B56]/25 p-3 shadow-[0_4px_20px_-12px_#6B344830] sm:h-[280px] sm:p-4 md:h-[300px] lg:h-[320px] dark:border-[#D1B880]/30 dark:shadow-[0_8px_30px_-12px_#00000060] ${quoteIndex === 1 ? `order-first ${columns[0]} bg-[#F5ECEB] dark:bg-[#243C42]` : `${columns[5]} bg-[#F5F0E5] dark:bg-[#24344B]`}`}>
+                  <Image src="/early-feedback/dream-card-character.png" alt="" aria-hidden="true" width={1776} height={888} sizes="(max-width: 767px) 120px, 144px" className={`${styles.character} pointer-events-none absolute -top-[50px] left-1/2 z-10 h-auto w-[120px] -translate-x-1/2 select-none md:-top-[60px] md:w-36`} />
                   <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-2xl">
                     <div className="absolute -right-16 -bottom-20 size-56 rounded-full border border-[#B88B56]/15 before:absolute before:inset-5 before:rounded-full before:border before:border-[#B88B56]/15 after:absolute after:inset-10 after:rounded-full after:border after:border-[#B88B56]/10 dark:border-[#D1B880]/15 dark:before:border-[#D1B880]/15 dark:after:border-[#D1B880]/10" />
                   </div>
@@ -98,23 +144,24 @@ export default function EarlyKindWords() {
                       <Sparkles className="size-4 sm:size-5" strokeWidth={1.2} />
                       <span className="h-px w-6 bg-current opacity-40 sm:w-9" />
                     </div>
-                    <p className="max-w-[17rem] font-serif text-[18px] font-normal italic leading-snug text-[#63384B] sm:text-2xl lg:text-[28px] dark:text-[#FFF7E8]">{slide === 0 ? "Sometimes, a little clarity means everything." : "Every message holds a story worth remembering."}</p>
-                    <p className="mt-auto flex max-w-[15rem] items-center justify-center gap-2 text-[10px] leading-relaxed text-[#806859] sm:text-xs dark:text-[#CBD5DE]"><Heart className="size-3 shrink-0 text-[#AB7D66] dark:text-[#DEC58F]" strokeWidth={1.3} aria-hidden="true" />{slide === 0 ? "Thoughtful words, meaningful moments." : "Shared with warmth and gratitude."}</p>
+                    <p className="max-w-[17rem] font-serif text-[18px] font-normal italic leading-snug text-[#63384B] sm:text-2xl lg:text-[28px] dark:text-[#FFF7E8]">{quoteIndex === 0 ? "Sometimes, a little clarity means everything." : "Every message holds a story worth remembering."}</p>
+                    <p className="mt-auto flex max-w-[15rem] items-center justify-center gap-2 text-[10px] leading-relaxed text-[#806859] sm:text-xs dark:text-[#CBD5DE]"><Heart className="size-3 shrink-0 text-[#AB7D66] dark:text-[#DEC58F]" strokeWidth={1.3} aria-hidden="true" />{quoteIndex === 0 ? "Thoughtful words, meaningful moments." : "Shared with warmth and gratitude."}</p>
                   </div>
                 </motion.div>
+                ))}
               </motion.div>
               ))}
             </motion.div>
           </motion.div>
 
-          <div className="mt-6 flex items-center justify-center gap-5">
-            <button type="button" className={arrowClass} onClick={() => changePage(page === 0 ? 1 : 0)} aria-label="Previous collection of early messages" aria-controls="early-messages-grid"><ArrowLeft size={18} /></button>
-            <p aria-live="polite" aria-atomic="true" className="min-w-20 text-center text-xs tracking-widest text-[#77695E] dark:text-[#FAF8F5]/65">0{page + 1} <span className="mx-2 opacity-40">/</span> 02</p>
-            <button type="button" className={arrowClass} onClick={() => changePage(page === 0 ? 1 : 0)} aria-label="Next collection of early messages" aria-controls="early-messages-grid"><ArrowRight size={18} /></button>
+          <div className={`${styles.controls} mt-6 flex items-center justify-center gap-5`}>
+            <button type="button" className={arrowClass} onClick={() => changePage((currentPage - 1 + pageCount) % pageCount)} aria-label="Previous collection of early messages" aria-controls="early-messages-grid"><ArrowLeft size={18} /></button>
+            <p aria-live="polite" aria-atomic="true" className="min-w-20 text-center text-xs tracking-widest text-[#77695E] dark:text-[#FAF8F5]/65">0{currentPage + 1} <span className="mx-2 opacity-40">/</span> 0{pageCount}</p>
+            <button type="button" className={arrowClass} onClick={() => changePage((currentPage + 1) % pageCount)} aria-label="Next collection of early messages" aria-controls="early-messages-grid"><ArrowRight size={18} /></button>
           </div>
         </div>
 
-        <div className="mt-7 text-center">
+        <div className={`${styles.footer} mt-7 text-center max-sm:hidden`}>
           <p className="text-xs text-[#77695E] dark:text-[#FAF8F5]/65">A glimpse into our earliest conversations</p>
         </div>
       </div>

@@ -25,6 +25,27 @@ export default function Navbar() {
 
   const { user, profile, isAdmin, loading: authLoading, openAuthModal, openContactModal, signOut } = useAuth();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (event.target instanceof Node && !headerRef.current?.contains(event.target)) {
+        setMobileMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileMenuOpen]);
 
   const handleNavItemClick = (e: React.MouseEvent<HTMLAnchorElement>, label: string) => {
     if (label === "Contact") {
@@ -101,6 +122,7 @@ export default function Navbar() {
 
   return (
     <header
+      ref={headerRef}
       className={`sticky top-0 z-50 backdrop-blur-md bg-[#FAF8F5]/90 dark:bg-[#0F172A]/90 border-b border-[#E5B842]/20 transition-transform duration-300 ease-in-out motion-reduce:transition-none will-change-transform ${
         isNavbarVisible ? "translate-y-0" : "-translate-y-full"
       }`}
@@ -351,10 +373,10 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Navigation Dropdown Drawer */}
+      {/* Compact mobile navigation anchored below the menu button. */}
       {mobileMenuOpen && (
-        <nav id="mobile-navigation" aria-label="Mobile navigation" className="xl:hidden absolute top-full inset-x-0 max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain border-t border-[#E5B842]/20 bg-[#FAF8F5]/98 dark:bg-[#0F172A]/98 backdrop-blur-xl px-4 sm:px-6 py-4 shadow-xl animate-in slide-in-from-top-2 duration-200">
-          <div className="flex flex-col gap-2">
+        <nav id="mobile-navigation" aria-label="Mobile navigation" className="xl:hidden absolute top-[calc(100%+10px)] right-3 sm:right-6 w-56 max-w-[calc(100%-24px)] max-h-[calc(100dvh-6rem)] overflow-y-auto overscroll-contain rounded-[20px] border border-[#E5B842]/25 bg-gradient-to-b from-white to-[#FAF8F5] dark:from-[#18243A] dark:to-[#0F172A] p-3 shadow-[0_12px_36px_-12px_rgba(15,23,42,0.25)] animate-in fade-in slide-in-from-top-2 duration-200 motion-reduce:animate-none">
+          <div className="flex flex-col divide-y divide-[#0F172A]/[0.06] dark:divide-[#FAF8F5]/[0.08]">
             {NAV_ITEMS.map((item) => (
               <a
                 key={item.label}
@@ -363,16 +385,15 @@ export default function Navbar() {
                   setMobileMenuOpen(false);
                   handleNavItemClick(e, item.label);
                 }}
-                className="flex items-center justify-between px-4 py-3 rounded-xl text-lg font-serif font-medium text-[#0F172A] dark:text-[#FAF8F5] hover:bg-[#E5B842]/15 transition-all"
+                className="flex min-h-10 items-center rounded-lg px-4 py-2 text-sm font-medium tracking-wide text-[#0F172A]/80 dark:text-[#FAF8F5]/90 hover:bg-[#E5B842]/[0.08] hover:text-[#805B11] dark:hover:text-[#E5B842] focus-visible:bg-[#E5B842]/10 focus-visible:outline-2 focus-visible:outline-[#E5B842] transition-colors duration-150"
               >
                 <span>{item.label}</span>
-                <span className="text-[#E5B842] text-sm">✦</span>
               </a>
             ))}
-            {!isAdmin && !authLoading && <Link href="/#readings" onClick={() => setMobileMenuOpen(false)} className="sm:hidden mt-2 px-5 py-3.5 rounded-full bg-[#E5B842] text-[#0F172A] text-center text-sm font-semibold">
+          </div>
+            {!isAdmin && !authLoading && <Link href="/#readings" onClick={() => setMobileMenuOpen(false)} className="sm:hidden mt-2 flex min-h-11 items-center justify-center px-4 py-2.5 rounded-full border border-[#D6A935]/30 bg-gradient-to-r from-[#E5B842] to-[#F0CA62] text-[#0F172A] text-center text-sm font-semibold shadow-[0_3px_10px_rgba(229,184,66,0.18)] hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#805B11] transition-[filter] duration-150">
               Book a Reading
             </Link>}
-          </div>
         </nav>
       )}
     </header>

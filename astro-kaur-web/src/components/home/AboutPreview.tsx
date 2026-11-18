@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { InView } from "@/components/ui/in-view";
 import { DEFAULT_ABOUT } from "@/lib/homeContent";
+import styles from "./AboutPreview.module.css";
 
 export default function AboutPreview({ initialContent }: { initialContent?: Partial<typeof DEFAULT_ABOUT> }) {
   // Content is fully resolved server-side and passed as a prop — no client fetch needed
@@ -11,19 +12,19 @@ export default function AboutPreview({ initialContent }: { initialContent?: Part
   return (
     <section
       id="about"
-      className="scroll-mt-28 sm:scroll-mt-32 py-12 sm:py-14 lg:py-16 px-4 sm:px-10 lg:px-16 bg-transparent relative overflow-hidden text-[#0F172A] dark:text-[#FAF8F5]"
+      className={`${styles.section} scroll-mt-28 sm:scroll-mt-32 py-12 sm:py-14 lg:py-16 px-4 sm:px-10 lg:px-16 bg-transparent relative overflow-hidden text-[#0F172A] dark:text-[#FAF8F5]`}
     >
       {/* ── Outer Section Container: Expanded horizontal width ── */}
       <div className="max-w-6xl mx-auto w-full relative z-10">
 
         {/* ── Signature Curved Feature Block: Balanced Light & Dark Mode Aesthetic ── */}
-        <div className="relative rounded-3xl sm:rounded-[36px] bg-white/85 dark:bg-[#0D1829]/95 backdrop-blur-md border border-[#E5B842]/30 dark:border-[#E5B842]/25 py-7 sm:py-9 lg:py-10 px-5 sm:px-12 lg:px-16 xl:px-20 shadow-[0_20px_50px_rgba(229,184,66,0.12),0_4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.7)] overflow-hidden transition-colors duration-300">
+        <div className={`${styles.card} relative rounded-3xl sm:rounded-[36px] bg-white/85 dark:bg-[#0D1829]/95 backdrop-blur-md border border-[#E5B842]/30 dark:border-[#E5B842]/25 py-7 sm:py-9 lg:py-10 px-5 sm:px-12 lg:px-16 xl:px-20 shadow-[0_20px_50px_rgba(229,184,66,0.12),0_4px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.7)] overflow-hidden transition-colors duration-300`}>
 
           {/* Subtle Ambient Celestial Accents inside the curved block */}
           <div className="absolute -top-24 -left-24 w-80 h-80 bg-[#E5B842]/15 dark:bg-[#E5B842]/10 rounded-full blur-[100px] pointer-events-none" />
           <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-[#E5B842]/10 dark:bg-[#1E3A8A]/25 rounded-full blur-[120px] pointer-events-none" />
 
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-10 sm:gap-12 lg:gap-16 xl:gap-20 relative z-10">
+          <div className={`${styles.content} flex flex-col lg:flex-row items-center justify-between gap-10 sm:gap-12 lg:gap-16 xl:gap-20 relative z-10`}>
 
             {/* ── Left Column: Celestial Arch Frame (Tuned Proportion) ── */}
             <InView
@@ -37,7 +38,7 @@ export default function AboutPreview({ initialContent }: { initialContent?: Part
               }}
               viewOptions={{ margin: "0px 0px -20px 0px" }}
               once={false}
-              className="w-full max-w-[260px] sm:max-w-[290px] lg:max-w-[315px] shrink-0"
+              className={`${styles.portrait} w-full max-w-[260px] sm:max-w-[290px] lg:max-w-[315px] shrink-0`}
             >
               <div className="relative w-full aspect-[3/4]">
 
@@ -119,15 +120,15 @@ export default function AboutPreview({ initialContent }: { initialContent?: Part
               }}
               viewOptions={{ margin: "0px 0px -20px 0px" }}
               once={false}
-              className="w-full flex-1 max-w-[560px] flex flex-col items-start text-left"
+              className={`${styles.copy} w-full flex-1 max-w-[560px] flex flex-col items-start text-left`}
             >
               {/* Pill Tag */}
-              <div className="inline-flex items-center px-3.5 py-1 rounded-full text-[10.5px] sm:text-[11.5px] font-semibold tracking-[0.2em] uppercase text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/60 dark:border-[#E5B842]/70 bg-[#E5B842]/10 dark:bg-transparent mb-4">
+              <div className={`${styles.badge} inline-flex items-center px-3.5 py-1 rounded-full text-[10.5px] sm:text-[11.5px] font-semibold tracking-[0.2em] uppercase text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/60 dark:border-[#E5B842]/70 bg-[#E5B842]/10 dark:bg-transparent mb-4`}>
                 {content.tag || "THE PERSON BEHIND THE READINGS"}
               </div>
 
               {/* Heading: "Meet TheAstroKaur" */}
-              <h2 className="font-serif text-3xl sm:text-4xl lg:text-[44px] font-normal leading-[1.12] tracking-tight mb-4">
+              <h2 className={`${styles.heading} font-serif text-3xl sm:text-4xl lg:text-[44px] font-normal leading-[1.12] tracking-tight mb-4`}>
                 <span className="block text-[#0F172A] dark:text-white">
                   {content.heading_prefix || "Meet"}
                 </span>
@@ -137,7 +138,7 @@ export default function AboutPreview({ initialContent }: { initialContent?: Part
               </h2>
 
               {/* Body Paragraphs */}
-              <div className="space-y-4 text-sm text-[#0F172A]/75 dark:text-slate-300 font-light leading-[1.75]">
+              <div className={`${styles.story} space-y-4 text-sm text-[#0F172A]/75 dark:text-slate-300 font-light leading-[1.75]`}>
                 <p>
                   {content.paragraph_1}
                 </p>

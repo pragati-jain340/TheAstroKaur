@@ -3,6 +3,8 @@
 import React from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import { LockKeyhole } from "lucide-react";
+import styles from "./FinalCTASection.module.css";
 
 export default function FinalCTASection() {
   const { openContactModal } = useAuth();
@@ -18,10 +20,10 @@ export default function FinalCTASection() {
   };
 
   return (
-    <section className="w-full py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-16 bg-transparent relative overflow-hidden">
+    <section className={`${styles.section} w-full py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-16 bg-transparent relative overflow-hidden`}>
       <div className="max-w-5xl mx-auto">
         {/* Harmonious Light & Dark Theme Container */}
-        <div className="relative rounded-3xl bg-white/90 dark:bg-[#131F33] backdrop-blur-md border border-[#E5B842]/35 dark:border-[#E5B842]/20 py-16 sm:py-20 px-6 sm:px-12 text-center shadow-[0_20px_50px_rgba(229,184,66,0.12),0_4px_24px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] overflow-hidden transition-colors duration-300">
+        <div className={`${styles.card} relative rounded-3xl bg-white/90 dark:bg-[#131F33] backdrop-blur-md border border-[#E5B842]/35 dark:border-[#E5B842]/20 py-16 sm:py-20 px-6 sm:px-12 text-center shadow-[0_20px_50px_rgba(229,184,66,0.12),0_4px_24px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] overflow-hidden transition-colors duration-300`}>
           {/* Subtle Ambient Radial Glow */}
           <div
             className="absolute inset-0 pointer-events-none opacity-60 dark:opacity-40"
@@ -38,7 +40,7 @@ export default function FinalCTASection() {
 
           <div className="relative z-10 flex flex-col items-center">
             {/* Small Gold Sparkle Icon */}
-            <div className="mb-6 text-[#E5B842] flex items-center justify-center">
+            <div className={`${styles.sparkle} mb-6 text-[#E5B842] flex items-center justify-center`}>
               <svg
                 className="w-7 h-7 sm:w-8 sm:h-8"
                 viewBox="0 0 24 24"
@@ -58,17 +60,17 @@ export default function FinalCTASection() {
             </div>
 
             {/* Elegant Serif Heading */}
-            <h2 className="font-serif text-3xl sm:text-4xl lg:text-[42px] text-[#0F172A] dark:text-white font-normal tracking-tight leading-tight max-w-2xl mb-4">
+            <h2 className={`${styles.heading} font-serif text-3xl sm:text-4xl lg:text-[42px] text-[#0F172A] dark:text-white font-normal tracking-tight leading-tight max-w-2xl mb-4`}>
               Begin Your Journey Towards Greater Clarity
             </h2>
 
             {/* Supporting Description */}
-            <p className="text-sm sm:text-base text-[#0F172A]/70 dark:text-[#CBD5E1] max-w-xl mx-auto mb-9 font-light leading-relaxed">
+            <p className={`${styles.description} text-sm sm:text-base text-[#0F172A]/70 dark:text-[#CBD5E1] max-w-xl mx-auto mb-9 font-light leading-relaxed`}>
               Explore the readings and find the one that feels relevant to your path, or get in touch with any preliminary questions.
             </p>
 
             {/* Dual Horizontally Aligned Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto mb-7">
+            <div className={`${styles.actions} flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto mb-7`}>
               {/* Primary Button: EXPLORE MY READINGS → */}
               <Button
                 asChild
@@ -94,9 +96,9 @@ export default function FinalCTASection() {
             </div>
 
             {/* Trust Line */}
-            <div className="inline-flex items-center justify-center gap-2 text-xs sm:text-[13px] text-[#0F172A]/60 dark:text-[#94A3B8] font-normal">
+            <div className={`${styles.trust} inline-flex items-center justify-center gap-2 text-xs sm:text-[13px] text-[#0F172A]/60 dark:text-[#94A3B8] font-normal`}>
               <span className="text-[#E5B842] text-sm" role="img" aria-label="Privacy lock">
-                🔒
+                <LockKeyhole className="size-3.5" aria-hidden="true" />
               </span>
               <span>Private &amp; Confidential · Online or Written Readings</span>
             </div>

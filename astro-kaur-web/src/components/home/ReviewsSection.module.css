@@ -1,0 +1,79 @@
+@media (max-width: 639px) {
+  .section {
+    padding: 2.5rem 1.75rem;
+  }
+
+  .container {
+    display: flex;
+    flex-direction: column;
+    max-width: 24rem;
+  }
+
+  .header {
+    display: contents;
+  }
+
+  .intro {
+    order: 0;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  .badge {
+    font-size: 0.625rem;
+    letter-spacing: 0.1em;
+  }
+
+  .heading {
+    font-size: clamp(1.75rem, 7.6vw, 2rem);
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+
+  .intro > p {
+    font-size: 0.875rem;
+    line-height: 1.7;
+    text-wrap: pretty;
+  }
+
+  .frame {
+    order: 1;
+  }
+
+  .controls {
+    order: 2;
+    justify-content: center;
+    margin-top: 1rem;
+    gap: 1rem;
+  }
+
+  .edge,
+  .duplicate {
+    display: none;
+  }
+
+  .scroller {
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    padding: 0.25rem 0 0.5rem;
+  }
+
+  .group {
+    gap: 1rem;
+    padding-right: 0;
+  }
+
+  .card {
+    width: min(24rem, calc(100vw - 3.5rem));
+    min-height: 16rem;
+    padding: 1.25rem;
+    border-radius: 1.5rem;
+    scroll-snap-stop: always;
+  }
+
+  .quote {
+    font-size: 0.875rem;
+    line-height: 1.75;
+    -webkit-line-clamp: 4;
+  }
+}

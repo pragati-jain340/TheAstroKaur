@@ -5,6 +5,7 @@ import { motion, useScroll, useTransform, useSpring } from "motion/react";
 import AstrologyWheel from "@/components/AstrologyWheel";
 import { InView } from "@/components/ui/in-view";
 import { COMPACT_MOTION_QUERY, useMediaQuery } from "@/components/ui/use-media-query";
+import styles from "./HeroSection.module.css";
 
 export default function HeroSection() {
   const compactMotion = useMediaQuery(COMPACT_MOTION_QUERY);
@@ -54,14 +55,14 @@ export default function HeroSection() {
   return (
     <section
       ref={containerRef}
-      className="hero-section relative overflow-hidden sm:min-h-[calc(100svh-80px)] flex flex-col justify-center px-4 sm:px-6 lg:px-16 pt-10 pb-12 sm:py-12 lg:py-20 flex-1"
+      className={`${styles.section} hero-section relative overflow-hidden flex flex-col px-4 sm:px-6 lg:px-16`}
     >
       <motion.div
         style={{ opacity: heroOpacity }}
-        className="hero-content max-w-7xl mx-auto w-full min-w-0 grid grid-cols-1 lg:grid-cols-12 gap-7 sm:gap-12 lg:gap-8 items-center relative z-10 my-auto"
+        className={`${styles.content} hero-content max-w-7xl mx-auto w-full min-w-0 grid grid-cols-1 lg:grid-cols-12 gap-7 sm:gap-12 lg:gap-8 items-center relative z-10`}
       >
         {/* Left Column: Heading, Subtitle & CTAs */}
-        <div className="lg:col-span-7 space-y-6 text-center lg:text-left z-10">
+        <div className={`${styles.copy} lg:col-span-7 space-y-6 text-center lg:text-left z-10`}>
           {/* Badge: LIFE IS FULL OF QUESTIONS */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase bg-[#E5B842]/10 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/25">
             <span className="w-1.5 h-1.5 rounded-full bg-[#E5B842] animate-pulse" />
@@ -74,9 +75,9 @@ export default function HeroSection() {
               once={false}
               variants={variants}
               transition={{ ...itemTransition, delay: 0.05 }}
-              viewOptions={{ margin: "0px 0px -20px 0px" }}
+              viewOptions={{ amount: 0.2, margin: "-88px 0px -32px 0px" }}
             >
-              <h1 className="font-serif text-[clamp(1.875rem,8.5vw,2.5rem)] sm:text-5xl lg:text-6xl text-[#0F172A] dark:text-[#FAF8F5] font-normal leading-[1.15] tracking-tight">
+              <h1 className={`${styles.heading} font-serif text-[clamp(1.875rem,8.5vw,2.5rem)] sm:text-5xl lg:text-6xl text-[#0F172A] dark:text-[#FAF8F5] font-normal leading-[1.15] tracking-tight`}>
                 Look to the Stars. <br />
                 <span className="italic font-light text-[#E5B842]">
                   A Deeper Look at You.
@@ -91,9 +92,9 @@ export default function HeroSection() {
               once={false}
               variants={variants}
               transition={{ ...itemTransition, delay: 0.2 }}
-              viewOptions={{ margin: "0px 0px -20px 0px" }}
+              viewOptions={{ amount: 0.2, margin: "-88px 0px -32px 0px" }}
             >
-              <p className="text-base sm:text-lg text-[#0F172A]/75 dark:text-[#FAF8F5]/80 max-w-xl mx-auto lg:mx-0 font-light leading-relaxed">
+              <p className={`${styles.description} text-base sm:text-lg text-[#0F172A]/75 dark:text-[#FAF8F5]/80 max-w-xl mx-auto lg:mx-0 font-light leading-relaxed`}>
                 Your birth chart offers a unique perspective on who you are, the connections you make, and the path you&apos;re navigating.
               </p>
             </InView>
@@ -104,9 +105,9 @@ export default function HeroSection() {
             once={false}
             variants={variants}
             transition={{ ...itemTransition, delay: 0.35 }}
-            viewOptions={{ margin: "0px 0px -20px 0px" }}
+            viewOptions={{ amount: 0.2, margin: "-88px 0px -32px 0px" }}
           >
-            <div className="hero-actions pt-2 flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 justify-center lg:justify-start max-w-xs sm:max-w-none mx-auto lg:mx-0">
+            <div className={`${styles.actions} hero-actions pt-2 flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 justify-center lg:justify-start max-w-xs sm:max-w-none mx-auto lg:mx-0`}>
               <a
                 href="#readings"
                 className="px-7 py-3.5 rounded-full bg-[#E5B842] hover:bg-[#d6a935] text-[#0F172A] font-semibold text-sm tracking-wide shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -126,12 +127,12 @@ export default function HeroSection() {
         {/* Right Column: Rotating Horoscope Wheel with spatial depth parallax */}
         <motion.div
           style={{ y: wheelY, scale: wheelScale }}
-          className="hero-parallax lg:col-span-5 min-w-0 flex items-center justify-center relative sm:min-h-[460px]"
+          className={`${styles.wheelContainer} hero-parallax lg:col-span-5 min-w-0 flex items-center justify-center relative sm:min-h-[460px]`}
         >
           <AstrologyWheel
             duration={30}
             opacity={0.96}
-            className="aspect-square w-full max-w-[280px] sm:max-w-none sm:w-[420px] sm:h-[420px] lg:w-full lg:h-auto lg:max-w-[480px]"
+            className={`${styles.wheel} aspect-square w-full max-w-[280px] sm:max-w-none sm:w-[420px] sm:h-[420px] lg:w-full lg:h-auto lg:max-w-[480px]`}
           />
         </motion.div>
       </motion.div>

@@ -7,6 +7,7 @@ import { useInView } from "motion/react";
 import type { Testimonial } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
 import { useMediaQuery } from "@/components/ui/use-media-query";
+import styles from "./ReviewsSection.module.css";
 
 export interface ReviewItem {
   id: string;
@@ -101,29 +102,27 @@ export default function ReviewsSection() {
   const [isPaused, setIsPaused] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const phoneLayout = useMediaQuery("(max-width: 639px)");
+  const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const carouselInView = useInView(scrollContainerRef);
 
-  // Native scrolling keeps phone autoplay and touch gestures in the same coordinate
-  // system. Stop while the visitor is interacting or the carousel is off screen.
+  // Leave each phone review still long enough to read, then advance one full card.
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (!container || !phoneLayout || !carouselInView || isPaused || activeModalReview) return;
+    if (!container || !phoneLayout || reduceMotion || !carouselInView || isPaused || activeModalReview) return;
 
-    let frame: number;
-    let lastTime: number | undefined;
-    let position = container.scrollLeft;
-    const advance = (time: number) => {
-      const loopWidth = container.firstElementChild?.firstElementChild?.clientWidth || 0;
-      if (loopWidth > 0 && lastTime !== undefined) {
-        position = (position + Math.min(time - lastTime, 64) * loopWidth / 45000) % loopWidth;
-        container.scrollLeft = position;
-      }
-      lastTime = time;
-      frame = requestAnimationFrame(advance);
-    };
-    frame = requestAnimationFrame(advance);
-    return () => cancelAnimationFrame(frame);
-  }, [phoneLayout, carouselInView, isPaused, activeModalReview]);
+    const timer = window.setInterval(() => {
+      const card = container.querySelector<HTMLElement>(".snap-start");
+      if (!card?.parentElement) return;
+      const gap = parseFloat(getComputedStyle(card.parentElement).columnGap) || 0;
+      const step = card.offsetWidth + gap;
+      const next = (Math.round(container.scrollLeft / step) + 1) * step;
+      container.scrollTo({
+        left: next > container.scrollWidth - container.clientWidth + 1 ? 0 : next,
+        behavior: "smooth",
+      });
+    }, 7000);
+    return () => window.clearInterval(timer);
+  }, [phoneLayout, reduceMotion, carouselInView, isPaused, activeModalReview, reviews]);
 
   // Load live published reviews with real customer avatars
   useEffect(() => {
@@ -199,11 +198,17 @@ export default function ReviewsSection() {
     if (scrollContainerRef.current) {
       pauseScrolling();
       const card = scrollContainerRef.current.querySelector<HTMLElement>(".snap-start");
-      const scrollAmount = card ? card.offsetWidth + 24 : 390;
-      scrollContainerRef.current.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
-        behavior: "smooth",
-      });
+      const gap = card?.parentElement ? parseFloat(getComputedStyle(card.parentElement).columnGap) || 0 : 24;
+      const scrollAmount = card ? card.offsetWidth + gap : 390;
+      const container = scrollContainerRef.current;
+      let target = container.scrollLeft + (direction === "left" ? -scrollAmount : scrollAmount);
+      if (phoneLayout) {
+        target = (Math.round(container.scrollLeft / scrollAmount) + (direction === "left" ? -1 : 1)) * scrollAmount;
+        const maximum = container.scrollWidth - container.clientWidth;
+        if (target < -1) target = maximum;
+        if (target > maximum + 1) target = 0;
+      }
+      container.scrollTo({ left: target, behavior: reduceMotion ? "instant" : "smooth" });
 
       // Briefly pause continuous marquee so user can comfortably browse via arrows
       resumeScrolling();
@@ -213,7 +218,7 @@ export default function ReviewsSection() {
   return (
     <section
       id="reviews"
-      className="scroll-mt-28 sm:scroll-mt-32 py-20 lg:py-28 px-6 lg:px-16 bg-transparent relative overflow-hidden"
+      className={`${styles.section} scroll-mt-28 sm:scroll-mt-32 py-20 lg:py-28 px-6 lg:px-16 bg-transparent relative overflow-hidden`}
     >
       {/* ── Seamless Marquee Styles for Continuous Horizontal Slide ── */}
       <style>{`
@@ -242,18 +247,18 @@ export default function ReviewsSection() {
         }
       `}</style>
 
-      <div className="max-w-7xl mx-auto">
+      <div className={`${styles.container} max-w-7xl mx-auto`}>
         {/* ── Section Header with Title & Arrow Controls ── */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-          <div className="max-w-2xl">
+        <div className={`${styles.header} flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6`}>
+          <div className={`${styles.intro} max-w-2xl`}>
             {/* Pill Tag */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold tracking-widest uppercase bg-[#E5B842]/10 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/25 mb-3.5">
+            <div className={`${styles.badge} inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold tracking-widest uppercase bg-[#E5B842]/10 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/25 mb-3.5`}>
               <span className="text-[#E5B842] text-sm">✦</span>
               REVIEWS &amp; REFLECTIONS
             </div>
 
             {/* Main Heading */}
-            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight">
+            <h2 className={`${styles.heading} font-serif text-3xl sm:text-4xl lg:text-5xl text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight`}>
               A Closer Look at Their Experiences
             </h2>
 
@@ -264,7 +269,7 @@ export default function ReviewsSection() {
           </div>
 
           {/* Carousel Arrow Buttons */}
-          <div className="flex items-center gap-3">
+          <div className={`${styles.controls} flex items-center gap-3`}>
             <Button
               type="button"
               variant="outline"
@@ -293,15 +298,15 @@ export default function ReviewsSection() {
         </div>
 
         {/* ── Continuous Horizontal Slider (Matches Readings Section) ── */}
-        <div className="relative w-full overflow-hidden">
+        <div className={`${styles.frame} relative w-full overflow-hidden`}>
           {/* Edge fade masks */}
-          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 sm:w-16 z-10 bg-gradient-to-r from-[#FAF8F5] dark:from-[#0F172A] to-transparent opacity-85" />
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 sm:w-16 z-10 bg-gradient-to-l from-[#FAF8F5] dark:from-[#0F172A] to-transparent opacity-85" />
+          <div className={`${styles.edge} pointer-events-none absolute left-0 top-0 bottom-0 w-8 sm:w-16 z-10 bg-gradient-to-r from-[#FAF8F5] dark:from-[#0F172A] to-transparent opacity-85`} />
+          <div className={`${styles.edge} pointer-events-none absolute right-0 top-0 bottom-0 w-8 sm:w-16 z-10 bg-gradient-to-l from-[#FAF8F5] dark:from-[#0F172A] to-transparent opacity-85`} />
 
           {/* Scrollable Container with Smooth Marquee Track */}
           <div
             ref={scrollContainerRef}
-            className="reviews-scroller overflow-x-auto no-scrollbar scroll-smooth pb-4 pt-2"
+            className={`${styles.scroller} reviews-scroller overflow-x-auto no-scrollbar scroll-smooth pb-4 pt-2`}
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             <div
@@ -314,7 +319,7 @@ export default function ReviewsSection() {
               style={isPaused || activeModalReview ? { animationPlayState: "paused" } : undefined}
             >
               {/* Primary Track */}
-              <div className="flex shrink-0 gap-6 pr-6">
+              <div className={`${styles.group} flex shrink-0 gap-6 pr-6`}>
                 {reviews.map((review) => (
                   <ReviewCard
                     key={`primary-${review.id}`}
@@ -325,7 +330,7 @@ export default function ReviewsSection() {
               </div>
 
               {/* Duplicate Track for Seamless Infinite Loop */}
-              <div className="flex shrink-0 gap-6 pr-6" aria-hidden="true">
+              <div className={`${styles.duplicate} flex shrink-0 gap-6 pr-6`} aria-hidden="true">
                 {reviews.map((review) => (
                   <ReviewCard
                     key={`duplicate-${review.id}`}
@@ -427,7 +432,7 @@ function ReviewCard({
   isDuplicate?: boolean;
 }) {
   return (
-    <div className="snap-start w-[min(320px,calc(100vw-48px))] sm:w-[360px] md:w-[380px] shrink-0 rounded-2xl sm:rounded-3xl bg-white/85 dark:bg-[#1E293B]/80 backdrop-blur-sm border border-[#E5B842]/20 p-5 sm:p-7 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)] hover:border-[#E5B842]/45 transition-all duration-300 group">
+    <div className={`${styles.card} snap-start w-[min(320px,calc(100vw-48px))] sm:w-[360px] md:w-[380px] shrink-0 rounded-2xl sm:rounded-3xl bg-white/85 dark:bg-[#1E293B]/80 backdrop-blur-sm border border-[#E5B842]/20 p-5 sm:p-7 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)] hover:border-[#E5B842]/45 transition-all duration-300 group`}>
       <div>
         {/* Top Header: Avatar + Details on Left, Stars on Right */}
         <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-4">
@@ -471,7 +476,7 @@ function ReviewCard({
         </div>
 
         {/* Truncated Review Snippet */}
-        <p className="text-xs sm:text-[13px] text-[#0F172A]/75 dark:text-[#FAF8F5]/75 font-light leading-relaxed italic line-clamp-3">
+        <p className={`${styles.quote} text-xs sm:text-[13px] text-[#0F172A]/75 dark:text-[#FAF8F5]/75 font-light leading-relaxed italic line-clamp-3`}>
           &ldquo;{truncateReview(review.content, 145)}&rdquo;
         </p>
       </div>

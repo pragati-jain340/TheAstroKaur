@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { motion } from "motion/react";
+import { motion, useInView } from "motion/react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/lib/supabase/types";
 import { useAuth } from "@/context/AuthContext";
+import styles from "./ServicesPreview.module.css";
 
 export interface ReadingServiceItem {
   durationMinutes?: number | null;
@@ -195,7 +196,7 @@ const HEADING_TEXT = "Readings for Every Chapter";
 const HEADING_WORDS = HEADING_TEXT.split(" ");
 
 const sentenceVariants = {
-  hidden: {},
+  hidden: { transition: { delayChildren: 0, staggerChildren: 0 } },
   visible: {
     transition: {
       delayChildren: 0.15, // Brief settling delay once entered viewport
@@ -205,7 +206,7 @@ const sentenceVariants = {
 };
 
 const letterVariants = {
-  hidden: { opacity: 0 },
+  hidden: { opacity: 0, transition: { duration: 0, delay: 0 } },
   visible: {
     opacity: 1,
     transition: { duration: 0.01 },
@@ -213,13 +214,20 @@ const letterVariants = {
 };
 
 function TypewriterHeading() {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const headingInView = useInView(headingRef, {
+    once: false,
+    amount: 0.3,
+    margin: "-88px 0px -32px 0px",
+  });
+
   return (
     <motion.h2
+      ref={headingRef}
       initial="hidden"
-      whileInView="visible"
-      viewport={{ once: false, amount: 0.3 }}
+      animate={headingInView ? "visible" : "hidden"}
       variants={sentenceVariants}
-      className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight text-center"
+      className={`${styles.heading} font-serif text-3xl sm:text-4xl lg:text-5xl text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight text-center`}
       aria-label={HEADING_TEXT}
     >
       {HEADING_WORDS.map((word, wordIndex) => (
@@ -279,32 +287,35 @@ export default function ServicesPreview() {
   return (
     <section
       id="readings"
-      className="scroll-mt-28 sm:scroll-mt-32 py-20 lg:py-28 px-4 sm:px-6 lg:px-16 bg-transparent relative overflow-hidden"
+      className="scroll-mt-28 sm:scroll-mt-32 pt-8 lg:pt-12 pb-20 lg:pb-28 px-4 sm:px-6 lg:px-16 bg-transparent relative overflow-hidden"
     >
       <div className="max-w-7xl mx-auto">
         {/* ── Section Header ── */}
-        <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-semibold tracking-widest uppercase bg-[#E5B842]/10 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/25 mb-4">
+        <div className={`${styles.header} text-center max-w-3xl mx-auto mb-12 sm:mb-16`}>
+          <div className={`${styles.sectionBadge} inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-semibold tracking-widest uppercase bg-[#E5B842]/10 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/25 mb-4`}>
             <span className="text-[#E5B842] text-sm">✦</span>
             YOUR QUESTIONS, OUR READINGS
           </div>
 
           <TypewriterHeading />
 
-          <p className="text-base text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mt-3.5 font-light leading-relaxed max-w-xl mx-auto">
+          <p className={`${styles.intro} text-base text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mt-3.5 font-light leading-relaxed max-w-xl mx-auto`}>
             Every question is personal. Explore our readings to find the one that speaks to yours.
           </p>
         </div>
 
-        {/* Give reading titles and format badges enough room on phones. */}
-        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+        {/* One readable column on phones; retain the existing tablet/laptop grid. */}
+        <div className={`${styles.grid} grid grid-cols-1 min-[400px]:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8`}>
           {servicesList.map((service) => (
             <motion.div
               key={service.id}
               layoutId={`reading-card-${service.id}`}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false, amount: 0.2, margin: "-88px 0px -32px 0px" }}
               transition={CARD_TRANSITION}
               onClick={() => setSelectedService(service)}
-              className="relative rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-7 bg-white/80 dark:bg-[#0D1829]/75 backdrop-blur-sm border border-[#E5B842]/25 dark:border-[#E5B842]/20 hover:border-[#E5B842]/60 shadow-[0_4px_20px_rgba(229,184,66,0.06)] dark:shadow-[0_4px_25px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_36px_rgba(229,184,66,0.18)] flex flex-col items-center justify-between text-center cursor-pointer select-none group"
+              className={`${styles.card} relative rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-7 bg-white/80 dark:bg-[#0D1829]/75 backdrop-blur-sm border border-[#E5B842]/25 dark:border-[#E5B842]/20 hover:border-[#E5B842]/60 shadow-[0_4px_20px_rgba(229,184,66,0.06)] dark:shadow-[0_4px_25px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_36px_rgba(229,184,66,0.18)] flex flex-col items-center justify-between text-center cursor-pointer select-none group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E5B842]`}
               whileHover={{ y: -4, scale: 1.015 }}
               whileTap={{ scale: 0.98 }}
               role="button"
@@ -321,7 +332,7 @@ export default function ServicesPreview() {
               <motion.div
                 layoutId={`reading-img-${service.id}`}
                 transition={CARD_TRANSITION}
-                className="relative w-full aspect-square max-w-[150px] sm:max-w-[210px] mx-auto mb-3 sm:mb-4 flex items-center justify-center pointer-events-none"
+                className={`${styles.artwork} relative w-full aspect-square max-w-[150px] sm:max-w-[210px] mx-auto mb-3 sm:mb-4 flex items-center justify-center pointer-events-none`}
               >
                 {service.image_url ? (
                   <Image
@@ -352,12 +363,12 @@ export default function ServicesPreview() {
               </motion.div>
 
               {/* Title */}
-              <h3 className="font-serif text-base lg:text-lg font-normal text-[#0F172A] dark:text-[#FAF8F5] leading-snug mb-1.5 group-hover:text-[#6B3448] dark:group-hover:text-[#E5B842] transition-colors">
+              <h3 className={`${styles.title} font-serif text-base lg:text-lg font-normal text-[#0F172A] dark:text-[#FAF8F5] leading-snug mb-1.5 group-hover:text-[#6B3448] dark:group-hover:text-[#E5B842] transition-colors`}>
                 {service.title}
               </h3>
 
               {/* Format & Duration Badge (Voice call duration vs Text reading) */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium text-[#6B3448] dark:text-[#E5B842] bg-[#E5B842]/10 border border-[#E5B842]/20 mb-2">
+              <div className={`${styles.format} inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium text-[#6B3448] dark:text-[#E5B842] bg-[#E5B842]/10 border border-[#E5B842]/20 mb-2`}>
                 {service.isCall ? (
                   <svg className="w-3 h-3 text-[#B87936] dark:text-[#E5B842] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
@@ -371,12 +382,12 @@ export default function ServicesPreview() {
               </div>
 
               {/* Delicate Celestial Divider */}
-              <div className="w-10 sm:w-12 h-px bg-[#0F172A]/10 dark:bg-[#FAF8F5]/10 my-1 relative flex items-center justify-center">
+              <div className={`${styles.divider} w-10 sm:w-12 h-px bg-[#0F172A]/10 dark:bg-[#FAF8F5]/10 my-1 relative flex items-center justify-center`}>
                 <span className="text-[#E5B842] text-[9px] sm:text-[10px] bg-white/90 dark:bg-[#0D1829] px-1">✦</span>
               </div>
 
               {/* Price Only */}
-              <p className="font-serif text-lg sm:text-2xl font-normal text-[#6B3448] dark:text-[#E5B842] tracking-tight mt-0.5">
+              <p className={`${styles.price} font-serif text-lg sm:text-2xl font-normal text-[#6B3448] dark:text-[#E5B842] tracking-tight mt-0.5`}>
                 {service.price}
               </p>
             </motion.div>
@@ -392,7 +403,7 @@ export default function ServicesPreview() {
           transition={{ duration: 0.5, ease: "easeOut" }}
           whileHover={{ y: -3 }}
           whileTap={{ scale: 0.99 }}
-          className="group relative mt-12 sm:mt-16 w-full block rounded-2xl sm:rounded-3xl p-6 sm:p-7 bg-white/80 dark:bg-[#0D1829]/80 backdrop-blur-md border border-[#E5B842]/30 hover:border-[#E5B842]/70 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
+          className={`${styles.freeReading} group relative mt-12 sm:mt-16 w-full block rounded-2xl sm:rounded-3xl p-6 sm:p-7 bg-white/80 dark:bg-[#0D1829]/80 backdrop-blur-md border border-[#E5B842]/30 hover:border-[#E5B842]/70 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden`}
           aria-label="Explore free Vedic rising sign reading"
         >
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
