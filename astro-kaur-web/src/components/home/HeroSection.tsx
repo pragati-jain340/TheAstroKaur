@@ -75,7 +75,6 @@ export default function HeroSection() {
               once={false}
               variants={variants}
               transition={{ ...itemTransition, delay: 0.05 }}
-              viewOptions={{ amount: 0.2, margin: "-88px 0px -32px 0px" }}
             >
               <h1 className={`${styles.heading} font-serif text-[clamp(1.875rem,8.5vw,2.5rem)] sm:text-5xl lg:text-6xl text-[#0F172A] dark:text-[#FAF8F5] font-normal leading-[1.15] tracking-tight`}>
                 Look to the Stars. <br />
@@ -92,7 +91,6 @@ export default function HeroSection() {
               once={false}
               variants={variants}
               transition={{ ...itemTransition, delay: 0.2 }}
-              viewOptions={{ amount: 0.2, margin: "-88px 0px -32px 0px" }}
             >
               <p className={`${styles.description} text-base sm:text-lg text-[#0F172A]/75 dark:text-[#FAF8F5]/80 max-w-xl mx-auto lg:mx-0 font-light leading-relaxed`}>
                 Your birth chart offers a unique perspective on who you are, the connections you make, and the path you&apos;re navigating.
@@ -105,7 +103,6 @@ export default function HeroSection() {
             once={false}
             variants={variants}
             transition={{ ...itemTransition, delay: 0.35 }}
-            viewOptions={{ amount: 0.2, margin: "-88px 0px -32px 0px" }}
           >
             <div className={`${styles.actions} hero-actions pt-2 flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 justify-center lg:justify-start max-w-xs sm:max-w-none mx-auto lg:mx-0`}>
               <a

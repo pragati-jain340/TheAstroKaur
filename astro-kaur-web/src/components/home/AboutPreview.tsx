@@ -36,7 +36,6 @@ export default function AboutPreview({ initialContent }: { initialContent?: Part
                 duration: 0.65,
                 ease: [0.25, 0.1, 0.25, 1.0] as const,
               }}
-              viewOptions={{ margin: "0px 0px -20px 0px" }}
               once={false}
               className={`${styles.portrait} w-full max-w-[260px] sm:max-w-[290px] lg:max-w-[315px] shrink-0`}
             >
@@ -118,7 +117,6 @@ export default function AboutPreview({ initialContent }: { initialContent?: Part
                 delay: 0.08,
                 ease: [0.25, 0.1, 0.25, 1.0] as const,
               }}
-              viewOptions={{ margin: "0px 0px -20px 0px" }}
               once={false}
               className={`${styles.copy} w-full flex-1 max-w-[560px] flex flex-col items-start text-left`}
             >

@@ -62,6 +62,10 @@ export default function EarlyKindWords() {
   const pageCount = collections.length;
   const currentPage = Math.min(page, pageCount - 1);
   const duration = reduceMotion ? 0 : 0.45;
+  const reveal = {
+    hidden: { opacity: 0, y: 24, transition: { duration: 0 } },
+    visible: { opacity: 1, y: 0, transition: { duration } },
+  };
 
   function changePage(nextPage: number) {
     setPage(nextPage);
@@ -74,7 +78,7 @@ export default function EarlyKindWords() {
   return (
     <section id="early-kind-words" aria-labelledby="early-kind-words-title" className={`${styles.section} relative px-4 py-16 sm:px-6 lg:px-16 lg:py-24`}>
       <div className={`${styles.panel} mx-auto max-w-6xl rounded-[2rem] border border-[#B88B56]/15 bg-[#F8F5EF]/95 p-4 shadow-[0_16px_70px_-45px_#6B344840] sm:p-8 lg:p-12 dark:bg-[#172231]/95`}>
-        <motion.div initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration }} className={`${styles.header} mx-auto mb-2 max-w-2xl text-center`}>
+        <motion.div initial="hidden" animate={reduceMotion ? "visible" : "hidden"} whileInView="visible" variants={reveal} className={`${styles.header} mx-auto mb-2 max-w-2xl text-center`}>
           <p className={`${styles.eyebrow} mb-4 text-[10px] font-semibold tracking-[0.2em] text-[#956A37] sm:text-xs dark:text-[#E5B842]`}>✦ WORDS FROM PAST READINGS ✦</p>
           <h2 id="early-kind-words-title" className={`${styles.heading} font-serif text-3xl font-normal leading-tight tracking-tight text-[#302731] sm:text-4xl lg:text-5xl dark:text-[#FAF8F5]`}>In Their Own Words</h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#77695E] sm:text-base dark:text-[#FAF8F5]/65">A little collection of heartfelt messages and kind words shared along the way.</p>
@@ -118,7 +122,7 @@ export default function EarlyKindWords() {
               event.preventDefault();
               event.stopPropagation();
             }}
-            initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.1 }} transition={{ duration }} className={`${styles.gallery} overflow-hidden rounded-2xl`}>
+            initial="hidden" animate={reduceMotion ? "visible" : "hidden"} whileInView="visible" variants={reveal} className={`${styles.gallery} overflow-hidden rounded-2xl`}>
             {/* Keep all grids mounted so navigation never waits for a reveal
                 sequence or newly mounted images, and the viewport stays stable. */}
             <motion.div initial={false} animate={{ x: reduceMotion ? "0%" : `${currentPage * -100 / pageCount}%` }} transition={{ duration: reduceMotion ? 0 : 0.85, ease: [0.65, 0, 0.35, 1] }} className={reduceMotion ? "grid" : "grid will-change-transform"} style={reduceMotion ? undefined : { width: `${pageCount * 100}%`, gridTemplateColumns: `repeat(${pageCount}, minmax(0, 1fr))` }}>

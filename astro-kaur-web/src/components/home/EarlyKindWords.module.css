@@ -44,7 +44,8 @@
   }
 
   .gallery {
-    overflow: visible;
+    overflow-x: clip;
+    overflow-y: visible;
     clip-path: inset(-4rem 0 0 0);
   }
 
@@ -135,7 +136,8 @@
 
   /* Clip neighbouring slides horizontally while allowing the character above. */
   .gallery {
-    overflow: visible;
+    overflow-x: clip;
+    overflow-y: visible;
     clip-path: inset(-3rem 0 0 0);
     touch-action: pan-y pinch-zoom;
   }

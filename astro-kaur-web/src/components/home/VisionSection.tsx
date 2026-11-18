@@ -8,8 +8,8 @@ function GoldFrame({ side, reduceMotion }: { side: "left" | "right"; reduceMotio
   return (
     <motion.div
       variants={{
-        hidden: { opacity: 0, scaleY: reduceMotion ? 1 : 0.25 },
-        visible: { opacity: 1, scaleY: 1, transition: { duration: reduceMotion ? 0.9 : 1.25, delay: 0.4, ease: [0.22, 1, 0.36, 1] } },
+        hidden: { opacity: 0, scaleY: 0.25, transition: { duration: 0 } },
+        visible: { opacity: 1, scaleY: 1, transition: { duration: reduceMotion ? 0 : 0.85, delay: reduceMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] } },
       }}
       className={`pointer-events-none absolute top-3 bottom-3 hidden w-4 origin-center flex-col items-center text-[#C89B3C] sm:flex dark:text-[#E5B842] ${side === "left" ? "left-0 sm:left-2 md:left-4 lg:left-6" : "right-0 sm:right-2 md:right-4 lg:right-6"}`}
       aria-hidden="true"
@@ -34,12 +34,12 @@ export default function VisionSection({ initialContent }: { initialContent?: Par
   const content: VisionContent = { ...DEFAULT_VISION, ...initialContent };
   const ease = [0.22, 1, 0.36, 1] as const;
   const reveal: Variants = {
-    hidden: { opacity: 0, y: reduceMotion ? 0 : 16 },
-    visible: (delay: number = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.95, delay, ease } }),
+    hidden: { opacity: 0, y: 16, transition: { duration: 0 } },
+    visible: (delay: number = 0) => ({ opacity: 1, y: 0, transition: { duration: reduceMotion ? 0 : 0.65, delay: reduceMotion ? 0 : delay, ease } }),
   };
   const headingReveal: Variants = {
-    hidden: { opacity: 0, y: reduceMotion ? 0 : "105%" },
-    visible: (delay: number = 0) => ({ opacity: 1, y: 0, transition: { duration: 1.15, delay, ease } }),
+    hidden: { opacity: 0, y: "105%", transition: { duration: 0 } },
+    visible: (delay: number = 0) => ({ opacity: 1, y: 0, transition: { duration: reduceMotion ? 0 : 0.75, delay: reduceMotion ? 0 : delay, ease } }),
   };
 
   return (
@@ -50,8 +50,8 @@ export default function VisionSection({ initialContent }: { initialContent?: Par
     >
       <motion.div
         initial="hidden"
+        animate={reduceMotion ? "visible" : "hidden"}
         whileInView="visible"
-        viewport={{ once: false, amount: 0.4, margin: "0px 0px -60px 0px" }}
         className="relative mx-auto w-full max-w-5xl text-center sm:px-14 md:px-20 lg:max-w-[1180px] lg:px-28"
       >
         <GoldFrame side="left" reduceMotion={reduceMotion} />
@@ -62,21 +62,21 @@ export default function VisionSection({ initialContent }: { initialContent?: Par
           </motion.div>
           <h2 id="vision-heading" className="mb-6 max-w-3xl font-serif text-2xl leading-[1.2] font-normal tracking-tight text-[#0F172A] sm:mb-8 sm:text-3xl sm:leading-[1.18] md:text-4xl lg:max-w-4xl lg:text-[2.65rem] dark:text-[#FAF8F5]">
             <span className="block overflow-hidden pb-1">
-              <motion.span variants={headingReveal} custom={0.18} className="block">{content.heading_line_1 || DEFAULT_VISION.heading_line_1}</motion.span>
+              <motion.span variants={headingReveal} custom={0.1} className="block">{content.heading_line_1 || DEFAULT_VISION.heading_line_1}</motion.span>
             </span>
             {content.heading_line_2 && (
               <span className="block overflow-hidden pb-1">
-                <motion.span variants={headingReveal} custom={0.42} className="block">{content.heading_line_2}</motion.span>
+                <motion.span variants={headingReveal} custom={0.2} className="block">{content.heading_line_2}</motion.span>
               </span>
             )}
           </h2>
           {content.paragraph_1 && (
-            <motion.p variants={reveal} custom={0.75} className="mx-auto mb-4 max-w-2xl text-sm leading-relaxed font-light text-[#0F172A]/75 sm:mb-5 sm:max-w-3xl sm:text-base lg:max-w-4xl lg:text-[1.05rem] dark:text-[#FAF8F5]/80">
+            <motion.p variants={reveal} custom={0.3} className="mx-auto mb-4 max-w-2xl text-sm leading-relaxed font-light text-[#0F172A]/75 sm:mb-5 sm:max-w-3xl sm:text-base lg:max-w-4xl lg:text-[1.05rem] dark:text-[#FAF8F5]/80">
               {content.paragraph_1}
             </motion.p>
           )}
           {content.paragraph_2 && (
-            <motion.p variants={reveal} custom={0.95} className="mx-auto max-w-2xl text-sm leading-relaxed font-light text-[#0F172A]/65 sm:max-w-3xl lg:max-w-4xl lg:text-[0.95rem] dark:text-[#FAF8F5]/70">
+            <motion.p variants={reveal} custom={0.4} className="mx-auto max-w-2xl text-sm leading-relaxed font-light text-[#0F172A]/65 sm:max-w-3xl lg:max-w-4xl lg:text-[0.95rem] dark:text-[#FAF8F5]/70">
               {content.paragraph_2}
             </motion.p>
           )}

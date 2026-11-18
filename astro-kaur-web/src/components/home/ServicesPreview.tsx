@@ -192,6 +192,16 @@ const CARD_TRANSITION = {
   mass: 0.75,
 };
 
+const cardReveal = {
+  hidden: { opacity: 0, y: 20, transition: { duration: 0 } },
+  visible: { opacity: 1, y: 0 },
+};
+
+const bannerReveal = {
+  hidden: { opacity: 0, y: 16, transition: { duration: 0 } },
+  visible: { opacity: 1, y: 0 },
+};
+
 const HEADING_TEXT = "Readings for Every Chapter";
 const HEADING_WORDS = HEADING_TEXT.split(" ");
 
@@ -215,11 +225,7 @@ const letterVariants = {
 
 function TypewriterHeading() {
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const headingInView = useInView(headingRef, {
-    once: false,
-    amount: 0.3,
-    margin: "-88px 0px -32px 0px",
-  });
+  const headingInView = useInView(headingRef);
 
   return (
     <motion.h2
@@ -310,9 +316,10 @@ export default function ServicesPreview() {
             <motion.div
               key={service.id}
               layoutId={`reading-card-${service.id}`}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false, amount: 0.2, margin: "-88px 0px -32px 0px" }}
+              initial="hidden"
+              animate="hidden"
+              whileInView="visible"
+              variants={cardReveal}
               transition={CARD_TRANSITION}
               onClick={() => setSelectedService(service)}
               className={`${styles.card} relative rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-7 bg-white/80 dark:bg-[#0D1829]/75 backdrop-blur-sm border border-[#E5B842]/25 dark:border-[#E5B842]/20 hover:border-[#E5B842]/60 shadow-[0_4px_20px_rgba(229,184,66,0.06)] dark:shadow-[0_4px_25px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_36px_rgba(229,184,66,0.18)] flex flex-col items-center justify-between text-center cursor-pointer select-none group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E5B842]`}
@@ -397,9 +404,10 @@ export default function ServicesPreview() {
         {/* ── Free Reading Banner Block (Tasteful, Clean Interactive Pop) ── */}
         <motion.a
           href="/free-reading"
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
+          initial="hidden"
+          animate="hidden"
+          whileInView="visible"
+          variants={bannerReveal}
           transition={{ duration: 0.5, ease: "easeOut" }}
           whileHover={{ y: -3 }}
           whileTap={{ scale: 0.99 }}

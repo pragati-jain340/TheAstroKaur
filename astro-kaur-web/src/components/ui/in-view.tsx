@@ -29,7 +29,7 @@ export function InView({
   children,
   variants = defaultVariants,
   transition = { duration: 0.7, ease: [0.25, 0.1, 0.25, 1.0] },
-  viewOptions = { margin: "0px 0px -40px 0px" },
+  viewOptions,
   once = false,
   className = '',
 }: InViewProps) {

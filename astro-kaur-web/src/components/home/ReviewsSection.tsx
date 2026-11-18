@@ -100,6 +100,7 @@ export default function ReviewsSection() {
   const [reviews, setReviews] = useState<ReviewItem[]>(FALLBACK_REVIEWS);
   const [activeModalReview, setActiveModalReview] = useState<ReviewItem | null>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [hasKeyboardFocus, setHasKeyboardFocus] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const phoneLayout = useMediaQuery("(max-width: 639px)");
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -108,7 +109,7 @@ export default function ReviewsSection() {
   // Leave each phone review still long enough to read, then advance one full card.
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (!container || !phoneLayout || reduceMotion || !carouselInView || isPaused || activeModalReview) return;
+    if (!container || !phoneLayout || reduceMotion || !carouselInView || isPaused || hasKeyboardFocus || activeModalReview) return;
 
     const timer = window.setInterval(() => {
       const card = container.querySelector<HTMLElement>(".snap-start");
@@ -120,9 +121,9 @@ export default function ReviewsSection() {
         left: next > container.scrollWidth - container.clientWidth + 1 ? 0 : next,
         behavior: "smooth",
       });
-    }, 7000);
+    }, 5000);
     return () => window.clearInterval(timer);
-  }, [phoneLayout, reduceMotion, carouselInView, isPaused, activeModalReview, reviews]);
+  }, [phoneLayout, reduceMotion, carouselInView, isPaused, hasKeyboardFocus, activeModalReview]);
 
   // Load live published reviews with real customer avatars
   useEffect(() => {
@@ -185,7 +186,7 @@ export default function ReviewsSection() {
 
   const resumeScrolling = () => {
     if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    scrollTimeoutRef.current = setTimeout(() => setIsPaused(false), 4000);
+    scrollTimeoutRef.current = setTimeout(() => setIsPaused(false), 1000);
   };
 
   useEffect(() => {
@@ -242,8 +243,10 @@ export default function ReviewsSection() {
           }
         }
 
-        .reviews-marquee-track:focus-within {
-          animation-play-state: paused;
+        @media (prefers-reduced-motion: reduce) {
+          .reviews-marquee-track {
+            animation: none;
+          }
         }
       `}</style>
 
@@ -313,10 +316,12 @@ export default function ReviewsSection() {
               onTouchStart={pauseScrolling}
               onTouchEnd={resumeScrolling}
               onTouchCancel={resumeScrolling}
-              onFocusCapture={pauseScrolling}
-              onBlurCapture={resumeScrolling}
+              onFocusCapture={event => setHasKeyboardFocus(event.target.matches(":focus-visible"))}
+              onBlurCapture={event => {
+                if (!event.currentTarget.contains(event.relatedTarget)) setHasKeyboardFocus(false);
+              }}
               className="flex w-max reviews-marquee-track"
-              style={isPaused || activeModalReview ? { animationPlayState: "paused" } : undefined}
+              style={isPaused || hasKeyboardFocus || activeModalReview ? { animationPlayState: "paused" } : undefined}
             >
               {/* Primary Track */}
               <div className={`${styles.group} flex shrink-0 gap-6 pr-6`}>
