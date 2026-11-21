@@ -4,6 +4,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SubpageBackground from "@/components/layout/SubpageBackground";
 import PolicyContact from "@/components/legal/PolicyContact";
+import styles from "@/components/legal/PolicyPage.module.css";
 import { POLICY_UPDATED_DATE } from "@/lib/legal/details";
 
 export const metadata: Metadata = {
@@ -16,14 +17,14 @@ const section = "space-y-3 border-t border-[#0F172A]/10 pt-6 dark:border-[#FAF8F
 export default function CancellationPolicyPage() {
   return <div className="relative flex min-h-screen flex-col justify-between bg-[#FAF8F5] text-[#0F172A] dark:bg-[#0F172A] dark:text-[#FAF8F5]">
     <SubpageBackground /><Navbar />
-    <main className="relative z-10 flex-1 px-4 pb-20 pt-28 sm:px-6 sm:pb-28 sm:pt-36 lg:px-8">
-      <div className="mx-auto max-w-4xl"><article className="rounded-2xl border border-[#0F172A]/10 bg-white/90 p-6 shadow-[0_12px_45px_rgba(229,184,66,0.06)] backdrop-blur-md dark:border-[#E5B842]/20 dark:bg-[#0D1829]/90 sm:rounded-3xl sm:p-12 lg:p-16">
-        <header className="mb-8 border-b border-[#0F172A]/10 pb-8 dark:border-[#FAF8F5]/10">
+    <main className={`${styles.main} relative z-10 flex-1 px-4 pb-20 pt-28 sm:px-6 sm:pb-28 sm:pt-36 lg:px-8`}>
+      <div className="mx-auto max-w-4xl"><article className={`${styles.article} rounded-2xl border border-[#0F172A]/10 bg-white/90 p-6 shadow-[0_12px_45px_rgba(229,184,66,0.06)] backdrop-blur-md dark:border-[#E5B842]/20 dark:bg-[#0D1829]/90 sm:rounded-3xl sm:p-12 lg:p-16`}>
+        <header className={`${styles.header} mb-8 border-b border-[#0F172A]/10 pb-8 dark:border-[#FAF8F5]/10`}>
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#6B3448] dark:text-[#E5B842]">TheAstroKaur | Legal</p>
           <h1 className="mb-4 font-serif text-3xl font-normal tracking-tight sm:text-4xl lg:text-5xl">Cancellation &amp; Refund Policy</h1>
-          <p className="text-sm text-[#0F172A]/60 dark:text-[#FAF8F5]/60">Last updated: {POLICY_UPDATED_DATE}</p>
+          <p className="text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60 sm:text-sm">Last updated: {POLICY_UPDATED_DATE}</p>
         </header>
-        <div className="space-y-8 text-sm font-light leading-relaxed text-[#0F172A]/80 dark:text-[#FAF8F5]/80 sm:text-base">
+        <div className={`${styles.body} space-y-8 text-sm font-light leading-relaxed text-[#0F172A]/80 dark:text-[#FAF8F5]/80 sm:text-base`}>
           <section className="space-y-3"><h2 className={heading}>1. Non-refundable bookings</h2>
             <p>Bookings are non-refundable as a voluntary policy, subject to rights required by law and any exception expressly approved by the owner. Changing your mind or cancelling an appointment does not itself create a voluntary refund entitlement.</p>
             <p>This policy does not remove statutory withdrawal rights, rights where a service is not delivered as agreed, or any other mandatory consumer remedy. A valid legal entitlement does not depend on discretionary approval.</p>
@@ -59,7 +60,7 @@ export default function CancellationPolicyPage() {
           <section className={section}><h2 className={heading}>7. Statutory withdrawal and consumer rights</h2>
             <p>For eligible online consumer service contracts, a statutory withdrawal period is generally 14 days from conclusion of the contract, subject to applicable law and exceptions. This right is different from our voluntary refund policy and from simply releasing a call slot.</p>
             <p>To exercise an applicable right, send a clear statement identifying the contract and your decision to withdraw using our contact details below or another legally valid method. A reason and discretionary approval are not required. The following notice wording is optional:</p>
-            <blockquote className="space-y-2 rounded-xl border border-[#E5B842]/25 bg-[#FAF8F5] p-4 dark:bg-[#131F33]">
+            <blockquote className="space-y-2 rounded-xl border border-[#E5B842]/25 bg-[#FAF8F5] p-3 dark:bg-[#131F33] sm:p-4">
               <p>I hereby withdraw from my contract for the following service:</p>
               <p>Service and booking reference:</p><p>Order date:</p><p>Name and contact email:</p><p>Date of this notice:</p>
             </blockquote>
@@ -70,7 +71,11 @@ export default function CancellationPolicyPage() {
           <section className={section}><h2 className={heading}>8. Contact and related policies</h2>
             <p>For an existing order, use Get help with this booking in your account to open support with the booking reference included. You can also use the general contact form for booking, privacy or statutory-rights enquiries.</p>
             <PolicyContact />
-            <p className="flex flex-wrap gap-x-4 gap-y-2"><Link href="/terms-of-service" className="underline underline-offset-4">Terms of Service</Link><Link href="/privacy-policy" className="underline underline-offset-4">Privacy Policy</Link><Link href="/disclaimer" className="underline underline-offset-4">Astrology Disclaimer</Link></p>
+            <nav aria-label="Related policies" className="grid gap-y-2 sm:flex sm:flex-wrap sm:gap-x-4">
+              <Link href="/terms-of-service" className="underline underline-offset-4">Terms of Service</Link>
+              <Link href="/privacy-policy" className="underline underline-offset-4">Privacy Policy</Link>
+              <Link href="/disclaimer" className="underline underline-offset-4">Astrology Disclaimer</Link>
+            </nav>
           </section>
         </div>
       </article></div>

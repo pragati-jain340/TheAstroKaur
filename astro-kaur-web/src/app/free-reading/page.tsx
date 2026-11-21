@@ -15,7 +15,7 @@ export default function FreeReadingPage() {
       <SubpageBackground />
 
       <Navbar />
-      <main className="flex-1 flex flex-col relative z-10 pt-6">
+      <main className="flex-1 flex flex-col relative z-10">
         <RisingSignSection />
       </main>
       <Footer />

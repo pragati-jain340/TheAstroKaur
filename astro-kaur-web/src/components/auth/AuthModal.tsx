@@ -367,11 +367,13 @@ export default function AuthModal() {
     <Dialog open onOpenChange={(open) => { if (!open) closeAuthModal(); }}>
       <DialogContent
         aria-describedby={undefined}
-        className="flex max-h-[min(42rem,calc(100dvh-2rem))] max-w-[calc(100%-1.5rem)] flex-col gap-0 overflow-hidden rounded-2xl border-[#E5B842]/35 bg-[#FAF8F5] p-0 text-[#0F172A] dark:bg-[#0D1829] dark:text-[#FAF8F5] sm:max-h-[min(42rem,calc(100dvh-4rem))] sm:max-w-md"
+        data-auth-tab={authModalTab}
+        overlayClassName="max-sm:bg-black/25"
+        className="flex max-h-[min(42rem,calc(100dvh-2rem))] max-w-[min(24rem,calc(100%-1.5rem))] flex-col gap-0 overflow-hidden rounded-2xl border-[#E5B842]/35 bg-[#FAF8F5] p-0 text-[#0F172A] dark:bg-[#0D1829] dark:text-[#FAF8F5] min-[320px]:max-sm:w-[calc(100%-3rem)] max-sm:data-[auth-tab=signup]:max-h-[min(34rem,calc(100dvh-2rem))] sm:max-h-[min(42rem,calc(100dvh-4rem))] sm:max-w-md max-sm:[&>[data-slot=dialog-close]]:top-1 max-sm:[&>[data-slot=dialog-close]]:right-1 max-sm:[&>[data-slot=dialog-close]]:grid max-sm:[&>[data-slot=dialog-close]]:size-11 max-sm:[&>[data-slot=dialog-close]]:place-items-center"
       >
         {/* Brand Emblem Logo Header */}
-        <div className="flex shrink-0 items-center justify-center gap-3 px-8 pb-3 pt-4 text-left sm:pb-4 sm:pt-5">
-          <div className="relative h-11 w-11 shrink-0">
+        <div className="flex shrink-0 items-center justify-center gap-2 px-11 pb-2 pt-3 text-left sm:gap-3 sm:px-8 sm:pb-4 sm:pt-5">
+          <div className="relative size-9 shrink-0 sm:size-11">
             <Image
               src="/astro-emblem-light.png?v=6"
               alt="TheAstroKaur"
@@ -388,7 +390,7 @@ export default function AuthModal() {
             />
           </div>
           <div>
-            <DialogTitle className="font-serif text-xl font-medium tracking-tight">
+            <DialogTitle className="font-serif text-lg font-medium tracking-tight sm:text-xl">
               TheAstroKaur
             </DialogTitle>
             <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6B3448] dark:text-[#E5B842]">
@@ -410,7 +412,7 @@ export default function AuthModal() {
             formScrollRef.current?.scrollTo({ top: 0 });
           }}
         >
-          <TabsList className="mx-4 mb-4 grid h-10 w-auto shrink-0 grid-cols-2 bg-secondary sm:mx-6">
+          <TabsList className="mx-4 mb-3 grid h-10 w-auto shrink-0 grid-cols-2 bg-secondary sm:mx-6 sm:mb-4">
             <TabsTrigger disabled={submitting} value="signin" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground dark:data-[state=active]:bg-primary dark:data-[state=active]:text-primary-foreground">
               Sign In
             </TabsTrigger>
@@ -419,7 +421,7 @@ export default function AuthModal() {
             </TabsTrigger>
           </TabsList>
 
-          <div ref={formScrollRef} className="min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-4 sm:px-6 [scrollbar-gutter:stable]">
+          <div ref={formScrollRef} className="min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-3 sm:px-6 sm:pb-4 sm:[scrollbar-gutter:stable]">
             {/* Feedback Messages */}
             {errorMsg && (
               <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs">
@@ -435,7 +437,7 @@ export default function AuthModal() {
             {/* ── TAB: SIGN IN ── */}
             <TabsContent value="signin">
               {signInView === "signin" && (
-                <form onSubmit={handleSignIn} className="space-y-4">
+                <form onSubmit={handleSignIn} className="space-y-3 sm:space-y-4">
                   <div>
                     <label htmlFor="auth-field-1" className="block text-xs font-medium uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                       Email Address
@@ -452,8 +454,8 @@ export default function AuthModal() {
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-medium uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70">
+                    <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-2">
+                      <label htmlFor="auth-signin-password" className="block text-xs font-medium uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70">
                         Password
                       </label>
                       <Button
@@ -465,13 +467,14 @@ export default function AuthModal() {
                           setErrorMsg(null);
                           setSuccessMsg(null);
                         }}
-                        className="h-auto p-0 text-[11px] font-medium text-[#6B3448] dark:text-[#E5B842] hover:underline"
+                        className="h-auto p-0 text-[11px] font-medium text-[#6B3448] dark:text-[#E5B842] hover:underline max-sm:min-h-6"
                       >
                         Forgot password?
                       </Button>
                     </div>
                     <div className="relative">
                       <Input
+                        id="auth-signin-password"
                         type={showPassword ? "text" : "password"}
                         required
                         value={password}
@@ -489,7 +492,7 @@ export default function AuthModal() {
                   <Button
                     type="submit"
                     disabled={submitting}
-                    className="w-full mt-2 py-3 rounded-full bg-gradient-to-r from-[#E5B842] via-[#F3CE6D] to-[#E5B842] hover:opacity-95 text-[#0F172A] font-bold text-xs tracking-widest uppercase shadow-[0_4px_16px_rgba(229,184,66,0.35)] transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+                    className="w-full mt-1 py-3 rounded-full bg-gradient-to-r from-[#E5B842] via-[#F3CE6D] to-[#E5B842] hover:opacity-95 text-[#0F172A] font-bold text-xs tracking-widest uppercase shadow-[0_4px_16px_rgba(229,184,66,0.35)] transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer max-sm:h-11 sm:mt-2"
                   >
                     {submitting ? "Signing in..." : "Sign In"}
                   </Button>
@@ -523,7 +526,7 @@ export default function AuthModal() {
                   <Button
                     type="submit"
                     disabled={submitting}
-                    className="w-full py-3 rounded-full bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] font-bold text-xs tracking-widest uppercase shadow-md transition-all disabled:opacity-60 cursor-pointer"
+                    className="w-full py-3 rounded-full bg-[#E5B842] text-[#0F172A] hover:bg-[#F3CE6D] font-bold text-xs tracking-widest uppercase shadow-md transition-all disabled:opacity-60 cursor-pointer max-sm:h-11"
                   >
                     {submitting ? "Sending Code…" : "Send Verification Code"}
                   </Button>
@@ -649,8 +652,8 @@ export default function AuthModal() {
             {/* ── TAB: CREATE ACCOUNT ── */}
             <TabsContent value="signup">
               {signupStep === "details" && (
-                <form id="auth-signup-details" onSubmit={handleRequestSignUpOtp} className="space-y-3.5">
-                  <div className="grid min-w-0 gap-3.5">
+                <form id="auth-signup-details" onSubmit={handleRequestSignUpOtp} className="space-y-3 sm:space-y-3.5">
+                  <div className="grid min-w-0 gap-3 sm:gap-3.5">
                     <div>
                       <label htmlFor="auth-field-2" className="block text-xs font-medium uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                         Full Name <span className="text-red-500">*</span>
@@ -704,11 +707,12 @@ export default function AuthModal() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
+                    <label htmlFor="auth-signup-password" className="block text-xs font-medium uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1">
                       Create Password <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <Input
+                        id="auth-signup-password"
                         type={showPassword ? "text" : "password"}
                         required
                         value={password}
@@ -818,7 +822,7 @@ export default function AuthModal() {
                           </Button>
                         )}
 
-                        <div className="grid w-full min-w-0 grid-cols-3 gap-1.5 sm:grid-cols-6">
+                        <div className="grid w-full min-w-0 grid-cols-3 gap-1.5 min-[390px]:grid-cols-6">
                           {CELESTIAL_AVATARS.map((av) => {
                             const active = !customAvatarPreview && selectedAvatar === av.id;
                             return (
@@ -827,12 +831,14 @@ export default function AuthModal() {
                                 type="button"
                                 variant={active ? "secondary" : "outline"}
                                 size="sm"
+                                aria-label={av.label}
+                                aria-pressed={active}
                                 onClick={() => {
                                   setCustomAvatarBlob(null);
                                   setCustomAvatarPreview(null);
                                   setSelectedAvatar(av.id);
                                 }}
-                                className={`h-10 min-w-0 rounded-xl p-0 sm:h-8 ${
+                                className={`h-11 min-w-0 rounded-xl p-0 sm:h-8 ${
                                   active ? "border-[#E5B842] bg-[#E5B842]/20 scale-105" : ""
                                 }`}
                                 title={`${av.label} — ${av.meaning}`}
@@ -991,7 +997,7 @@ export default function AuthModal() {
           </div>
         </Tabs>
 
-        <div className="shrink-0 border-t border-[#0F172A]/10 px-4 pb-4 pt-3 dark:border-white/10 sm:px-6 sm:pb-5 sm:pt-4">
+        <div className="shrink-0 border-t border-[#0F172A]/10 px-4 py-2.5 dark:border-white/10 sm:px-6 sm:pb-5 sm:pt-4">
           {authModalTab === "signup" && (
             <Button
               type="submit"
@@ -1005,7 +1011,7 @@ export default function AuthModal() {
             </Button>
           )}
           {/* Footer Note */}
-          <p className="mt-3 text-center text-[11px] text-[#0F172A]/60 dark:text-[#FAF8F5]/60">
+          <p className="mt-2 text-center text-[11px] text-[#0F172A]/60 dark:text-[#FAF8F5]/60 max-sm:first:mt-0 sm:mt-3">
             By continuing, you agree to our{" "}
             <a
               href="/terms-of-service"

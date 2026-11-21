@@ -46,11 +46,10 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div className="min-w-0 md:col-span-3">
-            <h4 className="text-xs font-semibold tracking-widest uppercase text-[#6B3448] dark:text-[#E5B842] mb-4">
+          <nav aria-labelledby="footer-explore" className={`${styles.linkGroup} min-w-0 md:col-span-3`}>
+            <h2 id="footer-explore" className={`${styles.groupHeading} mb-4 text-xs font-semibold tracking-widest text-[#6B3448] uppercase dark:text-[#E5B842]`}>
               Explore
-            </h4>
+            </h2>
             <ul className="space-y-2.5 text-sm text-[#0F172A]/75 dark:text-[#FAF8F5]/75 font-light">
               <li>
                 <Link href="/" className="hover:text-[#E5B842] transition-colors">
@@ -78,13 +77,12 @@ export default function Footer() {
                 </a>
               </li>
             </ul>
-          </div>
+          </nav>
 
-          {/* Legal Links */}
-          <div className="min-w-0 md:col-span-4">
-            <h4 className="text-xs font-semibold tracking-widest uppercase text-[#6B3448] dark:text-[#E5B842] mb-4">
+          <nav aria-labelledby="footer-policies" className={`${styles.linkGroup} min-w-0 md:col-span-4`}>
+            <h2 id="footer-policies" className={`${styles.groupHeading} mb-4 text-xs font-semibold tracking-widest text-[#6B3448] uppercase dark:text-[#E5B842]`}>
               Legal &amp; Policies
-            </h4>
+            </h2>
             <ul className="space-y-2.5 text-sm text-[#0F172A]/75 dark:text-[#FAF8F5]/75 font-light">
               <li>
                 <a href="/privacy-policy" className="hover:text-[#E5B842] transition-colors">
@@ -107,13 +105,13 @@ export default function Footer() {
                 </a>
               </li>
             </ul>
-          </div>
+          </nav>
         </div>
 
         {/* Bottom Bar: Copyright & Astrological Note */}
         <div className={`${styles.bottom} pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#0F172A]/55 dark:text-[#FAF8F5]/55 font-light`}>
-          <p>© {new Date().getFullYear()} TheAstroKaur. All rights reserved.</p>
-          <p className="text-center sm:text-right">
+          <p className={styles.copyright}>© {new Date().getFullYear()} TheAstroKaur. All rights reserved.</p>
+          <p className={`${styles.note} text-center sm:text-right`}>
             Astrological insights are offered for self-awareness, reflection, and conscious living.
           </p>
         </div>

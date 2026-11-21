@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { motion, useInView } from "motion/react";
+import { motion } from "motion/react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/lib/supabase/types";
 import { useAuth } from "@/context/AuthContext";
+import { useMediaQuery } from "@/components/ui/use-media-query";
+import { useSectionReveal } from "./useSectionReveal";
 import styles from "./ServicesPreview.module.css";
 
 export interface ReadingServiceItem {
@@ -207,6 +209,7 @@ const HEADING_WORDS = HEADING_TEXT.split(" ");
 
 const sentenceVariants = {
   hidden: { transition: { delayChildren: 0, staggerChildren: 0 } },
+  reduced: { transition: { delayChildren: 0, staggerChildren: 0 } },
   visible: {
     transition: {
       delayChildren: 0.15, // Brief settling delay once entered viewport
@@ -217,6 +220,7 @@ const sentenceVariants = {
 
 const letterVariants = {
   hidden: { opacity: 0, transition: { duration: 0, delay: 0 } },
+  reduced: { opacity: 1, transition: { duration: 0, delay: 0 } },
   visible: {
     opacity: 1,
     transition: { duration: 0.01 },
@@ -224,35 +228,39 @@ const letterVariants = {
 };
 
 function TypewriterHeading() {
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const headingInView = useInView(headingRef);
+  const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const { revealed, setRevealed, revealRun } = useSectionReveal("readings", reduceMotion);
 
   return (
-    <motion.h2
-      ref={headingRef}
-      initial="hidden"
-      animate={headingInView ? "visible" : "hidden"}
-      variants={sentenceVariants}
-      className={`${styles.heading} font-serif text-3xl sm:text-4xl lg:text-5xl text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight text-center`}
-      aria-label={HEADING_TEXT}
-    >
-      {HEADING_WORDS.map((word, wordIndex) => (
-        <span key={wordIndex} className="inline-block whitespace-nowrap">
-          {word.split("").map((char, charIndex) => (
-            <motion.span
-              key={charIndex}
-              variants={letterVariants}
-              aria-hidden="true"
-            >
-              {char}
-            </motion.span>
-          ))}
-          {wordIndex < HEADING_WORDS.length - 1 && (
-            <span aria-hidden="true">&nbsp;</span>
-          )}
-        </span>
-      ))}
-    </motion.h2>
+    <motion.div onViewportLeave={() => setRevealed(false)}>
+      <motion.h2
+        key={revealRun}
+        initial="hidden"
+        animate={reduceMotion ? "reduced" : revealed ? "visible" : "hidden"}
+        variants={sentenceVariants}
+        viewport={{ margin: "-80px 0px -112px 0px" }}
+        onViewportEnter={() => setRevealed(true)}
+        className={`${styles.heading} font-serif text-3xl sm:text-4xl lg:text-5xl text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight text-center`}
+        aria-label={HEADING_TEXT}
+      >
+        {HEADING_WORDS.map((word, wordIndex) => (
+          <span key={wordIndex} className="inline-block whitespace-nowrap">
+            {word.split("").map((char, charIndex) => (
+              <motion.span
+                key={charIndex}
+                variants={letterVariants}
+                aria-hidden="true"
+              >
+                {char}
+              </motion.span>
+            ))}
+            {wordIndex < HEADING_WORDS.length - 1 && (
+              <span aria-hidden="true">&nbsp;</span>
+            )}
+          </span>
+        ))}
+      </motion.h2>
+    </motion.div>
   );
 }
 
@@ -293,7 +301,7 @@ export default function ServicesPreview() {
   return (
     <section
       id="readings"
-      className="scroll-mt-28 sm:scroll-mt-32 pt-8 lg:pt-12 pb-20 lg:pb-28 px-4 sm:px-6 lg:px-16 bg-transparent relative overflow-hidden"
+      className={`${styles.section} scroll-mt-28 sm:scroll-mt-32 pt-8 lg:pt-12 pb-20 lg:pb-28 px-4 sm:px-6 lg:px-16 bg-transparent relative overflow-hidden`}
     >
       <div className="max-w-7xl mx-auto">
         {/* ── Section Header ── */}
@@ -449,19 +457,23 @@ export default function ServicesPreview() {
 
       {selectedService && (
         <Dialog open onOpenChange={(open) => { if (!open) setSelectedService(null); }}>
-          <DialogContent aria-describedby={undefined} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border-[#E5B842]/35 bg-[#FFFDF9] p-6 text-[#0F172A] dark:bg-[#0D1829] dark:text-[#FAF8F5] sm:max-w-lg sm:p-8">
+          <DialogContent
+            aria-describedby={undefined}
+            overlayClassName="max-sm:bg-black/25"
+            className={`${styles.readingDialog} block max-h-[80dvh] overflow-y-auto rounded-2xl border-[#E5B842]/35 bg-[#FFFDF9] p-4 text-[#0F172A] dark:bg-[#0D1829] dark:text-[#FAF8F5] max-sm:w-[calc(100%-3rem)] max-sm:max-w-md sm:max-h-[calc(100dvh-2rem)] sm:max-w-lg sm:p-8`}
+          >
               {/* Prominent Celestial Artwork */}
               <motion.div
                 layoutId={`reading-img-${selectedService.id}`}
                 transition={CARD_TRANSITION}
-                className="relative w-full max-w-[210px] sm:max-w-[250px] aspect-square mx-auto my-1.5 sm:my-2.5 flex items-center justify-center pointer-events-none"
+                className="relative w-full max-w-32 sm:max-w-[250px] aspect-square mx-auto my-1.5 sm:my-2.5 flex items-center justify-center pointer-events-none"
               >
                 {selectedService.image_url ? (
                   <Image
                     src={selectedService.image_url}
                     alt={selectedService.title}
                     fill
-                    sizes="260px"
+                    sizes="(max-width: 639px) 128px, 260px"
                     className="object-contain"
                     priority
                   />
@@ -471,7 +483,7 @@ export default function ServicesPreview() {
                       src={`/readings_logo/${selectedService.slug}-light.webp`}
                       alt={selectedService.title}
                       fill
-                      sizes="260px"
+                      sizes="(max-width: 639px) 128px, 260px"
                       className="object-contain dark:hidden"
                       priority
                     />
@@ -479,7 +491,7 @@ export default function ServicesPreview() {
                       src={`/readings_logo/${selectedService.slug}-dark.webp`}
                       alt={selectedService.title}
                       fill
-                      sizes="260px"
+                      sizes="(max-width: 639px) 128px, 260px"
                       className="object-contain hidden dark:block"
                       priority
                     />
@@ -495,9 +507,9 @@ export default function ServicesPreview() {
                 transition={{ duration: 0.18, ease: "easeOut" }}
               >
                 {/* Title & Format Badge */}
-                <div className="text-center mb-3">
+                <div className="text-center mb-2 sm:mb-3">
                   <DialogTitle
-                    className="font-serif text-2xl sm:text-[1.7rem] font-normal text-[#0F172A] dark:text-[#FAF8F5] tracking-tight mb-2"
+                    className="font-serif text-xl sm:text-[1.7rem] font-normal text-[#0F172A] dark:text-[#FAF8F5] tracking-tight mb-2"
                   >
                     {selectedService.title}
                   </DialogTitle>
@@ -517,12 +529,12 @@ export default function ServicesPreview() {
                 </div>
 
                 {/* Description */}
-                <p className="text-xs sm:text-sm text-[#0F172A]/75 dark:text-[#FAF8F5]/75 text-center font-light leading-relaxed max-w-sm mx-auto mb-6">
+                <p className="text-xs sm:text-sm text-[#0F172A]/75 dark:text-[#FAF8F5]/75 text-center font-light leading-relaxed max-w-sm mx-auto mb-4 sm:mb-6">
                   {selectedService.description}
                 </p>
 
                 {/* Bottom Price & Booking CTA */}
-                <div className="pt-4 border-t border-[#0F172A]/10 dark:border-[#FAF8F5]/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <div className="pt-3 sm:pt-4 border-t border-[#0F172A]/10 dark:border-[#FAF8F5]/10 flex flex-col min-[320px]:flex-row items-stretch min-[320px]:items-center justify-between gap-3 sm:gap-4">
                   <div>
                     <p className="text-[10px] uppercase tracking-widest text-[#0F172A]/50 dark:text-[#FAF8F5]/50">
                       PRICE
@@ -535,7 +547,7 @@ export default function ServicesPreview() {
                   {!isAdmin && !authLoading && <Button size="lg"
                     type="button"
                     onClick={() => handleBook(selectedService)}
-                    className="inline-flex items-center justify-center gap-2 px-7 sm:px-8 py-3 rounded-full bg-gradient-to-r from-[#B87936] via-[#E5B842] to-[#B87936] bg-[length:200%_auto] hover:bg-right text-[#070D18] font-bold text-xs sm:text-sm tracking-wider uppercase transition-all duration-300 shadow-[0_4px_16px_rgba(229,184,66,0.35)] hover:shadow-[0_6px_22px_rgba(229,184,66,0.55)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 px-3 sm:px-8 py-3 rounded-full bg-gradient-to-r from-[#B87936] via-[#E5B842] to-[#B87936] bg-[length:200%_auto] hover:bg-right text-[#070D18] font-bold text-xs sm:text-sm tracking-wider uppercase transition-all duration-300 shadow-[0_4px_16px_rgba(229,184,66,0.35)] hover:shadow-[0_6px_22px_rgba(229,184,66,0.55)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer max-sm:min-h-11"
                   >
                     <span>Book This Reading</span>
                     <span>→</span>

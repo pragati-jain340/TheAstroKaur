@@ -4,12 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import { ASCENDANT_READINGS } from "@/lib/astrology/ascendantData";
 import { DEFAULT_FREE_READING_CONTENT, FreeReadingContent } from "@/lib/astrology/freeReadingContent";
 import ZodiacIcon from "@/components/ui/ZodiacIcon";
+import styles from "./RisingSignSection.module.css";
+
+const RESULT_CARD_CLASS = "space-y-3 rounded-2xl border border-[#0F172A]/10 bg-white/90 p-4 shadow-sm dark:border-white/10 dark:bg-[#131F33] sm:space-y-4 sm:rounded-3xl sm:bg-white/80 sm:p-8 sm:dark:bg-[#0F172A]/50";
+const BIRTH_INPUT_CLASS = "min-h-11 w-full rounded-xl border border-[#0F172A]/15 bg-white px-3 py-2 text-base text-[#0F172A] transition-colors focus:border-[#E5B842] focus:outline-none dark:border-[#FAF8F5]/15 dark:bg-[#0F172A]/70 dark:text-[#FAF8F5] sm:px-4 sm:py-3 sm:text-sm";
 
 interface PlaceSuggestion {
   id: number | string;
@@ -43,9 +49,23 @@ export default function RisingSignSection() {
   const [savedReading, setSavedReading] = useState<SavedReading | null>(null);
   const [adminTestingMode, setAdminTestingMode] = useState(false);
   const [pageContent, setPageContent] = useState<FreeReadingContent>(DEFAULT_FREE_READING_CONTENT);
+  const resultHeadingRef = useRef<HTMLHeadingElement>(null);
+  const revealNewResult = useRef(false);
 
   // Admin controls belong only to the signed-in user's own admin profile.
   const isEffectiveAdmin = Boolean(user && isAdmin && profile?.auth_user_id === user.id);
+  const visibleReading = user && !checkingEligibility && (alreadyClaimed || (isEffectiveAdmin && !adminTestingMode))
+    ? savedReading
+    : null;
+
+  useEffect(() => {
+    const heading = resultHeadingRef.current;
+    if (!visibleReading || !revealNewResult.current || !heading) return;
+
+    revealNewResult.current = false;
+    heading.focus({ preventScroll: true });
+    heading.scrollIntoView({ block: "start", behavior: "instant" });
+  }, [visibleReading]);
 
   useEffect(() => {
     fetch("/api/content")
@@ -348,6 +368,7 @@ export default function RisingSignSection() {
       }
 
       if (data.reading) {
+        revealNewResult.current = true;
         setSavedReading(data.reading);
         if (isEffectiveAdmin) {
           setAdminTestingMode(false);
@@ -370,70 +391,101 @@ export default function RisingSignSection() {
   return (
     <section
       id="free-reading"
-      className="scroll-mt-28 sm:scroll-mt-32 py-16 lg:py-24 px-4 sm:px-6 lg:px-16 relative overflow-hidden"
+      aria-labelledby="free-reading-title"
+      className="relative scroll-mt-28 px-5 pt-4 pb-8 sm:scroll-mt-32 sm:px-6 sm:py-9 lg:px-10 lg:py-12"
     >
-      <div className="max-w-4xl mx-auto">
-        {/* Header Badge & Title */}
-        <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-14">
-          <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight">
-            {pageContent.section_heading}
-          </h2>
-          <p className="text-sm sm:text-base text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mt-3 font-light leading-relaxed">
-            {pageContent.section_intro}
-          </p>
-          {!isEffectiveAdmin && (
-            <div className="inline-block mt-3 text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60 bg-black/5 dark:bg-white/5 px-3 py-1 rounded-full">
-              {pageContent.eligibility_note}
-            </div>
-          )}
-        </div>
+      <div
+        data-reading-layout={user ? "member" : "guest"}
+        className={`${styles.layout} mx-auto max-w-lg [overflow-wrap:anywhere] sm:max-w-4xl`}
+      >
+        <header className={styles.hero}>
+          <div className={styles.illustration} aria-hidden="true">
+            <Image
+              src="/astrology-wheel-light.svg"
+              alt=""
+              fill
+              className="object-contain dark:hidden"
+              unoptimized
+            />
+            <Image
+              src="/astrology-wheel-dark.svg"
+              alt=""
+              fill
+              className="hidden object-contain dark:block"
+              unoptimized
+            />
+          </div>
+          <div className={styles.heroCopy}>
+            <h1 id="free-reading-title" className={`${styles.title} font-serif font-normal tracking-tight`}>
+              {pageContent.section_heading}
+            </h1>
+            <p className={`${styles.intro} text-[#0F172A]/75 dark:text-[#FAF8F5]/75 ${user ? "" : "hidden sm:block"}`}>
+              {pageContent.section_intro}
+            </p>
+            {!isEffectiveAdmin && (
+              <p className={`${styles.eligibility} text-[#6B3448] dark:text-[#F3D88E]`}>
+                <Sparkles aria-hidden="true" className="mr-1 inline size-3.5 align-[-2px]" />
+                {pageContent.eligibility_note}
+              </p>
+            )}
+          </div>
+        </header>
 
         {/* Main Card Container */}
-        <div className="bg-white/90 dark:bg-[#1E293B]/85 backdrop-blur-md border border-[#E5B842]/35 rounded-3xl p-6 sm:p-10 shadow-xl relative overflow-hidden transition-all duration-300">
+        <div
+          data-reading-view={visibleReading ? "result" : undefined}
+          className={`${styles.panel} relative min-w-0 rounded-2xl border border-[#E5B842]/35 bg-white/90 p-4 shadow-sm backdrop-blur-md dark:bg-[#1E293B]/85 sm:rounded-3xl sm:p-10 sm:shadow-xl`}
+        >
           {/* Subtle Ambient Glows */}
-          <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-br from-[#E5B842]/15 to-transparent rounded-bl-full pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-36 h-36 bg-gradient-to-tr from-[#6B3448]/10 dark:from-[#E5B842]/10 to-transparent rounded-tr-full pointer-events-none" />
+          <div aria-hidden="true" className={`${styles.glow} pointer-events-none absolute top-0 right-0 size-20 rounded-tr-[inherit] rounded-bl-full bg-gradient-to-br from-[#E5B842]/15 to-transparent sm:size-36`} />
+          <div aria-hidden="true" className={`${styles.glow} pointer-events-none absolute bottom-0 left-0 hidden size-36 rounded-tr-full rounded-bl-[inherit] bg-gradient-to-tr from-[#6B3448]/10 to-transparent dark:from-[#E5B842]/10 sm:block`} />
 
           {/* ──────────────── CASE 1: USER IS NOT LOGGED IN ──────────────── */}
           {!user && (
-            <div className="text-center py-8 sm:py-12 space-y-6">
-              <div className="w-16 h-16 mx-auto rounded-full bg-[#E5B842]/20 border border-[#E5B842]/50 flex items-center justify-center text-3xl shadow-sm">
-                🔒
-              </div>
-              <div className="max-w-md mx-auto">
-                <h3 className="font-serif text-2xl sm:text-3xl text-[#0F172A] dark:text-[#FAF8F5] font-normal">
+            <div className={styles.access}>
+              <div className="hidden sm:block">
+                <h2 className={`${styles.accessTitle} font-serif font-normal`}>
                   {pageContent.sign_in_heading}
-                </h3>
-                <p className="text-sm text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mt-2 font-light leading-relaxed">
+                </h2>
+                <p className={`${styles.accessDescription} text-sm text-[#0F172A]/75 dark:text-[#FAF8F5]/75`}>
                   {pageContent.sign_in_description}
                 </p>
               </div>
 
-              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <div className={styles.accessActions}>
                 <Button
                   type="button"
                   size="lg"
                   onClick={() => openAuthModal("signin")}
-                  className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#E5B842] hover:bg-[#d6a935] text-[#0F172A] font-semibold text-xs tracking-wider uppercase shadow-md transition-all cursor-pointer h-auto"
+                  className="h-auto min-h-11 w-full cursor-pointer rounded-full border border-[#a7721b]/20 bg-[#E5B842] bg-linear-to-r from-[#efc96c] to-[#e5b842] px-3 py-2.5 text-sm font-semibold text-[#211807] shadow-sm transition-colors hover:from-[#f5d583] hover:to-[#ebbf4f]"
                 >
-                  Sign In to Continue ✦
+                  Sign In to Continue
+                  <ArrowRight aria-hidden="true" className="size-4" />
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
-                  size="lg"
+                  variant="link"
+                  size="sm"
                   onClick={() => openAuthModal("signup")}
-                  className="w-full sm:w-auto px-7 py-3.5 rounded-full border border-[#0F172A]/20 dark:border-[#FAF8F5]/20 text-xs font-semibold tracking-wider uppercase text-[#0F172A] dark:text-[#FAF8F5] transition-colors cursor-pointer h-auto"
+                  className="h-auto min-h-11 w-full cursor-pointer px-3 py-2 text-sm font-medium text-[#6B3448] underline decoration-[#6B3448]/35 underline-offset-4 hover:decoration-current dark:text-[#F3D88E] dark:decoration-[#F3D88E]/40"
                 >
                   Create New Account
                 </Button>
               </div>
+
+              <details className={`${styles.readingDetails} text-sm text-[#0F172A]/75 sm:hidden dark:text-[#FAF8F5]/75`}>
+                <summary className="cursor-pointer">How the free reading works</summary>
+                <div className="space-y-2 text-left leading-relaxed">
+                  <p>{pageContent.section_intro}</p>
+                  <p>{pageContent.sign_in_description}</p>
+                </div>
+              </details>
             </div>
           )}
 
           {/* ───────────── LOADING STATE WHILE CHECKING ELIGIBILITY ───────────── */}
           {user && checkingEligibility && (
-            <div className="py-16 text-center space-y-4">
+            <div role="status" className="relative space-y-4 py-8 text-center sm:py-16">
               <div className="w-10 h-10 border-2 border-[#E5B842] border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60 uppercase tracking-widest font-medium">
                 Checking reading eligibility...
@@ -442,8 +494,8 @@ export default function RisingSignSection() {
           )}
 
           {/* ── CASE 2: READING VIEW (SAVED FOR CLIENT, OR LATEST FOR ADMIN) ── */}
-          {user && !checkingEligibility && savedReading && (alreadyClaimed || (isEffectiveAdmin && !adminTestingMode)) && (
-            <div className="space-y-8 animate-in fade-in duration-300">
+          {visibleReading && (
+            <div className="relative space-y-4 animate-in fade-in duration-300 sm:space-y-8">
               {/* Notice Banner */}
               {isEffectiveAdmin ? (
                 <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-[#0F172A]/80 dark:text-[#FAF8F5]/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -468,7 +520,7 @@ export default function RisingSignSection() {
                   </Button>
                 </div>
               ) : (
-                <div className="p-4 rounded-2xl bg-[#E5B842]/10 border border-[#E5B842]/30 text-xs text-[#0F172A]/80 dark:text-[#FAF8F5]/90 flex items-start sm:items-center justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-2 rounded-2xl border border-[#E5B842]/30 bg-[#E5B842]/10 p-3 text-xs text-[#0F172A]/80 dark:text-[#FAF8F5]/90 sm:flex-nowrap sm:items-center sm:gap-3 sm:p-4">
                   <div className="flex items-center gap-2.5">
                     <span className="text-base">✦</span>
                     <span>
@@ -484,8 +536,8 @@ export default function RisingSignSection() {
 
               {/* Ascendant Result Header Banner with Zodiac Icon */}
               {(() => {
-                const content = savedReading.readingContent || {};
-                const staticDoc = ASCENDANT_READINGS[savedReading.ascendant] || {};
+                const content = visibleReading.readingContent || {};
+                const staticDoc = ASCENDANT_READINGS[visibleReading.ascendant] || {};
                 const glyph = content.glyph || staticDoc.glyph || "✦";
                 const sanskritName = content.sanskritName || staticDoc.sanskritName || "";
                 const ruler = content.ruler || staticDoc.ruler || "";
@@ -502,16 +554,16 @@ export default function RisingSignSection() {
 
                 return (
                   <>
-                    <div className="text-center py-8 px-4 rounded-3xl bg-gradient-to-b from-[#E5B842]/20 via-[#E5B842]/5 to-transparent border border-[#E5B842]/35 relative overflow-hidden">
+                    <div className="relative rounded-2xl border border-[#E5B842]/35 bg-gradient-to-b from-[#E5B842]/20 via-[#E5B842]/5 to-transparent px-4 py-5 text-center sm:rounded-3xl sm:py-8">
                       <div className="flex justify-center mb-4">
                         <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#E5B842]/25 to-[#6B3448]/15 border border-[#E5B842]/40 flex items-center justify-center p-3.5 shadow-lg shadow-[#E5B842]/10">
-                          <ZodiacIcon sign={savedReading.ascendant} size={52} glyph={glyph} />
+                          <ZodiacIcon sign={visibleReading.ascendant} size={52} glyph={glyph} className="dark:[&_img]:invert" />
                         </div>
                       </div>
-                      <h3 className="font-serif text-3xl sm:text-5xl text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight">
-                        {savedReading.ascendant} Ascendant
-                      </h3>
-                      <p className="text-sm font-medium text-[#E5B842] mt-1 font-serif">
+                      <h2 ref={resultHeadingRef} tabIndex={-1} className="scroll-mt-28 font-serif text-3xl font-normal tracking-tight text-[#0F172A] dark:text-[#FAF8F5] sm:text-5xl">
+                        {visibleReading.ascendant} Ascendant
+                      </h2>
+                      <p className="mt-1 font-serif text-sm font-medium text-[#6B3448] dark:text-[#E5B842]">
                         {pageContent.result_label}
                       </p>
                       {sanskritName && (
@@ -537,15 +589,15 @@ export default function RisingSignSection() {
                     </div>
 
                     {/* Rich Reading Sections */}
-                    <div className="space-y-6 text-sm text-[#0F172A]/85 dark:text-[#FAF8F5]/85 leading-relaxed font-light">
+                    <div className="space-y-4 text-sm leading-relaxed text-[#0F172A]/85 dark:text-[#FAF8F5]/85 sm:space-y-6 sm:font-light">
                       {/* 1. Core Energy */}
                       {coreEnergy && (
-                        <div className="p-6 sm:p-8 rounded-3xl bg-white/80 dark:bg-[#0F172A]/50 border border-[#0F172A]/10 dark:border-white/10 shadow-sm space-y-4">
+                        <div className={RESULT_CARD_CLASS}>
                           <div className="flex items-center gap-2.5">
                             <span className="text-2xl">{coreEnergy.emoji || "🔥"}</span>
-                            <h4 className="font-serif text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
+                            <h3 className="font-serif text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
                               {coreEnergy.title || "Your Core Energy"}
-                            </h4>
+                            </h3>
                           </div>
                           <div className="space-y-3 text-sm sm:text-base text-[#0F172A]/85 dark:text-[#FAF8F5]/85 leading-relaxed font-light">
                             {coreEnergy.paragraphs.map((p: string, idx: number) => (
@@ -567,12 +619,12 @@ export default function RisingSignSection() {
 
                       {/* 2. Career & Success */}
                       {careerSuccess && (
-                        <div className="p-6 sm:p-8 rounded-3xl bg-white/80 dark:bg-[#0F172A]/50 border border-[#0F172A]/10 dark:border-white/10 shadow-sm space-y-4">
+                        <div className={RESULT_CARD_CLASS}>
                           <div className="flex items-center gap-2.5">
                             <span className="text-2xl">💼</span>
-                            <h4 className="font-serif text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
+                            <h3 className="font-serif text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
                               {careerSuccess.title || "Career & Success"}
-                            </h4>
+                            </h3>
                           </div>
                           <div className="space-y-3 text-sm sm:text-base text-[#0F172A]/85 dark:text-[#FAF8F5]/85 leading-relaxed font-light">
                             {careerSuccess.paragraphs.map((p: string, idx: number) => (
@@ -589,12 +641,12 @@ export default function RisingSignSection() {
 
                       {/* 3. Love & Relationships */}
                       {loveRelationships && (
-                        <div className="p-6 sm:p-8 rounded-3xl bg-white/80 dark:bg-[#0F172A]/50 border border-[#0F172A]/10 dark:border-white/10 shadow-sm space-y-4">
+                        <div className={RESULT_CARD_CLASS}>
                           <div className="flex items-center gap-2.5">
                             <span className="text-2xl">❤️</span>
-                            <h4 className="font-serif text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
+                            <h3 className="font-serif text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
                               {loveRelationships.title || "Love & Relationships"}
-                            </h4>
+                            </h3>
                           </div>
                           <div className="space-y-3 text-sm sm:text-base text-[#0F172A]/85 dark:text-[#FAF8F5]/85 leading-relaxed font-light">
                             {loveRelationships.paragraphs.map((p: string, idx: number) => (
@@ -616,12 +668,12 @@ export default function RisingSignSection() {
 
                       {/* 4. Money & Security */}
                       {moneySecurity && (
-                        <div className="p-6 sm:p-8 rounded-3xl bg-white/80 dark:bg-[#0F172A]/50 border border-[#0F172A]/10 dark:border-white/10 shadow-sm space-y-4">
+                        <div className={RESULT_CARD_CLASS}>
                           <div className="flex items-center gap-2.5">
                             <span className="text-2xl">💰</span>
-                            <h4 className="font-serif text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
+                            <h3 className="font-serif text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
                               {moneySecurity.title || "Money & Security"}
-                            </h4>
+                            </h3>
                           </div>
                           <div className="space-y-3 text-sm sm:text-base text-[#0F172A]/85 dark:text-[#FAF8F5]/85 leading-relaxed font-light">
                             {moneySecurity.paragraphs.map((p: string, idx: number) => (
@@ -638,12 +690,12 @@ export default function RisingSignSection() {
 
                       {/* 5. Your Emotional World */}
                       {emotionalWorld && (
-                        <div className="p-6 sm:p-8 rounded-3xl bg-white/80 dark:bg-[#0F172A]/50 border border-[#0F172A]/10 dark:border-white/10 shadow-sm space-y-4">
+                        <div className={RESULT_CARD_CLASS}>
                           <div className="flex items-center gap-2.5">
                             <span className="text-2xl">🌙</span>
-                            <h4 className="font-serif text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
+                            <h3 className="font-serif text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
                               {emotionalWorld.title || "Your Emotional World"}
-                            </h4>
+                            </h3>
                           </div>
                           <div className="space-y-3 text-sm sm:text-base text-[#0F172A]/85 dark:text-[#FAF8F5]/85 leading-relaxed font-light">
                             {emotionalWorld.paragraphs.map((p: string, idx: number) => (
@@ -655,12 +707,12 @@ export default function RisingSignSection() {
 
                       {/* 6. Your Hidden Potential */}
                       {hiddenPotential && (
-                        <div className="p-6 sm:p-8 rounded-3xl bg-white/80 dark:bg-[#0F172A]/50 border border-[#0F172A]/10 dark:border-white/10 shadow-sm space-y-4">
+                        <div className={RESULT_CARD_CLASS}>
                           <div className="flex items-center gap-2.5">
                             <span className="text-2xl">{hiddenPotential.emoji || "✨"}</span>
-                            <h4 className="font-serif text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
+                            <h3 className="font-serif text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
                               {hiddenPotential.title || "Your Hidden Potential"}
-                            </h4>
+                            </h3>
                           </div>
                           <div className="space-y-3 text-sm sm:text-base text-[#0F172A]/85 dark:text-[#FAF8F5]/85 leading-relaxed font-light whitespace-pre-line">
                             {hiddenPotential.paragraphs.map((p: string, idx: number) => (
@@ -668,9 +720,9 @@ export default function RisingSignSection() {
                             ))}
                           </div>
                           {hiddenPotential.buildSteps && hiddenPotential.buildSteps.length > 0 && (
-                            <div className="p-5 rounded-2xl bg-black/5 dark:bg-white/5 border border-[#0F172A]/10 dark:border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
+                            <div className="grid grid-cols-1 gap-2 rounded-2xl border border-[#0F172A]/10 bg-black/5 p-2 text-xs dark:border-white/10 dark:bg-white/5 sm:grid-cols-2 sm:gap-3 sm:p-5 sm:text-sm">
                               {hiddenPotential.buildSteps.map((step: any, idx: number) => (
-                                <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-white/70 dark:bg-black/40">
+                                <div key={idx} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-xl bg-white/70 p-3 dark:bg-black/40">
                                   <span className="text-[#0F172A]/80 dark:text-[#FAF8F5]/80 capitalize font-medium">{step.label}</span>
                                   <span className="text-[#6B3448] dark:text-[#E5B842] font-semibold">→ {step.pacing}</span>
                                 </div>
@@ -688,15 +740,15 @@ export default function RisingSignSection() {
                       )}
 
                       {/* 7. This Is Only Your First Layer */}
-                      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-[#6B3448]/10 via-[#E5B842]/10 to-transparent border border-[#E5B842]/30 space-y-5">
+                      <div className="space-y-4 rounded-2xl border border-[#E5B842]/30 bg-gradient-to-br from-[#6B3448]/10 via-[#E5B842]/10 to-transparent p-4 sm:space-y-5 sm:rounded-3xl sm:p-8">
                         <div className="flex items-center gap-2.5">
                           <span className="text-2xl">🔮</span>
-                          <h4 className="font-serif text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
+                          <h3 className="font-serif text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-[#FAF8F5]">
                             This Is Only Your First Layer
-                          </h4>
+                          </h3>
                         </div>
                         <p className="text-sm sm:text-base text-[#0F172A]/80 dark:text-[#FAF8F5]/80 font-light">
-                          Your {savedReading.ascendant} Ascendant gives us the beginning of your story.
+                          Your {visibleReading.ascendant} Ascendant gives us the beginning of your story.
                         </p>
                         <p className="text-xs sm:text-sm text-[#0F172A]/70 dark:text-[#FAF8F5]/70 font-medium">
                           Your complete birth chart can reveal much more about:
@@ -713,20 +765,20 @@ export default function RisingSignSection() {
                           ))}
                         </div>
                         <p className="text-xs sm:text-sm text-[#0F172A]/70 dark:text-[#FAF8F5]/70 italic pt-2 font-serif">
-                          And this is why two people with the same {savedReading.ascendant} Ascendant can live completely different stories.
+                          And this is why two people with the same {visibleReading.ascendant} Ascendant can live completely different stories.
                         </p>
                       </div>
                     </div>
 
                     {/* Birth Details Snapshot */}
-                    <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-[#0F172A]/10 dark:border-white/10 text-xs text-[#0F172A]/60 dark:text-[#FAF8F5]/60 flex flex-wrap justify-between items-center gap-2">
-                      <span>Calculated for: <strong>{savedReading.placeOfBirth}</strong></span>
-                      <span>Date: <strong>{savedReading.dateOfBirth}</strong></span>
-                      <span>Time: <strong>{savedReading.timeOfBirth}</strong></span>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-[#0F172A]/10 bg-black/5 p-3 text-xs text-[#0F172A]/70 dark:border-white/10 dark:bg-white/5 dark:text-[#FAF8F5]/70 sm:justify-between sm:p-4">
+                      <span className="w-full sm:w-auto">Calculated for: <strong>{visibleReading.placeOfBirth}</strong></span>
+                      <span>Date: <strong>{visibleReading.dateOfBirth}</strong></span>
+                      <span>Time: <strong>{visibleReading.timeOfBirth}</strong></span>
                     </div>
 
                     {/* 🌟 Want to Discover YOUR Story? + Book Link / Button */}
-                    <div className="text-center p-8 sm:p-10 rounded-3xl bg-gradient-to-b from-[#E5B842]/25 via-[#E5B842]/10 to-transparent border-2 border-[#E5B842]/50 shadow-xl space-y-6">
+                    <div className="space-y-4 rounded-2xl border border-[#E5B842]/50 bg-gradient-to-b from-[#E5B842]/25 via-[#E5B842]/10 to-transparent p-4 text-center shadow-sm sm:space-y-6 sm:rounded-3xl sm:border-2 sm:p-10 sm:shadow-xl">
                       <div className="w-14 h-14 mx-auto rounded-full bg-[#E5B842]/25 border border-[#E5B842]/60 flex items-center justify-center text-2xl shadow-sm">
                         🌟
                       </div>
@@ -745,7 +797,7 @@ export default function RisingSignSection() {
                       <div className="pt-2 flex items-center justify-center">
                         <Link
                           href="/#readings"
-                          className="w-full sm:w-auto px-10 py-4 rounded-full bg-[#E5B842] hover:bg-[#d6a935] text-[#0F172A] font-bold text-xs sm:text-sm tracking-wider uppercase shadow-lg shadow-[#E5B842]/25 hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer flex items-center justify-center gap-2"
+                          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#E5B842] px-3 py-2.5 text-xs font-bold tracking-wider text-[#0F172A] uppercase shadow-lg shadow-[#E5B842]/25 transition-all hover:bg-[#d6a935] hover:shadow-xl sm:w-auto sm:px-10 sm:py-4 sm:text-sm"
                         >
                           <span>{pageContent.cta_primary_label} ✦</span>
                           <span className="text-base">→</span>
@@ -769,7 +821,7 @@ export default function RisingSignSection() {
             !checkingEligibility &&
             (!alreadyClaimed || isEffectiveAdmin) &&
             (!savedReading || (isEffectiveAdmin && adminTestingMode)) && (
-              <form onSubmit={handleSubmitCalculation} className="space-y-6">
+              <form onSubmit={handleSubmitCalculation} className="relative space-y-4 sm:space-y-6">
                 {/* Admin Mode Form Header */}
                 {isEffectiveAdmin && (
                   <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-[#0F172A]/80 dark:text-[#FAF8F5]/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -799,7 +851,7 @@ export default function RisingSignSection() {
                 )}
 
                 {errorMsg && (
-                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs flex items-center gap-2.5">
+                  <div role="alert" className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs flex items-center gap-2.5">
                     <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -808,7 +860,7 @@ export default function RisingSignSection() {
                 )}
 
                 {/* Explanatory Notice */}
-                <div className="p-4 rounded-xl bg-[#E5B842]/10 border border-[#E5B842]/30 text-xs text-[#0F172A]/80 dark:text-[#FAF8F5]/85 flex items-start gap-2.5">
+                <div className="flex items-start gap-2.5 rounded-xl border border-[#E5B842]/30 bg-[#E5B842]/10 p-3 text-xs leading-relaxed text-[#0F172A]/80 dark:text-[#FAF8F5]/85 sm:p-4">
                   <span className="text-base mt-0.5">✨</span>
                   <span>
                     In Vedic astrology, the Ascendant changes signs approximately every 2 hours. An accurate birth time and birthplace are crucial to calculate your exact Rising Sign.
@@ -816,9 +868,9 @@ export default function RisingSignSection() {
                 </div>
 
               {/* Date of Birth & Time of Birth */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+                <div className="min-w-0">
+                  <label htmlFor="birth-date-input" className="block text-xs font-semibold uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                     Date of Birth (DOB) *
                   </label>
                   <Input
@@ -828,15 +880,15 @@ export default function RisingSignSection() {
                     value={dob}
                     max={new Date().toISOString().split("T")[0]}
                     onChange={(e) => setDob(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-[#0F172A]/70 border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 text-[#0F172A] dark:text-[#FAF8F5] text-sm focus:outline-none focus:border-[#E5B842] transition-colors"
+                    className={BIRTH_INPUT_CLASS}
                   />
                   <span className="text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mt-1 block">
                     Day / Month / Year
                   </span>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                <div className="min-w-0">
+                  <label htmlFor="birth-time-input" className="block text-xs font-semibold uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                     Exact Time of Birth *
                   </label>
                   <Input
@@ -845,7 +897,7 @@ export default function RisingSignSection() {
                     required
                     value={tob}
                     onChange={(e) => setTob(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-[#0F172A]/70 border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 text-[#0F172A] dark:text-[#FAF8F5] text-sm focus:outline-none focus:border-[#E5B842] transition-colors"
+                    className={BIRTH_INPUT_CLASS}
                   />
                   <span className="text-[11px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50 mt-1 block">
                     Exact local birth time (e.g. 14:30)
@@ -855,7 +907,7 @@ export default function RisingSignSection() {
 
               {/* Place of Birth (with Geocoding Search) */}
               <div className="relative" ref={placeDropdownRef}>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
+                <label htmlFor="birth-place-input" className="block text-xs font-semibold uppercase tracking-wider text-[#0F172A]/70 dark:text-[#FAF8F5]/70 mb-1.5">
                   Place of Birth (City & Country) *
                 </label>
                 <div className="relative">
@@ -863,13 +915,13 @@ export default function RisingSignSection() {
                     id="birth-place-input"
                     type="text"
                     required
-                    placeholder="Search city, state, or country (e.g. Berlin, New Delhi, London)..."
+                    placeholder="Search for your birthplace"
                     value={pob}
                     onChange={handlePlaceInputChange}
                     onFocus={() => {
                       if (placeSuggestions.length > 0) setShowPlaceDropdown(true);
                     }}
-                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-[#0F172A]/70 border border-[#0F172A]/15 dark:border-[#FAF8F5]/15 text-[#0F172A] dark:text-[#FAF8F5] text-sm focus:outline-none focus:border-[#E5B842] transition-colors"
+                    className={`${BIRTH_INPUT_CLASS} pr-10 sm:pr-10`}
                   />
                   {searchingPlace && (
                     <div className="absolute right-3.5 top-3.5 w-4 h-4 border-2 border-[#E5B842] border-t-transparent rounded-full animate-spin" />
@@ -878,16 +930,16 @@ export default function RisingSignSection() {
 
                 {/* Suggestions Dropdown */}
                 {showPlaceDropdown && placeSuggestions.length > 0 && (
-                  <div className="absolute z-30 left-0 right-0 mt-1 rounded-xl bg-white dark:bg-[#1E293B] border border-[#E5B842]/40 shadow-xl overflow-hidden max-h-56 overflow-y-auto">
+                  <div className="relative z-30 mt-1 max-h-56 overflow-y-auto rounded-xl border border-[#E5B842]/40 bg-white shadow-md dark:bg-[#1E293B] sm:absolute sm:inset-x-0 sm:shadow-xl">
                     {placeSuggestions.map((place) => (
                       <Button
                         type="button"
                         variant="ghost"
                         key={place.id}
                         onClick={() => handleSelectPlace(place)}
-                        className="w-full justify-between h-auto px-4 py-2.5 text-xs rounded-none border-b border-border/40 last:border-0 hover:bg-[#E5B842]/15 text-[#0F172A] dark:text-[#FAF8F5]"
+                        className="h-auto min-h-11 w-full justify-between gap-2 rounded-none border-b border-border/40 px-3 py-2.5 text-left text-xs whitespace-normal text-[#0F172A] last:border-0 hover:bg-[#E5B842]/15 dark:text-[#FAF8F5] sm:px-4"
                       >
-                        <span className="truncate pr-2">{place.displayName}</span>
+                        <span className="min-w-0 [overflow-wrap:anywhere]">{place.displayName}</span>
                         <span className="text-[10px] text-[#0F172A]/50 dark:text-[#FAF8F5]/50 shrink-0">
                           UTC {place.timezone >= 0 ? `+${place.timezone}` : place.timezone}
                         </span>
@@ -897,7 +949,7 @@ export default function RisingSignSection() {
                 )}
 
                 {selectedCoordinates ? (
-                  <div className="mt-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-emerald-700 dark:text-emerald-400">
                     <span>✓ Location &amp; Timezone verified</span>
                     <span>
                       ({selectedCoordinates.latitude.toFixed(2)}°, {selectedCoordinates.longitude.toFixed(2)}°, UTC {selectedCoordinates.timezone >= 0 ? `+${selectedCoordinates.timezone}` : selectedCoordinates.timezone})
@@ -911,7 +963,7 @@ export default function RisingSignSection() {
               </div>
 
               {/* Checkbox Confirmation & Profile Sync */}
-              <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-[#0F172A]/10 dark:border-white/10 space-y-3">
+              <div className="space-y-3 rounded-xl border border-[#0F172A]/10 bg-black/5 p-3 dark:border-white/10 dark:bg-white/5 sm:p-4">
                 <label htmlFor="confirm-birth-details" className="flex items-start gap-3 cursor-pointer">
                   <Checkbox
                     id="confirm-birth-details"
@@ -945,7 +997,7 @@ export default function RisingSignSection() {
                   type="submit"
                   size="lg"
                   disabled={submitting}
-                  className="w-full py-4 rounded-full bg-[#E5B842] hover:bg-[#d6a935] disabled:opacity-60 text-[#0F172A] font-semibold text-xs tracking-wider uppercase shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 h-auto"
+                  className="flex h-auto min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#E5B842] px-3 py-3 text-center text-xs font-semibold tracking-wider whitespace-normal text-[#0F172A] uppercase shadow-md transition-all hover:bg-[#d6a935] disabled:opacity-60 sm:px-6 sm:py-4"
                 >
                   {submitting ? (
                     <>

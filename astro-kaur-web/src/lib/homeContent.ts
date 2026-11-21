@@ -20,3 +20,22 @@ export const DEFAULT_VISION = {
 };
 
 export type VisionContent = typeof DEFAULT_VISION;
+
+const sentenceSegmenter = typeof Intl.Segmenter === "function"
+  ? new Intl.Segmenter("en", { granularity: "sentence" })
+  : null;
+
+export function splitStoryParagraph(paragraph: string | null | undefined): string[] {
+  if (typeof paragraph !== "string" || !paragraph.trim()) return [];
+  if (paragraph.length < 180 || !sentenceSegmenter) return [paragraph];
+
+  const midpoint = paragraph.length / 2;
+  let splitAt = 0;
+  for (const { index } of sentenceSegmenter.segment(paragraph)) {
+    if (Math.abs(index - midpoint) < Math.abs(splitAt - midpoint)) {
+      splitAt = index;
+    }
+  }
+
+  return splitAt ? [paragraph.slice(0, splitAt), paragraph.slice(splitAt)] : [paragraph];
+}

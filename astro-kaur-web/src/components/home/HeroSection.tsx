@@ -64,7 +64,7 @@ export default function HeroSection() {
         {/* Left Column: Heading, Subtitle & CTAs */}
         <div className={`${styles.copy} lg:col-span-7 space-y-6 text-center lg:text-left z-10`}>
           {/* Badge: LIFE IS FULL OF QUESTIONS */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase bg-[#E5B842]/10 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/25">
+          <div className="hidden items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase bg-[#E5B842]/10 text-[#6B3448] dark:text-[#E5B842] border border-[#E5B842]/25 sm:inline-flex">
             <span className="w-1.5 h-1.5 rounded-full bg-[#E5B842] animate-pulse" />
             LIFE IS FULL OF QUESTIONS
           </div>
@@ -93,13 +93,15 @@ export default function HeroSection() {
               transition={{ ...itemTransition, delay: 0.2 }}
             >
               <p className={`${styles.description} text-base sm:text-lg text-[#0F172A]/75 dark:text-[#FAF8F5]/80 max-w-xl mx-auto lg:mx-0 font-light leading-relaxed`}>
-                Your birth chart offers a unique perspective on who you are, the connections you make, and the path you&apos;re navigating.
+                <span className="sm:hidden">See yourself, your relationships, and your path through your birth chart.</span>
+                <span className="hidden sm:inline">Your birth chart offers a unique perspective on who you are, the connections you make, and the path you&apos;re navigating.</span>
               </p>
             </InView>
           </motion.div>
 
           {/* 3. CTA Buttons */}
           <InView
+            className={styles.actionReveal}
             once={false}
             variants={variants}
             transition={{ ...itemTransition, delay: 0.35 }}

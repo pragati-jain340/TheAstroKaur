@@ -2,12 +2,13 @@
 
 import Image from "next/image";
 import { InView } from "@/components/ui/in-view";
-import { DEFAULT_ABOUT } from "@/lib/homeContent";
+import { DEFAULT_ABOUT, splitStoryParagraph } from "@/lib/homeContent";
 import styles from "./AboutPreview.module.css";
 
 export default function AboutPreview({ initialContent }: { initialContent?: Partial<typeof DEFAULT_ABOUT> }) {
   // Content is fully resolved server-side and passed as a prop — no client fetch needed
   const content = { ...DEFAULT_ABOUT, ...initialContent };
+  const story = [content.paragraph_1, content.paragraph_2].flatMap(splitStoryParagraph);
 
   return (
     <section
@@ -136,13 +137,10 @@ export default function AboutPreview({ initialContent }: { initialContent?: Part
               </h2>
 
               {/* Body Paragraphs */}
-              <div className={`${styles.story} space-y-4 text-sm text-[#0F172A]/75 dark:text-slate-300 font-light leading-[1.75]`}>
-                <p>
-                  {content.paragraph_1}
-                </p>
-                <p>
-                  {content.paragraph_2}
-                </p>
+              <div className={`${styles.story} space-y-3 font-sans text-sm leading-relaxed text-[#0F172A]/85 dark:text-slate-200 sm:text-base`}>
+                {story.map((paragraph, index) => (
+                  <p key={index} className="first:font-medium">{paragraph}</p>
+                ))}
               </div>
             </InView>
 

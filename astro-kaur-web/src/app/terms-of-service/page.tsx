@@ -1,4 +1,5 @@
 import PolicyContact from "@/components/legal/PolicyContact";
+import styles from "@/components/legal/PolicyPage.module.css";
 import { legalDetails, POLICY_UPDATED_DATE } from "@/lib/legal/details";
 import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
@@ -17,11 +18,11 @@ export default function TermsOfServicePage() {
       <SubpageBackground />
       <Navbar />
 
-      <main className="flex-1 relative z-10 pt-28 sm:pt-36 pb-20 sm:pb-28 px-4 sm:px-6 lg:px-8">
+      <main className={`${styles.main} flex-1 relative z-10 pt-28 sm:pt-36 pb-20 sm:pb-28 px-4 sm:px-6 lg:px-8`}>
         <div className="max-w-4xl mx-auto">
-          <article className="bg-white/90 dark:bg-[#0D1829]/90 backdrop-blur-md rounded-2xl sm:rounded-3xl border border-[#0F172A]/10 dark:border-[#E5B842]/20 p-6 sm:p-12 lg:p-16 shadow-[0_12px_45px_rgba(229,184,66,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <article className={`${styles.article} bg-white/90 dark:bg-[#0D1829]/90 backdrop-blur-md rounded-2xl sm:rounded-3xl border border-[#0F172A]/10 dark:border-[#E5B842]/20 p-6 sm:p-12 lg:p-16 shadow-[0_12px_45px_rgba(229,184,66,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)]`}>
             {/* Header */}
-            <div className="mb-8 pb-8 border-b border-[#0F172A]/10 dark:border-[#FAF8F5]/10">
+            <header className={`${styles.header} mb-8 pb-8 border-b border-[#0F172A]/10 dark:border-[#FAF8F5]/10`}>
               <span className="text-[11px] font-semibold tracking-[0.22em] uppercase text-[#6B3448] dark:text-[#E5B842] block mb-2 sm:mb-3">
                 THE ASTROKAUR · LEGAL
               </span>
@@ -33,10 +34,10 @@ export default function TermsOfServicePage() {
                   <strong className="font-medium text-[#0F172A]/80 dark:text-[#FAF8F5]/80">Last updated:</strong> {POLICY_UPDATED_DATE}
                 </span>
               </div>
-            </div>
+            </header>
 
             {/* Document Content */}
-            <div className="space-y-8 text-sm sm:text-base text-[#0F172A]/80 dark:text-[#FAF8F5]/80 font-light leading-relaxed">
+            <div className={`${styles.body} space-y-8 text-sm sm:text-base text-[#0F172A]/80 dark:text-[#FAF8F5]/80 font-light leading-relaxed`}>
               {/* Section 1 */}
               <section>
                 <h2 className="font-serif text-xl sm:text-2xl text-[#0F172A] dark:text-[#FAF8F5] font-medium tracking-tight mb-3">
