@@ -61,7 +61,7 @@ export default function FinalCTASection() {
 
             {/* Elegant Serif Heading */}
             <h2 className={`${styles.heading} font-serif text-3xl sm:text-4xl lg:text-[42px] text-[#0F172A] dark:text-white font-normal tracking-tight leading-tight max-w-2xl mb-4`}>
-              Begin Your Journey Towards Greater Clarity
+              Begin Your Journey <span>Towards Greater Clarity</span>
             </h2>
 
             {/* Supporting Description */}
@@ -78,8 +78,8 @@ export default function FinalCTASection() {
                 className="w-full sm:w-auto rounded-full bg-[#E5B842] hover:bg-[#d8ab34] text-[#070D18] font-bold text-xs tracking-wider uppercase shadow-[0_4px_18px_rgba(229,184,66,0.3)] hover:shadow-[0_6px_24px_rgba(229,184,66,0.5)] cursor-pointer h-auto py-3.5 px-8"
               >
                 <a href="#readings" onClick={scrollToReadings}>
-                  <span>EXPLORE MY READINGS</span>
-                  <span className="text-sm font-bold">→</span>
+                  <span>Explore My Readings</span>
+                  <span aria-hidden="true" className="text-sm font-bold">→</span>
                 </a>
               </Button>
 
@@ -91,16 +91,18 @@ export default function FinalCTASection() {
                 onClick={() => openContactModal()}
                 className="w-full sm:w-auto rounded-full font-semibold text-xs tracking-wider uppercase cursor-pointer h-auto py-3.5 px-8"
               >
-                <span>GET IN TOUCH</span>
+                <span>Get in Touch</span>
               </Button>
             </div>
 
             {/* Trust Line */}
             <div className={`${styles.trust} inline-flex items-center justify-center gap-2 text-xs sm:text-[13px] text-[#0F172A]/60 dark:text-[#94A3B8] font-normal`}>
-              <span className="text-[#E5B842] text-sm" role="img" aria-label="Privacy lock">
-                <LockKeyhole className="size-3.5" aria-hidden="true" />
+              <span className="inline-flex items-center gap-1.5">
+                <LockKeyhole className="size-3.5 text-[#B88736] dark:text-[#E5B842]" aria-hidden="true" />
+                Private &amp; Confidential
               </span>
-              <span>Private &amp; Confidential · Online or Written Readings</span>
+              <span aria-hidden="true" className="max-sm:hidden">·</span>
+              <span>Online or Written Readings</span>
             </div>
           </div>
         </div>

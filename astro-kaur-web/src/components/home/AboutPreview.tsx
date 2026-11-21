@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 import { InView } from "@/components/ui/in-view";
 import { DEFAULT_ABOUT, splitStoryParagraph } from "@/lib/homeContent";
@@ -8,6 +10,7 @@ import styles from "./AboutPreview.module.css";
 export default function AboutPreview({ initialContent }: { initialContent?: Partial<typeof DEFAULT_ABOUT> }) {
   // Content is fully resolved server-side and passed as a prop — no client fetch needed
   const content = { ...DEFAULT_ABOUT, ...initialContent };
+  const [expanded, setExpanded] = useState(false);
   const story = [content.paragraph_1, content.paragraph_2].flatMap(splitStoryParagraph);
 
   return (
@@ -40,17 +43,17 @@ export default function AboutPreview({ initialContent }: { initialContent?: Part
               once={false}
               className={`${styles.portrait} w-full max-w-[260px] sm:max-w-[290px] lg:max-w-[315px] shrink-0`}
             >
-              <div className="relative w-full aspect-[3/4]">
+              <div className={`${styles.photoArea} relative w-full aspect-[3/4]`}>
 
                 {/* 1. Photo Arch Frame */}
-                <div className="relative w-full h-full rounded-tr-[135px] sm:rounded-tr-[155px] lg:rounded-tr-[170px] rounded-tl-none rounded-bl-none rounded-br-none overflow-hidden border border-[#E5B842] shadow-[0_16px_40px_rgba(229,184,66,0.22)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.65)] group z-10">
+                <div className={`${styles.photoFrame} relative w-full h-full rounded-tr-[135px] sm:rounded-tr-[155px] lg:rounded-tr-[170px] rounded-tl-none rounded-bl-none rounded-br-none overflow-hidden border border-[#E5B842] shadow-[0_16px_40px_rgba(229,184,66,0.22)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.65)] group z-10`}>
                   <Image
                     src={content.image_url || "/Owner_image.png"}
                     alt="TheAstroKaur — Vedic Astrologer"
                     fill
                     priority
                     className="object-cover object-top sm:object-center group-hover:scale-105 transition-transform duration-700 ease-out"
-                    sizes="(max-width: 640px) 260px, (max-width: 1024px) 290px, 315px"
+                    sizes="(max-width: 639px) 90vw, (max-width: 1024px) 290px, 315px"
                   />
                   {/* Subtle base vignette */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/25 dark:from-[#0B1322]/40 via-transparent to-transparent pointer-events-none" />
@@ -137,11 +140,18 @@ export default function AboutPreview({ initialContent }: { initialContent?: Part
               </h2>
 
               {/* Body Paragraphs */}
-              <div className={`${styles.story} space-y-3 font-sans text-sm leading-relaxed text-[#0F172A]/85 dark:text-slate-200 sm:text-base`}>
+              <div id="about-story" data-expanded={expanded} className={`${styles.story} space-y-3 font-sans text-sm leading-relaxed text-[#0F172A]/85 dark:text-slate-200 sm:text-base`}>
                 {story.map((paragraph, index) => (
                   <p key={index} className="first:font-medium">{paragraph}</p>
                 ))}
               </div>
+              {story.length > 1 && (
+                <button type="button" className={styles.storyToggle} aria-controls="about-story"
+                  aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+                  {expanded ? "Show less" : "Read my story"}
+                  <ChevronDown size={16} aria-hidden="true" />
+                </button>
+              )}
             </InView>
 
           </div>

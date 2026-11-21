@@ -1,15 +1,58 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useScroll, useTransform, useSpring } from "motion/react";
+import { useRef, useState } from "react";
+import { motion, useInView, useReducedMotion, useScroll, useTransform, useSpring } from "motion/react";
 import AstrologyWheel from "@/components/AstrologyWheel";
 import { InView } from "@/components/ui/in-view";
 import { COMPACT_MOTION_QUERY, useMediaQuery } from "@/components/ui/use-media-query";
 import styles from "./HeroSection.module.css";
 
+function CelestialButton({ body }: { body: "moon" | "saturn" }) {
+  const [bursting, setBursting] = useState(false);
+  const reduceMotion = useReducedMotion();
+  return (
+    <button type="button" className={styles.celestialButton} data-body={body}
+      aria-label={body === "moon" ? "Make the crescent moon sparkle" : "Make Saturn sparkle"}
+      onClick={() => setBursting(true)}>
+      <svg viewBox="-32 -32 64 64" aria-hidden="true" focusable="false">
+        <motion.g animate={{ opacity: bursting ? 0 : 1 }} transition={{ duration: .16 }}>
+          {body === "moon" ? (
+            <path d="M1-13a13 13 0 1 0 13 18A14 14 0 0 1 1-13Z" />
+          ) : (
+            <g transform="rotate(-23)">
+              <ellipse rx="22" ry="6" fill="none" stroke="#ad8042" strokeWidth="2" />
+              <circle r="11" fill="#e0bd7c" />
+              <path d="M-8-6q7 3 16 0M-9 4q9 3 18 0" fill="none" stroke="#bd9457" strokeWidth="1.3" />
+              <path d="M-22 0a22 6 0 0 0 44 0" fill="none" stroke="#ad8042" strokeWidth="2.4" />
+            </g>
+          )}
+        </motion.g>
+        {bursting && (
+          <motion.g initial={{ opacity: 1 }} animate={{ opacity: [1, 1, 0] }}
+            transition={{ duration: .85, times: [0, .55, 1] }}
+            onAnimationComplete={() => setBursting(false)}>
+            {Array.from({ length: 12 }, (_, i) => {
+              const angle = i * Math.PI / 6;
+              const radius = i % 2 ? 19 : 30;
+              const x = Math.cos(angle) * radius;
+              const y = Math.sin(angle) * radius;
+              return <motion.path key={i} d="M0-3 1-1 3 0 1 1 0 3-1 1-3 0-1-1Z"
+                fill={i % 2 ? "#bd9346" : "#e5b842"}
+                initial={{ x: reduceMotion ? x : 0, y: reduceMotion ? y : 0 }}
+                animate={{ x, y }} transition={{ duration: .75, ease: "easeOut" }} />;
+            })}
+          </motion.g>
+        )}
+      </svg>
+    </button>
+  );
+}
+
 export default function HeroSection() {
   const compactMotion = useMediaQuery(COMPACT_MOTION_QUERY);
   const containerRef = useRef<HTMLElement>(null);
+  const starfieldRef = useRef<SVGSVGElement>(null);
+  const starsInView = useInView(starfieldRef, { amount: 0.6 });
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
@@ -93,8 +136,7 @@ export default function HeroSection() {
               transition={{ ...itemTransition, delay: 0.2 }}
             >
               <p className={`${styles.description} text-base sm:text-lg text-[#0F172A]/75 dark:text-[#FAF8F5]/80 max-w-xl mx-auto lg:mx-0 font-light leading-relaxed`}>
-                <span className="sm:hidden">See yourself, your relationships, and your path through your birth chart.</span>
-                <span className="hidden sm:inline">Your birth chart offers a unique perspective on who you are, the connections you make, and the path you&apos;re navigating.</span>
+                Your birth chart offers a unique perspective on who you are, the connections you make, and the path you&apos;re navigating.
               </p>
             </InView>
           </motion.div>
@@ -128,6 +170,18 @@ export default function HeroSection() {
           style={{ y: wheelY, scale: wheelScale }}
           className={`${styles.wheelContainer} hero-parallax lg:col-span-5 min-w-0 flex items-center justify-center relative sm:min-h-[460px]`}
         >
+          <span className={styles.comet} aria-hidden="true" />
+          <CelestialButton body="moon" />
+          <CelestialButton body="saturn" />
+          <svg ref={starfieldRef} data-in-view={starsInView} className={styles.starfield} viewBox="0 0 320 240" aria-hidden="true" focusable="false">
+            <defs>
+              <path id="hero-sparkle" d="M0-5 Q.8-.8 4 0 Q.8.8 0 5 Q-.8.8-4 0 Q-.8-.8 0-5Z" />
+            </defs>
+            <use href="#hero-sparkle" x="25" y="84" />
+            <use href="#hero-sparkle" x="43" y="176" />
+            <use href="#hero-sparkle" x="250" y="201" />
+            <use href="#hero-sparkle" x="299" y="115" />
+          </svg>
           <AstrologyWheel
             duration={30}
             opacity={0.96}

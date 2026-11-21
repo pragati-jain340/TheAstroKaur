@@ -194,13 +194,8 @@ const CARD_TRANSITION = {
   mass: 0.75,
 };
 
-const cardReveal = {
+const readingEntrance = {
   hidden: { opacity: 0, y: 20, transition: { duration: 0 } },
-  visible: { opacity: 1, y: 0 },
-};
-
-const bannerReveal = {
-  hidden: { opacity: 0, y: 16, transition: { duration: 0 } },
   visible: { opacity: 1, y: 0 },
 };
 
@@ -266,8 +261,15 @@ function TypewriterHeading() {
 
 export default function ServicesPreview() {
   const { openBookingModal, isAdmin, loading: authLoading } = useAuth();
+  const animateEntrance = useMediaQuery("(min-width: 640px) and (prefers-reduced-motion: no-preference)");
   const [servicesList, setServicesList] = useState<ReadingServiceItem[]>(STATIC_SERVICES);
   const [selectedService, setSelectedService] = useState<ReadingServiceItem | null>(null);
+  const entrance = {
+    initial: false as const,
+    animate: animateEntrance ? "hidden" : "visible",
+    whileInView: animateEntrance ? "visible" : undefined,
+    variants: readingEntrance,
+  };
 
   // Load live services from database
   useEffect(() => {
@@ -323,11 +325,7 @@ export default function ServicesPreview() {
           {servicesList.map((service) => (
             <motion.div
               key={service.id}
-              layoutId={`reading-card-${service.id}`}
-              initial="hidden"
-              animate="hidden"
-              whileInView="visible"
-              variants={cardReveal}
+              {...entrance}
               transition={CARD_TRANSITION}
               onClick={() => setSelectedService(service)}
               className={`${styles.card} relative rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-7 bg-white/80 dark:bg-[#0D1829]/75 backdrop-blur-sm border border-[#E5B842]/25 dark:border-[#E5B842]/20 hover:border-[#E5B842]/60 shadow-[0_4px_20px_rgba(229,184,66,0.06)] dark:shadow-[0_4px_25px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_36px_rgba(229,184,66,0.18)] flex flex-col items-center justify-between text-center cursor-pointer select-none group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E5B842]`}
@@ -412,10 +410,7 @@ export default function ServicesPreview() {
         {/* ── Free Reading Banner Block (Tasteful, Clean Interactive Pop) ── */}
         <motion.a
           href="/free-reading"
-          initial="hidden"
-          animate="hidden"
-          whileInView="visible"
-          variants={bannerReveal}
+          {...entrance}
           transition={{ duration: 0.5, ease: "easeOut" }}
           whileHover={{ y: -3 }}
           whileTap={{ scale: 0.99 }}

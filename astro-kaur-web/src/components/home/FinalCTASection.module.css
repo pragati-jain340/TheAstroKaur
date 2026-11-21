@@ -4,59 +4,103 @@
   }
 
   .card {
-    width: calc(100% - 1.5rem);
+    width: 100%;
     max-width: 24rem;
     margin-inline: auto;
-    padding: 1.75rem 1.25rem;
+    padding: 1.75rem clamp(1.125rem, 6vw, 1.75rem) 1.5rem;
     border-radius: 1.5rem;
+    text-align: left;
+    background-color: #fffbf4;
+    box-shadow: 0 8px 24px rgb(99 66 40 / 6%);
+  }
+
+  :global(.dark) .card { background-color: #131f33; }
+
+  .card::before {
+    content: "";
+    position: absolute;
+    width: 9rem;
+    aspect-ratio: 1;
+    right: -4.5rem;
+    top: -4.5rem;
+    border: 1px solid #ba914547;
+    border-radius: 50%;
+    box-shadow: 0 0 0 .65rem #ba914511, 0 0 0 1.25rem #ba91450b;
+    pointer-events: none;
   }
 
   .sparkle {
-    margin-bottom: 1rem;
+    align-self: flex-start;
+    gap: .5rem;
+    margin-bottom: .875rem;
   }
 
-  .sparkle svg {
-    width: 1.5rem;
-    height: 1.5rem;
+  .sparkle::after {
+    content: "";
+    width: 2.5rem;
+    height: 1px;
+    background: linear-gradient(to right, #b6904d, transparent);
   }
+
+  .sparkle svg { width: 1.125rem; height: 1.125rem; }
 
   .heading {
-    margin-bottom: 0.875rem;
-    font-size: clamp(1.625rem, 7.2vw, 1.875rem);
-    line-height: 1.2;
+    align-self: stretch;
+    margin-bottom: .875rem;
+    font-size: clamp(1.6rem, 7.2vw, 2rem);
+    line-height: 1.13;
     text-wrap: balance;
   }
 
+  .heading span {
+    display: block;
+    color: #723e50;
+    font-style: italic;
+  }
+
+  :global(.dark) .heading span { color: #eac888; }
+
   .description {
-    margin-bottom: 1.5rem;
-    font-size: 0.875rem;
-    line-height: 1.7;
+    align-self: stretch;
+    margin: 0 0 1.25rem;
+    font-size: .9375rem;
+    line-height: 1.6;
     text-wrap: pretty;
   }
 
   .actions {
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
+    gap: .125rem;
+    margin-bottom: .5rem;
   }
 
   .actions > * {
     min-height: 3rem;
     padding: 0.75rem 1rem;
-    font-size: 0.6875rem;
-    letter-spacing: 0.05em;
+    font-size: 0.875rem;
+    letter-spacing: normal;
+    text-transform: none;
   }
+
+  .actions > button {
+    width: auto;
+    background: transparent;
+    border-color: transparent;
+    text-decoration: underline;
+    text-decoration-color: #b88b5699;
+    text-underline-offset: .3em;
+    color: #6b3448;
+    box-shadow: none;
+  }
+
+  :global(.dark) .actions > button { color: #f1dbb0; }
 
   .trust {
-    max-width: 16rem;
-    font-size: 0.6875rem;
-    line-height: 1.6;
-  }
-
-  .trust > span:first-child {
-    flex-shrink: 0;
-  }
-
-  .trust > span:last-child {
-    text-wrap: balance;
+    width: 100%;
+    border-top: 1px solid #b88b5638;
+    padding-top: .875rem;
+    flex-direction: column;
+    gap: .15rem;
+    font-size: .75rem;
+    line-height: 1.5;
   }
 }

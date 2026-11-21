@@ -101,6 +101,7 @@ export default function ReviewsSection() {
   const [activeModalReview, setActiveModalReview] = useState<ReviewItem | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [hasKeyboardFocus, setHasKeyboardFocus] = useState(false);
+  const [currentReview, setCurrentReview] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const phoneLayout = useMediaQuery("(max-width: 639px)");
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -262,7 +263,7 @@ export default function ReviewsSection() {
 
             {/* Main Heading */}
             <h2 className={`${styles.heading} font-serif text-3xl sm:text-4xl lg:text-5xl text-[#0F172A] dark:text-[#FAF8F5] font-normal tracking-tight`}>
-              A Closer Look at Their Experiences
+              A Closer Look at <span>Their Experiences</span>
             </h2>
 
             {/* Subtitle */}
@@ -297,6 +298,9 @@ export default function ReviewsSection() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
               </svg>
             </Button>
+            <span className={styles.position} aria-label={`Review ${currentReview + 1} of ${reviews.length}`}>
+              {currentReview + 1} / {reviews.length}
+            </span>
           </div>
         </div>
 
@@ -309,6 +313,13 @@ export default function ReviewsSection() {
           {/* Scrollable Container with Smooth Marquee Track */}
           <div
             ref={scrollContainerRef}
+            onScroll={phoneLayout ? event => {
+              const container = event.currentTarget;
+              const cards = container.querySelectorAll<HTMLElement>(`.${styles.group} .snap-start`);
+              if (cards.length < 2) return;
+              const step = cards[1].offsetLeft - cards[0].offsetLeft;
+              if (step > 0) setCurrentReview(Math.max(0, Math.min(cards.length - 1, Math.round(container.scrollLeft / step))));
+            } : undefined}
             className={`${styles.scroller} reviews-scroller overflow-x-auto no-scrollbar scroll-smooth pb-4 pt-2`}
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
