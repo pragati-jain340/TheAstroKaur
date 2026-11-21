@@ -5,14 +5,16 @@ import { apiError } from "@/lib/booking/server";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 export async function GET(req: NextRequest) {
-  const expected = process.env.BOOKING_WORKER_SECRET,
-    actual = req.headers.get("authorization")?.replace(/^Bearer /, "") || "";
-  if (
-    !expected ||
-    expected.length < 32 ||
-    actual.length !== expected.length ||
-    !timingSafeEqual(Buffer.from(actual), Buffer.from(expected))
-  )
+  const actual = req.headers.get("authorization")?.replace(/^Bearer /, "") || "";
+  const secrets = [process.env.BOOKING_WORKER_SECRET, process.env.CRON_SECRET].filter(
+    (s): s is string => typeof s === "string" && s.length >= 16,
+  );
+  const authenticated = secrets.some(
+    (s) =>
+      actual.length === s.length &&
+      timingSafeEqual(Buffer.from(actual), Buffer.from(s)),
+  );
+  if (!secrets.length || !authenticated)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     return NextResponse.json(await runWorker());

@@ -10,6 +10,18 @@ import {
 import { validateIntake } from "@/lib/booking/intake";
 import { POLICY_VERSION } from "@/lib/booking/types";
 import { stripe } from "@/lib/payments/stripe";
+
+/** Fire-and-forget: kick the booking worker so it processes jobs promptly. */
+function triggerWorker(req: NextRequest) {
+  const secret = process.env.BOOKING_WORKER_SECRET;
+  if (!secret) return;
+  const origin = req.nextUrl.origin;
+  fetch(`${origin}/api/internal/booking-worker`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${secret}` },
+  }).catch(() => {});
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { user } = await requireCustomer();
@@ -22,21 +34,6 @@ export async function POST(req: NextRequest) {
         "Please review and acknowledge the booking terms.",
       );
     const db = database();
-    const worker = check(
-      await db
-        .from("availability_settings")
-        .select("worker_last_seen_at")
-        .eq("id", true)
-        .single(),
-    );
-    if (
-      !worker?.worker_last_seen_at ||
-      Date.now() - Date.parse(worker.worker_last_seen_at) > 120000
-    )
-      throw new BookingError(
-        "Checkout is temporarily unavailable. Please try again shortly, or contact support if the problem continues.",
-        503,
-      );
     const existing = check(
       await db
         .from("orders")
@@ -81,6 +78,7 @@ export async function POST(req: NextRequest) {
         p_policy: POLICY_VERSION,
       }),
     );
+    triggerWorker(req);
     return NextResponse.json({
       order_id: order.id,
       hold_expires_at: order.hold_expires_at,
